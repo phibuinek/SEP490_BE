@@ -2,17 +2,20 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument, UserRole } from './schemas/user.schema';
+import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '../common/enums/role.enum';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.userModel.findOne({
-      $or: [{ email: createUserDto.email }, { username: createUserDto.username }],
+      $or: [
+        { email: createUserDto.email },
+        { username: createUserDto.username }
+      ]
     });
 
     if (existingUser) {
@@ -23,23 +26,20 @@ export class UsersService {
     const createdUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
-      role: createUserDto.role || UserRole.FAMILY,
+      roles: createUserDto.roles || [Role.FAMILY_MEMBER]
     });
 
-    const savedUser = await createdUser.save();
-    const { password, ...result } = savedUser.toObject();
-    return result as any;
+    return createdUser.save();
   }
 
-  async findAll(role?: UserRole): Promise<User[]> {
-    const filter = role ? { role } : {};
-    return this.userModel.find(filter).select('-password').exec();
+  async findAll(): Promise<User[]> {
+    return this.userModel.find().select('-password').exec();
   }
 
   async findOne(id: string): Promise<User> {
     const user = await this.userModel.findById(id).select('-password').exec();
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException('User not found');
     }
     return user;
   }
@@ -52,24 +52,31 @@ export class UsersService {
     return this.userModel.findOne({ username }).exec();
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+  async updateRoles(userId: string, roles: Role[]): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { roles },
+      { new: true }
+    ).select('-password').exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    const updatedUser = await this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).select('-password').exec();
-
-    if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-    return updatedUser;
+    return user;
   }
 
-  async remove(id: string): Promise<{ deleted: boolean; id: string }> {
-    const result = await this.userModel.deleteOne({ _id: id }).exec();
-    if (result.deletedCount === 0) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+  async deactivateUser(userId: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { isActive: false },
+      { new: true }
+    ).select('-password').exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
-    return { deleted: true, id };
+
+    return user;
   }
 } 
