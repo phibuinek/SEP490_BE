@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ResidentsModule } from './residents/residents.module';
+import { VitalSignsModule } from './vital-signs/vital-signs.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ResidentsModule } from './residents/residents.module';
     UsersModule,
     AuthModule,
     ResidentsModule,
+    VitalSignsModule,
   ],
   controllers: [AppController],
   providers: [
