@@ -11,28 +11,15 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const existingUser = await this.userModel.findOne({
-      $or: [
-        { email: createUserDto.email },
-        { username: createUserDto.username }
-      ]
-    });
-
-    if (existingUser) {
-      throw new BadRequestException('User with this email or username already exists');
-    }
-
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const createdUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
-      roles: createUserDto.roles || [Role.FAMILY_MEMBER]
     });
-
     return createdUser.save();
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(role?: string): Promise<User[]> {
     return this.userModel.find().select('-password').exec();
   }
 
@@ -78,5 +65,21 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  async addResidentToFamily(familyId: string, residentId: any): Promise<User | null> {
+    return this.userModel.findByIdAndUpdate(
+      familyId,
+      { $push: { residents: residentId } },
+      { new: true },
+    ).exec();
+  }
+
+  async removeResidentFromFamily(familyId: string, residentId: any): Promise<User | null> {
+    return this.userModel.findByIdAndUpdate(
+      familyId,
+      { $pull: { residents: residentId } },
+      { new: true },
+    ).exec();
   }
 } 
