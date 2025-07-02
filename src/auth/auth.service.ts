@@ -4,7 +4,7 @@ import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { Role } from '../common/enums/role.enum';
+import { UserRole } from '../users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +15,7 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    if (user && user.isActive && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       const { password, ...result } = user.toObject();
       return result;
     }
@@ -31,7 +31,7 @@ export class AuthService {
     const payload = { 
       email: user.email, 
       sub: user._id.toString(), 
-      roles: user.roles,
+      role: user.role,
       username: user.username
     };
     
@@ -41,8 +41,8 @@ export class AuthService {
         id: user._id.toString(),
         email: user.email,
         username: user.username,
-        fullName: user.fullName,
-        roles: user.roles,
+        full_name: user.full_name,
+        role: user.role,
       }
     };
   }
@@ -54,15 +54,15 @@ export class AuthService {
 
     const { confirmPassword, ...createUserDto } = registerDto;
     
-    // Default role is FAMILY_MEMBER for registration
-    createUserDto.roles = [Role.FAMILY_MEMBER];
+    // Default role is FAMILY for registration
+    (createUserDto as any).role = UserRole.FAMILY;
     
-    const user = await this.usersService.create(createUserDto);
+    const user = await this.usersService.create(createUserDto as any);
     
     const payload = { 
       email: user.email, 
       sub: (user as any)._id.toString(), 
-      roles: user.roles,
+      role: user.role,
       username: user.username
     };
     
@@ -72,8 +72,8 @@ export class AuthService {
          id: (user as any)._id.toString(),
          email: user.email,
          username: user.username,
-         fullName: user.fullName,
-         roles: user.roles,
+         full_name: user.full_name,
+         role: user.role,
        }
      };
   }
