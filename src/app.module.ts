@@ -8,8 +8,6 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ResidentsModule } from './residents/residents.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
-import { CarePlanModule } from './care-plan/care-plan.module';
-import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -18,8 +16,6 @@ import { ActivityModule } from './activity/activity.module';
     AuthModule,
     ResidentsModule,
     VitalSignsModule,
-    CarePlanModule,
-    ActivityModule,
   ],
   controllers: [AppController],
   providers: [
