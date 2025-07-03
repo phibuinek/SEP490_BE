@@ -14,12 +14,8 @@ export class DatabaseSeeder implements OnModuleInit {
   }
 
   private async seedUsers() {
-    const adminExists = await this.userModel.findOne({ roles: Role.ADMIN });
-    if (adminExists) {
-      console.log('Admin user already exists, skipping seeding...');
-      return;
-    }
-
+    console.log('Seeding or updating default users...');
+    
     const users = [
       {
         username: 'admin',
@@ -48,7 +44,13 @@ export class DatabaseSeeder implements OnModuleInit {
     ];
 
     try {
-      await this.userModel.insertMany(users);
+      for (const user of users) {
+        await this.userModel.updateOne(
+          { email: user.email },
+          { $set: user },
+          { upsert: true } // Creates the user if it doesn't exist
+        );
+      }
       console.log('Seeded default users successfully');
       console.log('Admin: admin@example.com / admin123');
       console.log('Staff: staff@example.com / staff123');
