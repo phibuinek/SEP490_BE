@@ -12,10 +12,12 @@ import { VitalSignsModule } from './vital-signs/vital-signs.module';
 import { PaymentModule } from './payment/payment.module';
 import { BillsModule } from './bills/bills.module';
 import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nhms_db'),
+    DatabaseModule,
     UsersModule,
     AuthModule,
     ResidentsModule,
