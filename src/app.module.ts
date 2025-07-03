@@ -7,7 +7,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ResidentsModule } from './residents/residents.module';
+import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
+import { PaymentModule } from './payment/payment.module';
+import { BillsModule } from './bills/bills.module';
+import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
 
 @Module({
   imports: [
@@ -15,7 +19,11 @@ import { VitalSignsModule } from './vital-signs/vital-signs.module';
     UsersModule,
     AuthModule,
     ResidentsModule,
+    BedsModule,
     VitalSignsModule,
+    PaymentModule,
+    BillsModule,
+    CarePlanAssignmentsModule,
   ],
   controllers: [AppController],
   providers: [
