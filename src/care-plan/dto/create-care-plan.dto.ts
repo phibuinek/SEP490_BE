@@ -1,80 +1,68 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum, IsArray, ValidateNested, IsBoolean } from 'class-validator';
-import { Type } from 'class-transformer';
-import { CarePlanStatus, CarePlanPriority } from '../schemas/care-plan.schema';
-
-class TaskDto {
-  @ApiProperty({ example: 'Kiểm tra huyết áp hàng ngày' })
-  @IsString()
-  @IsNotEmpty()
-  title: string;
-
-  @ApiProperty({ example: 'Đo huyết áp vào buổi sáng và tối', required: false })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty({ example: false, default: false })
-  @IsBoolean()
-  @IsOptional()
-  completed?: boolean;
-
-  @ApiProperty({ example: '2024-06-15', required: false })
-  @IsDateString()
-  @IsOptional()
-  dueDate?: Date;
-}
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, IsBoolean } from 'class-validator';
 
 export class CreateCarePlanDto {
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e123', description: 'Resident ID' })
+  @ApiProperty({ example: 'Gói Chăm Sóc Tiêu Chuẩn' })
   @IsString()
   @IsNotEmpty()
-  residentId: string;
+  planName: string;
 
-  @ApiProperty({ example: 'Kế hoạch chăm sóc sức khỏe tổng quát' })
-  @IsString()
-  @IsNotEmpty()
-  title: string;
-
-  @ApiProperty({ example: 'Kế hoạch chăm sóc sức khỏe cho bệnh nhân cao tuổi' })
+  @ApiProperty({ example: 'Gói chăm sóc cơ bản cho người cao tuổi' })
   @IsString()
   @IsNotEmpty()
   description: string;
 
-  @ApiProperty({ example: '2024-06-01' })
-  @IsDateString()
+  @ApiProperty({ example: 6000000 })
+  @IsNumber()
   @IsNotEmpty()
-  startDate: Date;
+  monthlyPrice: number;
 
-  @ApiProperty({ example: '2024-12-31' })
-  @IsDateString()
-  @IsNotEmpty()
-  endDate: Date;
-
-  @ApiProperty({ enum: CarePlanStatus, example: CarePlanStatus.DRAFT })
-  @IsEnum(CarePlanStatus)
-  @IsOptional()
-  status?: CarePlanStatus;
-
-  @ApiProperty({ enum: CarePlanPriority, example: CarePlanPriority.MEDIUM })
-  @IsEnum(CarePlanPriority)
-  @IsOptional()
-  priority?: CarePlanPriority;
-
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e124', description: 'Assigned staff ID' })
+  @ApiProperty({ example: 'cham_soc_tieu_chuan' })
   @IsString()
   @IsNotEmpty()
-  assignedTo: string;
+  planType: string;
 
-  @ApiProperty({ type: [TaskDto], required: false })
+  @ApiProperty({ example: 'main' })
+  @IsString()
+  @IsNotEmpty()
+  category: string;
+
+  @ApiProperty({ type: [String], example: ['Chăm sóc y tế 24/7', '3 bữa ăn chính'] })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TaskDto)
+  @IsString({ each: true })
   @IsOptional()
-  tasks?: TaskDto[];
+  servicesIncluded?: string[];
 
-  @ApiProperty({ example: 'Ghi chú bổ sung cho kế hoạch chăm sóc', required: false })
+  @ApiProperty({ example: '1:8' })
   @IsString()
+  @IsNotEmpty()
+  staffRatio: string;
+
+  @ApiProperty({ example: 'monthly' })
+  @IsString()
+  @IsNotEmpty()
+  durationType: string;
+
+  @ApiProperty({ type: [String], example: [], required: false })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  notes?: string;
+  defaultMedications?: string[];
+
+  @ApiProperty({ type: [String], example: ['Yêu cầu sức khỏe ổn định'], required: false })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  prerequisites?: string[];
+
+  @ApiProperty({ type: [String], example: [], required: false })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  contraindications?: string[];
+
+  @ApiProperty({ example: true, default: true })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 } 
