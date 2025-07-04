@@ -7,10 +7,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ResidentsModule } from './residents/residents.module';
+import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
-import { CarePlanModule } from './care-plan/care-plan.module';
-import { ActivityModule } from './activity/activity.module';
-import { ActivityParticipationsModule } from './activity-participations/activity-participations.module';
+import { PaymentModule } from './payment/payment.module';
+import { BillsModule } from './bills/bills.module';
+import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
 
 @Module({
   imports: [
@@ -18,10 +19,11 @@ import { ActivityParticipationsModule } from './activity-participations/activity
     UsersModule,
     AuthModule,
     ResidentsModule,
+    BedsModule,
     VitalSignsModule,
-    CarePlanModule,
-    ActivityModule,
-    ActivityParticipationsModule,
+    PaymentModule,
+    BillsModule,
+    CarePlanAssignmentsModule,
   ],
   controllers: [AppController],
   providers: [

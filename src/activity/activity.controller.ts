@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
-import { UpdateActivityDto } from './dto/update-activity.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -28,12 +27,6 @@ export class ActivityController {
   @ApiOperation({ summary: 'Get an activity template by ID' })
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update an activity template' })
-  update(@Param('id') id: string, @Body() dto: UpdateActivityDto) {
-    return this.service.update(id, dto);
   }
 
   @Delete(':id')

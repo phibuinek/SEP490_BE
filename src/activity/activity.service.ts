@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Activity, ActivityDocument } from './schemas/activity.schema';
 import { CreateActivityDto } from './dto/create-activity.dto';
-import { UpdateActivityDto } from './dto/update-activity.dto';
 
 @Injectable()
 export class ActivityService {
@@ -26,16 +25,6 @@ export class ActivityService {
       throw new NotFoundException(`Activity with ID "${id}" not found`);
     }
     return activity;
-  }
-
-  async update(id: string, updateDto: UpdateActivityDto): Promise<Activity> {
-    const existingActivity = await this.activityModel
-      .findByIdAndUpdate(id, updateDto, { new: true })
-      .exec();
-    if (!existingActivity) {
-      throw new NotFoundException(`Activity with ID "${id}" not found`);
-    }
-    return existingActivity;
   }
 
   async remove(id: string): Promise<any> {

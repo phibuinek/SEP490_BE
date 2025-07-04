@@ -156,3 +156,43 @@ curl -X POST http://localhost:3000/users \
 - Role-based access control (RBAC)
 - Global authentication guard
 - Input validation và sanitization 
+
+## Tạo Care Plan Assignment và Bill tự động
+
+### 1. Tạo Care Plan Assignment (gán gói dịch vụ cho cư dân)
+
+- Endpoint: `POST /care-plan-assignments`
+- Yêu cầu: Token của staff/admin
+- Request body mẫu:
+```json
+{
+  "resident_id": "<resident_id>",
+  "staff_id": "<staff_id>",
+  "care_plan_id": "<care_plan_id>",
+  "start_date": "2024-07-01T00:00:00.000Z",
+  "end_date": "2024-08-01T00:00:00.000Z",
+  "description": "Gán gói chăm sóc tiêu chuẩn cho cư dân",
+  "status": "active"
+}
+```
+- Khi tạo thành công, hệ thống sẽ tự động tạo một Bill tương ứng với assignment này.
+
+### 2. Kiểm tra Bill đã được tạo tự động
+
+- Endpoint: `GET /bills?resident_id=<resident_id>` (hoặc `GET /bills` để xem tất cả)
+- Bill sẽ có các trường:
+  - `family_member_id`: Lấy từ resident
+  - `resident_id`, `care_plan_assignment_id`, `staff_id`, `amount`, `due_date`, ...
+  - `status`: `unpaid`
+  - `payment_method`: `bank_transfer`
+  - `notes`: "Thanh toán cho gói dịch vụ: <tên gói>"
+
+### 3. Quy trình test tổng quát
+1. Đăng nhập lấy access_token (staff hoặc admin)
+2. Tạo resident, staff, care plan nếu chưa có
+3. Gọi API `POST /care-plan-assignments` với các id tương ứng
+4. Gọi API `GET /bills` để kiểm tra bill đã được tạo tự động
+
+### 4. Lưu ý
+- Nếu muốn test thanh toán, có thể dùng API `PATCH /bills/:id` để cập nhật trạng thái bill sang `paid`.
+- Các trường id phải là ObjectId hợp lệ trong database. 
