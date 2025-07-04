@@ -10,6 +10,9 @@ export class CarePlanAssignment extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   staff_id: MongooseSchema.Types.ObjectId;
 
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlan', required: true })
+  care_plan_id: MongooseSchema.Types.ObjectId;
+
   @Prop({ required: true })
   care_plan_name: string;
 

@@ -10,5 +10,6 @@ import { BillsService } from './bills.service';
   ],
   controllers: [BillsController],
   providers: [BillsService],
+  exports: [BillsService],
 })
 export class BillsModule {} 

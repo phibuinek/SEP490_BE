@@ -11,8 +11,12 @@ export class VitalSignsService {
     @InjectModel(VitalSign.name) private vitalSignModel: Model<VitalSignDocument>,
   ) {}
 
-  async create(createDto: CreateVitalSignDto): Promise<VitalSign> {
-    return this.vitalSignModel.create(createDto);
+  async create(createDto: CreateVitalSignDto, userId: string): Promise<VitalSign> {
+    const createdVitalSign = new this.vitalSignModel({
+      ...createDto,
+      recordedBy: userId,
+    });
+    return createdVitalSign.save();
   }
 
   async findAll(): Promise<VitalSign[]> {

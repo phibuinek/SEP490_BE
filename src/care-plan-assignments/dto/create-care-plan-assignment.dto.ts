@@ -44,4 +44,9 @@ export class CreateCarePlanAssignmentDto {
   @IsOptional()
   @IsEnum(CarePlanStatus)
   status: CarePlanStatus;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsMongoId()
+  care_plan_id: string;
 } 

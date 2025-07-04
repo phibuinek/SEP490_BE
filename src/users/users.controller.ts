@@ -15,8 +15,8 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Create a new user (Admin only)' })
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Create a new user (Admin and Staff only)' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -44,8 +44,8 @@ export class UsersController {
   }
 
   @Patch(':id/roles')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Update user roles (Admin only)' })
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Update user roles (Admin and Staff only)' })
   @ApiResponse({ status: 200, description: 'User roles updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -54,8 +54,8 @@ export class UsersController {
   }
 
   @Patch(':id/deactivate')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Deactivate user (Admin only)' })
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Deactivate user (Admin and Staff only)' })
   @ApiResponse({ status: 200, description: 'User deactivated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
