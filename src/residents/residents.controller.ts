@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
@@ -49,8 +49,19 @@ export class ResidentsController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Resident not found.' })
-  findOne(@Param('id') id: string) {
-    return this.residentsService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req) {
+    const resident = await this.residentsService.findOne(id);
+    const user = req.user;
+    if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
+      return resident;
+    }
+    if (
+      user.roles.includes(Role.FAMILY_MEMBER) &&
+      resident.familyMemberId?.toString() === user.userId
+    ) {
+      return resident;
+    }
+    throw new ForbiddenException('Bạn không có quyền xem resident này!');
   }
 
   @Patch(':id')

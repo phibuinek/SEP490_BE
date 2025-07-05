@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Param } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Resident, ResidentDocument } from './schemas/resident.schema';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { Bed, BedDocument, BedStatus } from '../beds/schemas/bed.schema';
+import { UseGuards, Req } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 
 @Injectable()
 export class ResidentsService {
@@ -23,10 +28,8 @@ export class ResidentsService {
   }
 
   async findOne(id: string): Promise<Resident> {
-    const resident = await this.residentModel.findById(id).populate('familyMemberId', 'fullName email').exec();
-    if (!resident) {
-      throw new NotFoundException(`Resident with ID ${id} not found`);
-    }
+    const resident = await this.residentModel.findById(id);
+    if (!resident) throw new NotFoundException(`Resident with ID ${id} not found`);
     return resident;
   }
 
