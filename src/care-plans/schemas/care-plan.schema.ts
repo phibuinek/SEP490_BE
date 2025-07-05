@@ -1,7 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-
-export type CarePlanDocument = CarePlan & Document;
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
 export class CarePlan {
@@ -40,6 +38,11 @@ export class CarePlan {
 
   @Prop({ default: true, name: 'is_active' })
   isActive: boolean;
+
+  // 👇 Thêm vào đây để tránh lỗi khi truy cập careplan._id
+  _id?: Types.ObjectId;
 }
 
-export const CarePlanSchema = SchemaFactory.createForClass(CarePlan); 
+export type CarePlanDocument = CarePlan & Document;
+
+export const CarePlanSchema = SchemaFactory.createForClass(CarePlan);

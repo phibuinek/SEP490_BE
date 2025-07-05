@@ -1,20 +1,10 @@
+// dto/create-payment.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsMongoId } from 'class-validator';
 
 export class CreatePaymentDto {
-  @ApiProperty({
-    example: 10000,
-    description: 'Amount of money to be paid',
-  })
-  @IsNumber()
+  @ApiProperty({ example: '64e0123abc4567ef89a0b1cd' })
+  @IsMongoId()
   @IsNotEmpty()
-  amount: number;
-
-  @ApiProperty({
-    example: 'Thanh toan don hang',
-    description: 'Description for the payment',
-  })
-  @IsString()
-  @IsNotEmpty()
-  description: string;
-} 
+  carePlan: string;
+}
