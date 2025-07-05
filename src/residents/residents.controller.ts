@@ -4,13 +4,14 @@ import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Role } from '../common/enums/role.enum';
 import { ApiOperation, ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 
 @ApiTags('residents')
 @ApiBearerAuth()
 @Controller('residents')
-@UseGuards(RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ResidentsController {
   constructor(private readonly residentsService: ResidentsService) {}
 
@@ -36,8 +37,11 @@ export class ResidentsController {
   }
 
   @Get('family-member/:familyMemberId')
-  @UseGuards(RolesGuard)
   @Roles(Role.FAMILY_MEMBER, Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get residents by family member ID' })
+  @ApiResponse({ status: 200, description: 'Residents retrieved successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAllByFamilyMemberId(@Param('familyMemberId') familyMemberId: string) {
     return this.residentsService.findAllByFamilyMemberId(familyMemberId);
   }
