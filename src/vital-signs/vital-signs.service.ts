@@ -23,6 +23,10 @@ export class VitalSignsService {
     return this.vitalSignModel.find();
   }
 
+  async findAllByResidentId(residentId: string): Promise<VitalSign[]> {
+    return this.vitalSignModel.find({ residentId: residentId }).exec();
+  }
+
   async findOne(id: string): Promise<VitalSign> {
     const vital = await this.vitalSignModel.findById(id);
     if (!vital) throw new NotFoundException('Vital sign not found');

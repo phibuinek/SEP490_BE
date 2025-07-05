@@ -14,5 +14,6 @@ import { BedsModule } from '../beds/beds.module';
   ],
   controllers: [ResidentsController],
   providers: [ResidentsService],
+  exports: [ResidentsService],
 })
 export class ResidentsModule {}
