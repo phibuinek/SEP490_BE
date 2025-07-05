@@ -24,7 +24,13 @@ export class ResidentsService {
   }
 
   async findAll(): Promise<Resident[]> {
-    return this.residentModel.find().populate('familyMemberId', 'fullName email').exec();
+    const residents = await this.residentModel.find().populate('familyMemberId', 'fullName email').exec();
+    console.log('All residents in DB:', residents.map(r => ({ 
+      id: r._id, 
+      fullName: r.fullName, 
+      familyMemberId: r.familyMemberId 
+    })));
+    return residents;
   }
 
   async findOne(id: string): Promise<Resident> {
@@ -34,7 +40,10 @@ export class ResidentsService {
   }
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
-    return this.residentModel.find({ family_member_id: familyMemberId }).exec();
+    console.log('Searching for familyMemberId:', familyMemberId);
+    const residents = await this.residentModel.find({ familyMemberId: familyMemberId }).exec();
+    console.log('Found residents:', residents);
+    return residents;
   }
 
   async update(id: string, updateResidentDto: UpdateResidentDto): Promise<Resident> {
