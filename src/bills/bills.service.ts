@@ -4,14 +4,40 @@ import { Model } from 'mongoose';
 import { Bill } from './schemas/bill.schema';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
+import { CarePlansService } from '../care-plans/care-plans.service';
 
 @Injectable()
 export class BillsService {
-  constructor(@InjectModel(Bill.name) private billModel: Model<Bill>) {}
+  constructor(
+    @InjectModel(Bill.name) private billModel: Model<Bill>,
+    private readonly carePlansService: CarePlansService,
+  ) {}
 
   async create(createBillDto: CreateBillDto): Promise<Bill> {
-    const createdBill = new this.billModel(createBillDto);
-    return createdBill.save();
+    const carePlan = await this.carePlansService.findOne(
+      createBillDto.care_plan_id.toString(),
+    );
+
+    if (!carePlan) {
+      throw new NotFoundException(
+        `CarePlan with ID "${createBillDto.care_plan_id}" not found`,
+      );
+    }
+
+    const newBill = new this.billModel({
+      ...createBillDto,
+      amount: carePlan.monthlyPrice,
+      care_plan_snapshot: {
+        planName: carePlan.planName,
+        description: carePlan.description,
+        monthlyPrice: carePlan.monthlyPrice,
+        planType: carePlan.planType,
+        category: carePlan.category,
+        staffRatio: carePlan.staffRatio,
+      },
+    });
+
+    return newBill.save();
   }
 
   async findAll(): Promise<Bill[]> {

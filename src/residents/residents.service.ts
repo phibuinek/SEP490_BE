@@ -30,6 +30,10 @@ export class ResidentsService {
     return resident;
   }
 
+  async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
+    return this.residentModel.find({ family_member_id: familyMemberId }).exec();
+  }
+
   async update(id: string, updateResidentDto: UpdateResidentDto): Promise<Resident> {
     const updatedResident = await this.residentModel
       .findByIdAndUpdate(id, updateResidentDto, { new: true })

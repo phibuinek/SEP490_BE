@@ -27,6 +27,19 @@ export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   staff_id: MongooseSchema.Types.ObjectId;
 
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlan' })
+  care_plan_id: MongooseSchema.Types.ObjectId;
+
+  @Prop({ type: Object })
+  care_plan_snapshot: {
+    planName: string;
+    description: string;
+    monthlyPrice: number;
+    planType: string;
+    category: string;
+    staffRatio: string;
+  };
+
   @Prop({ required: true })
   amount: number;
 

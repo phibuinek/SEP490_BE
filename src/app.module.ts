@@ -11,8 +11,9 @@ import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
 import { PaymentModule } from './payment/payment.module';
 import { BillsModule } from './bills/bills.module';
-import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
+// import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
 import { DatabaseModule } from './database/database.module';
+import { CarePlansModule } from './care-plans/care-plans.module';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { DatabaseModule } from './database/database.module';
     VitalSignsModule,
     PaymentModule,
     BillsModule,
-    CarePlanAssignmentsModule,
+    // CarePlanAssignmentsModule,
+    CarePlansModule,
   ],
   controllers: [AppController],
   providers: [

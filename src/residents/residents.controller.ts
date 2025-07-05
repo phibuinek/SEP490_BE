@@ -35,6 +35,13 @@ export class ResidentsController {
     return this.residentsService.findAll();
   }
 
+  @Get('family-member/:familyMemberId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.FAMILY_MEMBER, Role.ADMIN, Role.STAFF)
+  findAllByFamilyMemberId(@Param('familyMemberId') familyMemberId: string) {
+    return this.residentsService.findAllByFamilyMemberId(familyMemberId);
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
   @ApiOperation({ summary: 'Get resident by ID' })

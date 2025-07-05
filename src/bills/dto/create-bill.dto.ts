@@ -1,64 +1,28 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  IsDateString,
-  IsOptional,
-  IsEnum,
-  IsMongoId,
-} from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-import { PaymentMethod } from '../enums/payment-method.enum';
-import { BillStatus } from '../enums/bill-status.enum';
+import { IsDateString, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Schema } from 'mongoose';
 
 export class CreateBillDto {
-  @ApiProperty()
-  @IsNotEmpty()
   @IsMongoId()
-  family_member_id: string;
-
-  @ApiProperty()
   @IsNotEmpty()
+  readonly family_member_id: Schema.Types.ObjectId;
+
   @IsMongoId()
-  resident_id: string;
-
-  @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
+  readonly resident_id: Schema.Types.ObjectId;
+  
   @IsMongoId()
-  care_plan_assignment_id: string;
-
-  @ApiProperty()
   @IsNotEmpty()
+  readonly care_plan_id: Schema.Types.ObjectId;
+
   @IsMongoId()
-  staff_id: string;
-
-  @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
-  amount: number;
+  readonly staff_id: Schema.Types.ObjectId;
 
-  @ApiProperty()
-  @IsNotEmpty()
   @IsDateString()
-  due_date: string;
+  @IsNotEmpty()
+  readonly due_date: Date;
 
-  @ApiProperty()
-  @IsOptional()
-  @IsDateString()
-  paid_date: string;
-
-  @ApiProperty({ enum: PaymentMethod })
-  @IsOptional()
-  @IsEnum(PaymentMethod)
-  payment_method: PaymentMethod;
-
-  @ApiProperty({ enum: BillStatus })
-  @IsOptional()
-  @IsEnum(BillStatus)
-  status: BillStatus;
-
-  @ApiProperty()
-  @IsOptional()
   @IsString()
-  notes: string;
+  @IsOptional()
+  readonly notes: string;
 } 

@@ -9,8 +9,8 @@ import { Response } from 'express';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @Post('create-payment-link')
-  async createPaymentLink(@Body() createPaymentDto: CreatePaymentDto) {
+  @Post()
+  async create(@Body() createPaymentDto: CreatePaymentDto) {
     return this.paymentService.createPaymentLink(createPaymentDto);
   }
 
