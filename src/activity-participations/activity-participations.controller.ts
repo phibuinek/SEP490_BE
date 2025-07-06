@@ -36,6 +36,18 @@ export class ActivityParticipationsController {
     return this.service.update(id, updateDto);
   }
 
+  @Patch(':id/approve')
+  @ApiOperation({ summary: 'Approve an activity participation (admin)' })
+  approve(@Param('id') id: string) {
+    return this.service.approve(id);
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({ summary: 'Reject an activity participation (admin)' })
+  reject(@Param('id') id: string) {
+    return this.service.reject(id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a participation record' })
   remove(@Param('id') id: string) {

@@ -14,6 +14,9 @@ import { BillsModule } from './bills/bills.module';
 // import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
 import { DatabaseModule } from './database/database.module';
 import { CarePlansModule } from './care-plans/care-plans.module';
+import { ServiceRequestsModule } from './service-requests/service-requests.module';
+import { FinanceModule } from './finance/finance.module';
+import { ResidentPhotosModule } from './resident-photos/resident-photos.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { CarePlansModule } from './care-plans/care-plans.module';
     BillsModule,
     // CarePlanAssignmentsModule,
     CarePlansModule,
+    ServiceRequestsModule,
+    FinanceModule,
+    ResidentPhotosModule,
   ],
   controllers: [AppController],
   providers: [

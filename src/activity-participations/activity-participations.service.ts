@@ -59,4 +59,28 @@ export class ActivityParticipationsService {
     }
     return { deleted: true };
   }
+
+  async approve(id: string): Promise<ActivityParticipation> {
+    const participation = await this.participationModel.findByIdAndUpdate(
+      id,
+      { approvalStatus: 'approved' },
+      { new: true }
+    ).exec();
+    if (!participation) {
+      throw new NotFoundException(`Participation with ID "${id}" not found`);
+    }
+    return participation;
+  }
+
+  async reject(id: string): Promise<ActivityParticipation> {
+    const participation = await this.participationModel.findByIdAndUpdate(
+      id,
+      { approvalStatus: 'rejected' },
+      { new: true }
+    ).exec();
+    if (!participation) {
+      throw new NotFoundException(`Participation with ID "${id}" not found`);
+    }
+    return participation;
+  }
 } 

@@ -23,13 +23,16 @@ export class ResidentsService {
     return createdResident.save();
   }
 
-  async findAll(): Promise<Resident[]> {
-    const residents = await this.residentModel.find().populate('familyMemberId', 'fullName email').exec();
-    console.log('All residents in DB:', residents.map(r => ({ 
-      id: r._id, 
-      fullName: r.fullName, 
-      familyMemberId: r.familyMemberId 
-    })));
+  async findAll(careLevel?: string): Promise<Resident[]> {
+    let filter: any = {};
+    if (careLevel) {
+      if (careLevel === 'unregistered') {
+        filter.careLevel = { $exists: false };
+      } else {
+        filter.careLevel = careLevel;
+      }
+    }
+    const residents = await this.residentModel.find(filter).populate('familyMemberId', 'fullName email').exec();
     return residents;
   }
 

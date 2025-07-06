@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, Query } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
@@ -6,7 +6,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Role } from '../common/enums/role.enum';
-import { ApiOperation, ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('residents')
 @ApiBearerAuth()
@@ -34,6 +34,14 @@ export class ResidentsController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
     return this.residentsService.findAll();
+  }
+
+  @Get('by-care-level')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get residents by care level' })
+  @ApiQuery({ name: 'careLevel', required: true, enum: ['basic', 'intermediate', 'advanced', 'specialized', 'unregistered'], description: 'Lọc theo gói chăm sóc' })
+  findByCareLevel(@Query('careLevel') careLevel: string) {
+    return this.residentsService.findAll(careLevel);
   }
 
   @Get('family-member/:familyMemberId')

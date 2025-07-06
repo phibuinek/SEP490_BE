@@ -19,8 +19,12 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async findAll(role?: string): Promise<User[]> {
-    return this.userModel.find().select('-password').exec();
+  async findAll(department?: string): Promise<User[]> {
+    const filter: any = {};
+    if (department) {
+      filter.department = department;
+    }
+    return this.userModel.find(filter).select('-password').exec();
   }
 
   async findOne(id: string): Promise<User> {
@@ -37,6 +41,13 @@ export class UsersService {
 
   async findByUsername(username: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ username }).exec();
+  }
+
+  async findByDepartment(department: string): Promise<User[]> {
+    return this.userModel.find({
+      department,
+      roles: { $in: ['staff'] }
+    }).select('-password').exec();
   }
 
   async updateRoles(userId: string, roles: Role[]): Promise<User> {

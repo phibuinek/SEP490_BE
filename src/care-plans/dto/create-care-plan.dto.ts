@@ -61,4 +61,20 @@ export class CreateCarePlanDto {
   @IsBoolean()
   @IsOptional()
   readonly isActive: boolean;
+
+  @IsString()
+  @IsOptional()
+  readonly hotline?: string;
+
+  @IsString()
+  @IsOptional()
+  readonly contactInfo?: string;
+
+  @IsString()
+  @IsOptional()
+  readonly note?: string;
+
+  @IsString()
+  @IsOptional()
+  readonly terms?: string;
 } 

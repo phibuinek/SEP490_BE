@@ -33,6 +33,14 @@ export class ActivityParticipation {
     name: 'attendance_status',
   })
   attendanceStatus: AttendanceStatus;
+
+  @Prop({
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+    name: 'approval_status',
+  })
+  approvalStatus: string;
 }
 
 export const ActivityParticipationSchema = SchemaFactory.createForClass(ActivityParticipation); 

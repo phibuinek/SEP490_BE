@@ -1,0 +1,33 @@
+import { IsString, IsOptional, IsArray } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export class CreateResidentPhotoDto {
+  @IsString()
+  residentId: string;
+
+  @IsOptional()
+  @IsString()
+  caption?: string;
+
+  @IsOptional()
+  @IsString()
+  activityType?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => (value === undefined ? undefined : Array.isArray(value) ? value : [value]))
+  tags?: string[];
+
+  @IsOptional()
+  @IsString()
+  takenDate?: string;
+
+  @IsOptional()
+  @IsString()
+  staffNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  relatedActivityId?: string;
+} 

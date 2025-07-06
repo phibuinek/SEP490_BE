@@ -4,9 +4,10 @@ import { Model } from 'mongoose';
 import { Bed, BedDocument } from './schemas/bed.schema';
 import { CreateBedDto } from './dto/create-bed.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Beds')
+@ApiBearerAuth()
 @Controller('beds')
 export class BedsController {
   constructor(
