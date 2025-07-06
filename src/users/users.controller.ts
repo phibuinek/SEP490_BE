@@ -26,12 +26,13 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @ApiQuery({ name: 'role', required: false, enum: ['admin', 'staff', 'family'], description: 'Lọc theo vai trò' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query('role') role?: string) {
+    return this.usersService.findAll(undefined, role);
   }
 
   @Get('by-department')

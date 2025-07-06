@@ -19,10 +19,13 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async findAll(department?: string): Promise<User[]> {
+  async findAll(department?: string, role?: string): Promise<User[]> {
     const filter: any = {};
     if (department) {
       filter.department = department;
+    }
+    if (role) {
+      filter.roles = { $in: [role] };
     }
     return this.userModel.find(filter).select('-password').exec();
   }
