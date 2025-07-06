@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('users')
 @Controller('users')
@@ -71,6 +72,7 @@ export class UsersController {
     return this.usersService.deactivateUser(id);
   }
 
+  @Public()
   @Patch(':id/activate')
   @ApiOperation({ summary: 'Activate user (Anyone can activate)' })
   @ApiResponse({ status: 200, description: 'User activated successfully.' })
