@@ -17,6 +17,7 @@ import { CarePlansModule } from './care-plans/care-plans.module';
 import { ServiceRequestsModule } from './service-requests/service-requests.module';
 import { FinanceModule } from './finance/finance.module';
 import { ResidentPhotosModule } from './resident-photos/resident-photos.module';
+import { VisitsModule } from './visits/visits.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ResidentPhotosModule } from './resident-photos/resident-photos.module';
     ServiceRequestsModule,
     FinanceModule,
     ResidentPhotosModule,
+    VisitsModule,
   ],
   controllers: [AppController],
   providers: [
