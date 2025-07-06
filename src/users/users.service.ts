@@ -78,6 +78,20 @@ export class UsersService {
     return user;
   }
 
+  async activateUser(userId: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { isActive: true },
+      { new: true }
+    ).select('-password').exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
   async addResidentToFamily(familyId: string, residentId: any): Promise<User | null> {
     return this.userModel.findByIdAndUpdate(
       familyId,

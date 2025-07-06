@@ -70,4 +70,12 @@ export class UsersController {
   deactivateUser(@Param('id') id: string) {
     return this.usersService.deactivateUser(id);
   }
+
+  @Patch(':id/activate')
+  @ApiOperation({ summary: 'Activate user (Anyone can activate)' })
+  @ApiResponse({ status: 200, description: 'User activated successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  activateUser(@Param('id') id: string) {
+    return this.usersService.activateUser(id);
+  }
 } 
