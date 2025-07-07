@@ -18,6 +18,8 @@ import { ServiceRequestsModule } from './service-requests/service-requests.modul
 import { FinanceModule } from './finance/finance.module';
 import { ResidentPhotosModule } from './resident-photos/resident-photos.module';
 import { VisitsModule } from './visits/visits.module';
+import { ActivityModule } from './activity/activity.module';
+import { ActivityParticipationsModule } from './activity-participations/activity-participations.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { VisitsModule } from './visits/visits.module';
     FinanceModule,
     ResidentPhotosModule,
     VisitsModule,
+    ActivityModule,
+    ActivityParticipationsModule,
   ],
   controllers: [AppController],
   providers: [

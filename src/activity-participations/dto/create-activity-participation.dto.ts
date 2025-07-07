@@ -32,4 +32,9 @@ export class CreateActivityParticipationDto {
   @IsEnum(AttendanceStatus)
   @IsNotEmpty()
   attendanceStatus: AttendanceStatus;
+
+  @ApiProperty({ enum: ['pending', 'approved', 'rejected'], required: false })
+  @IsString()
+  @IsOptional()
+  approvalStatus?: string;
 } 

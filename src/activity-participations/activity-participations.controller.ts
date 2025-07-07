@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { ActivityParticipationsService } from './activity-participations.service';
 import { CreateActivityParticipationDto } from './dto/create-activity-participation.dto';
 import { UpdateActivityParticipationDto } from './dto/update-activity-participation.dto';
@@ -52,5 +52,18 @@ export class ActivityParticipationsController {
   @ApiOperation({ summary: 'Delete a participation record' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);
+  }
+
+  @Get('family-today')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Family get today activities of their resident' })
+  async getTodayForFamily(
+    @Req() req,
+    @Query('resident_id') residentId: string,
+    @Query('date') date?: string
+  ) {
+    // Lấy userId từ JWT
+    const familyId = req.user.userId;
+    return this.service.getTodayForFamily(familyId, residentId, date);
   }
 } 
