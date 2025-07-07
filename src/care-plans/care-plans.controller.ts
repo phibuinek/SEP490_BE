@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { CarePlansService } from './care-plans.service';
 import { CreateCarePlanDto } from './dto/create-care-plan.dto';
@@ -37,6 +38,14 @@ export class CarePlansController {
   @ApiResponse({ status: 200, description: 'List all care plans.' })
   findAll() {
     return this.carePlansService.findAll();
+  }
+
+  @Get('by-family')
+  @Roles(Role.FAMILY_MEMBER)
+  @ApiOperation({ summary: 'Get care plans by familyId (Family only)' })
+  @ApiResponse({ status: 200, description: 'List care plans by family.' })
+  async getCarePlansByFamily(@Query('familyId') familyId: string) {
+    return this.carePlansService.findByFamilyId(familyId);
   }
 
   @Get(':id')

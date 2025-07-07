@@ -1,14 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CarePlan, CarePlanDocument } from './schemas/care-plan.schema';
 import { CreateCarePlanDto } from './dto/create-care-plan.dto';
 import { UpdateCarePlanDto } from './dto/update-care-plan.dto';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 
 @Injectable()
 export class CarePlansService {
   constructor(
     @InjectModel(CarePlan.name) private carePlanModel: Model<CarePlanDocument>,
+    @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
   ) {}
 
   async create(createCarePlanDto: CreateCarePlanDto): Promise<CarePlan> {
@@ -47,5 +49,14 @@ export class CarePlansService {
       throw new NotFoundException(`CarePlan with ID "${id}" not found`);
     }
     return deletedCarePlan;
+  }
+
+  async findByFamilyId(familyId: string): Promise<CarePlan[]> {
+    // Lấy tất cả resident thuộc familyId
+    const residents = await this.residentModel.find({ familyMemberId: familyId }).exec();
+    const carePlanIds = residents.map(r => r.carePlanId).filter(Boolean);
+    if (carePlanIds.length === 0) return [];
+    // Lấy tất cả care plan tương ứng
+    return this.carePlanModel.find({ _id: { $in: carePlanIds } }).exec();
   }
 } 

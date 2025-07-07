@@ -83,4 +83,8 @@ export class CreateResidentDto {
   @IsEnum(ResidentStatus)
   @IsOptional()
   status?: ResidentStatus;
+
+  @IsOptional()
+  @IsString()
+  carePlanId?: string;
 } 
