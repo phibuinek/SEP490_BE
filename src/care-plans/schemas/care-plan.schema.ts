@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }, collection: 'care_plans' })
 export class CarePlan {
   @Prop({ required: true, name: 'plan_name' })
   planName: string;
@@ -39,7 +39,6 @@ export class CarePlan {
   @Prop({ default: true, name: 'is_active' })
   isActive: boolean;
 
-  // 👇 Thêm vào đây để tránh lỗi khi truy cập careplan._id
   _id?: Types.ObjectId;
 }
 

@@ -16,6 +16,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { AssignCarePlanDto } from './dto/assign-care-plan.dto';
 
 @ApiTags('CarePlans')
 @ApiBearerAuth()
@@ -33,11 +34,23 @@ export class CarePlansController {
     return this.carePlansService.create(createCarePlanDto);
   }
 
+  @Post('register')
+  @UseGuards(RolesGuard)
+  @Roles(Role.STAFF, Role.ADMIN)
+  @ApiOperation({ summary: 'Register care plan for resident (Staff/Admin only)' })
+  @ApiResponse({ status: 200, description: 'Care plan registered for resident.' })
+  async registerCarePlanForResident(
+    @Body() dto: AssignCarePlanDto
+  ) {
+    console.log('Controller params:', { carePlanId: dto.carePlanId, residentId: dto.residentId });
+    return await this.carePlansService.assignCarePlanToResident(dto.carePlanId, dto.residentId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all care plans (All roles)' })
   @ApiResponse({ status: 200, description: 'List all care plans.' })
-  findAll() {
-    return this.carePlansService.findAll();
+  async findAll() {
+    return await this.carePlansService.findAll();
   }
 
   @Get('by-family')

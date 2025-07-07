@@ -36,7 +36,7 @@ export enum ResidentStatus {
   DISCHARGED = 'discharged',
 }
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }, collection: 'residents' })
 export class Resident {
   @Prop({ required: true, name: 'full_name' })
   fullName: string;
@@ -53,8 +53,8 @@ export class Resident {
   @Prop({ type: Date, default: null, name: 'discharge_date' })
   dischargeDate: Date | null;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', name: 'family_member_id' })
-  familyMemberId: Types.ObjectId;
+  @Prop({ type: String, name: 'family_member_id' })
+  familyMemberId: string;
 
   @Prop({ name: 'medical_history' })
   medicalHistory: string;
