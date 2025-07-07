@@ -5,12 +5,16 @@ import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { ResidentsService } from '../residents/residents.service';
 
 @ApiTags('ResidentPhotos')
 @ApiBearerAuth()
 @Controller('resident-photos')
 export class ResidentPhotosController {
-  constructor(private readonly service: ResidentPhotosService) {}
+  constructor(
+    private readonly service: ResidentPhotosService,
+    private readonly residentsService: ResidentsService,
+  ) {}
 
   @Post()
   @UseInterceptors(FileInterceptor('file', {
@@ -28,7 +32,7 @@ export class ResidentPhotosController {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
-        residentId: { type: 'string' },
+        familyId: { type: 'string' },
         caption: { type: 'string' },
         activityType: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
@@ -36,7 +40,7 @@ export class ResidentPhotosController {
         staffNotes: { type: 'string' },
         relatedActivityId: { type: 'string' },
       },
-      required: ['file', 'residentId'],
+      required: ['file', 'familyId'],
     },
   })
   async uploadPhoto(
@@ -59,8 +63,8 @@ export class ResidentPhotosController {
   }
 
   @Get()
-  @ApiQuery({ name: 'residentId', required: true })
-  async getPhotos(@Query('residentId') residentId: string) {
-    return this.service.getPhotos(residentId);
+  @ApiQuery({ name: 'familyId', required: true })
+  async getPhotos(@Query('familyId') familyId: string) {
+    return this.service.getPhotos(familyId);
   }
 } 

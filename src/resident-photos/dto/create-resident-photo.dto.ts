@@ -3,7 +3,7 @@ import { Transform } from 'class-transformer';
 
 export class CreateResidentPhotoDto {
   @IsString()
-  residentId: string;
+  familyId: string;
 
   @IsOptional()
   @IsString()

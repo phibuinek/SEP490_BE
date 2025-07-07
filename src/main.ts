@@ -9,12 +9,15 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   // Enable CORS
-  app.enableCors();
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
   
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
-    forbidNonWhitelisted: true,
+    // forbidNonWhitelisted: true, // Tạm thời tắt để cho phép confirmPassword
     transform: true,
   }));
   

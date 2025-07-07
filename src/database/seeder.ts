@@ -20,30 +20,46 @@ export class DatabaseSeeder implements OnModuleInit {
       return;
     }
 
+    const now = new Date();
     const users = [
       {
         username: 'admin',
         email: 'admin@example.com',
         password: await bcrypt.hash('admin123', 10),
-        fullName: 'System Administrator',
-        roles: [Role.ADMIN],
+        full_name: 'System Administrator',
+        role: 'admin',
         isActive: true,
+        phone: '0123456789',
+        address: 'Hà Nội',
+        department: 'quan_ly',
+        created_at: now,
+        updated_at: now,
       },
       {
         username: 'staff1',
         email: 'staff@example.com',
         password: await bcrypt.hash('staff123', 10),
-        fullName: 'Staff Member',
-        roles: [Role.STAFF],
+        full_name: 'Staff Member',
+        role: 'staff',
         isActive: true,
+        phone: '0987654321',
+        address: 'Hồ Chí Minh',
+        department: 'y_te',
+        created_at: now,
+        updated_at: now,
       },
       {
         username: 'family1',
         email: 'family@example.com',
         password: await bcrypt.hash('family123', 10),
-        fullName: 'Family Member',
-        roles: [Role.FAMILY_MEMBER],
+        full_name: 'Family Member',
+        role: 'family_member',
         isActive: true,
+        phone: '0111222333',
+        address: 'Đà Nẵng',
+        department: 'hoat_dong',
+        created_at: now,
+        updated_at: now,
       },
     ];
 
@@ -54,7 +70,7 @@ export class DatabaseSeeder implements OnModuleInit {
       console.log('Staff: staff@example.com / staff123');
       console.log('Family: family@example.com / family123');
     } catch (error) {
-      console.error('Error seeding users:', error);
+      console.error('Error seeding users:', JSON.stringify(error, null, 2));
     }
   }
 } 

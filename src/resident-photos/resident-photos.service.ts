@@ -13,7 +13,7 @@ export class ResidentPhotosService {
 
   async uploadPhoto(data: any) {
     const photo = new this.photoModel({
-      residentId: data.residentId,
+      familyId: data.familyId,
       uploadedBy: data.uploadedBy,
       fileName: data.fileName,
       filePath: data.filePath,
@@ -30,7 +30,12 @@ export class ResidentPhotosService {
     return photo.save();
   }
 
-  async getPhotos(residentId: string) {
-    return this.photoModel.find({ residentId }).sort({ uploadDate: -1 }).exec();
+  async getPhotos(familyId: string) {
+    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
+  }
+
+  async getPhotosByFamilyId(familyId: string, residentsService: any) {
+    // Lấy tất cả ảnh có familyId này
+    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
   }
 } 
