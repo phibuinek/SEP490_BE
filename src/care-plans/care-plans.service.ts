@@ -51,13 +51,12 @@ export class CarePlansService {
     return deletedCarePlan;
   }
 
-  async findByFamilyId(familyId: string): Promise<CarePlan[]> {
-    // Lấy tất cả resident thuộc familyId
-    const residents = await this.residentModel.find({ familyMemberId: familyId }).exec();
-    const carePlanIds = residents.map(r => r.carePlanId).filter(Boolean);
-    if (carePlanIds.length === 0) return [];
-    // Lấy tất cả care plan tương ứng
-    return this.carePlanModel.find({ _id: { $in: carePlanIds } }).exec();
+  async findByResidentId(residentId: string): Promise<CarePlan[]> {
+    // Find the resident by residentId
+    const resident = await this.residentModel.findById(residentId).exec();
+    if (!resident || !resident.carePlanId) return [];
+    // Find the care plan for this resident
+    return this.carePlanModel.find({ _id: resident.carePlanId }).exec();
   }
 
   async assignCarePlanToResident(carePlanId: string, residentId: string) {

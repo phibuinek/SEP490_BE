@@ -20,6 +20,7 @@ import { ResidentPhotosModule } from './resident-photos/resident-photos.module';
 import { VisitsModule } from './visits/visits.module';
 import { ActivityModule } from './activity/activity.module';
 import { ActivityParticipationsModule } from './activity-participations/activity-participations.module';
+import { RoomTypesModule } from './room_types/room-types.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ActivityParticipationsModule } from './activity-participations/activity
     VisitsModule,
     ActivityModule,
     ActivityParticipationsModule,
+    RoomTypesModule,
   ],
   controllers: [AppController],
   providers: [

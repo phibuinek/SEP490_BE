@@ -53,12 +53,12 @@ export class CarePlansController {
     return await this.carePlansService.findAll();
   }
 
-  @Get('by-family')
-  @Roles(Role.FAMILY_MEMBER)
-  @ApiOperation({ summary: 'Get care plans by familyId (Family only)' })
-  @ApiResponse({ status: 200, description: 'List care plans by family.' })
-  async getCarePlansByFamily(@Query('familyId') familyId: string) {
-    return this.carePlansService.findByFamilyId(familyId);
+  @Get('by-resident')
+  @Roles(Role.FAMILY_MEMBER, Role.STAFF, Role.ADMIN)
+  @ApiOperation({ summary: 'Get care plans by residentId (All roles)' })
+  @ApiResponse({ status: 200, description: 'List care plans by resident.' })
+  async getCarePlansByResident(@Query('residentId') residentId: string) {
+    return this.carePlansService.findByResidentId(residentId);
   }
 
   @Get(':id')
