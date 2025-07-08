@@ -43,8 +43,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get user by ID (Admin only)' })
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @ApiOperation({ summary: 'Get user by ID (All roles)' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
