@@ -8,22 +8,27 @@ export class CreateBedDto {
   @IsNotEmpty()
   bedNumber: string;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e128' })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
   @IsString()
   @IsNotEmpty()
   roomId: string;
 
-  @ApiProperty({ example: 'standard', default: 'standard' })
+  @ApiProperty({ example: 'Bed A1', description: 'Bed name or identifier' })
+  @IsString()
+  @IsNotEmpty()
+  bedName: string;
+
+  @ApiProperty({ example: 'Single bed with adjustable height', description: 'Description of the bed' })
   @IsString()
   @IsOptional()
-  bedType?: string;
+  description?: string;
 
-  @ApiProperty({ enum: BedStatus, example: BedStatus.AVAILABLE })
-  @IsEnum(BedStatus)
-  @IsOptional()
-  status?: BedStatus;
+  @ApiProperty({ example: 'available', enum: ['available', 'occupied', 'maintenance'], description: 'Current status of the bed' })
+  @IsString()
+  @IsNotEmpty()
+  status: string;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e123', required: false })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e751', required: false })
   @IsString()
   @IsOptional()
   residentId?: string;

@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsDateString, IsNumber } from 'class-validator';
 
 export class CreateVitalSignDto {
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e7f', description: 'Resident ID' })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750', description: 'Resident ID' })
   @IsString()
   @IsNotEmpty()
   residentId: string;

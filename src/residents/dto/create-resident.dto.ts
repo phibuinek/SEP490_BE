@@ -46,7 +46,7 @@ export class CreateResidentDto {
   @IsOptional()
   dischargeDate?: Date;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e126', required: false })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750', required: false })
   @IsString()
   @IsOptional()
   familyMemberId?: string;

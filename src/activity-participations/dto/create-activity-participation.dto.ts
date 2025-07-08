@@ -3,17 +3,17 @@ import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum } from 'class-va
 import { AttendanceStatus } from '../schemas/activity-participation.schema';
 
 export class CreateActivityParticipationDto {
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e75' })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
   @IsString()
   @IsNotEmpty()
   staffId: string;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e90' })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e751' })
   @IsString()
   @IsNotEmpty()
   activityId: string;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e7f' })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e752' })
   @IsString()
   @IsNotEmpty()
   residentId: string;
