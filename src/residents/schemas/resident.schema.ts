@@ -74,8 +74,8 @@ export class Resident {
   @Prop({ type: String, enum: ResidentStatus, default: ResidentStatus.ACTIVE })
   status: ResidentStatus;
 
-  @Prop({ type: Types.ObjectId, ref: 'CarePlan', name: 'care_plan_id' })
-  carePlanId?: Types.ObjectId;
+  @Prop({ type: [Types.ObjectId], ref: 'CarePlan', name: 'care_plan_ids' })
+  carePlanIds?: Types.ObjectId[];
 }
 
 export const ResidentSchema = SchemaFactory.createForClass(Resident); 

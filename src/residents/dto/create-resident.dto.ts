@@ -85,6 +85,7 @@ export class CreateResidentDto {
   status?: ResidentStatus;
 
   @IsOptional()
-  @IsString()
-  carePlanId?: string;
+  @IsArray()
+  @IsString({ each: true })
+  carePlanIds?: string[];
 } 

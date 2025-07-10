@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 // import { BillsService } from './bills.service';
 import { CreateBillDto } from './dto/create-bill.dto';
@@ -32,6 +33,13 @@ export class BillsController {
   @ApiResponse({ status: 200, description: 'List all bills.' })
   findAll() {
     return this.billsService.findAll();
+  }
+
+  @Get('by-resident')
+  @ApiOperation({ summary: 'Get bills by residentId' })
+  @ApiResponse({ status: 200, description: 'List bills by resident.' })
+  async getBillsByResident(@Query('residentId') residentId: string) {
+    return this.billsService.findByResidentId(residentId);
   }
 
   @Get(':id')

@@ -69,4 +69,8 @@ export class BillsService {
     }
     return bill;
   }
+
+  async findByResidentId(residentId: string): Promise<Bill[]> {
+    return this.billModel.find({ resident_id: residentId }).exec();
+  }
 }

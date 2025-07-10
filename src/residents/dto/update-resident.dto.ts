@@ -1,9 +1,10 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateResidentDto } from './create-resident.dto';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsArray } from 'class-validator';
 
 export class UpdateResidentDto extends PartialType(CreateResidentDto) {
   @IsOptional()
-  @IsString()
-  carePlanId?: string;
+  @IsArray()
+  @IsString({ each: true })
+  carePlanIds?: string[];
 } 
