@@ -6,5 +6,5 @@ export class CreatePaymentDto {
   @ApiProperty({ example: '64e0123abc4567ef89a0b1cd' })
   @IsMongoId()
   @IsNotEmpty()
-  carePlan: string;
+  billId: string;
 }

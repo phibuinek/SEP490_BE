@@ -4,7 +4,9 @@ import * as crypto from 'crypto-js';
 import * as moment from 'moment';
 import { CarePlansService } from 'src/care-plans/care-plans.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Bill } from '../bills/schemas/bill.schema';
 
 
 @Injectable()
@@ -14,16 +16,22 @@ export class PaymentService {
   private readonly checksumKey =
     '0ecbdbfa3f52b73dacdd2790501563fccca43d92e039e37aef14ffca2850d147';
   private readonly payosUrl = 'https://api-merchant.payos.vn/v2/payment-requests';
-  constructor(private readonly careplanService: CarePlansService) {}
+  constructor(
+    @InjectModel(Bill.name) private billModel: Model<Bill>,
+    private readonly careplanService: CarePlansService
+  ) {}
 
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
-    const careplan = await this.careplanService.findOne(createPaymentDto.carePlan);
+    // Lấy bill theo billId
+    const bill = await this.billModel.findById(createPaymentDto.billId).exec();
+    if (!bill) throw new Error('Bill không tồn tại');
+    // Lấy care plan từ bill
+    const careplan = await this.careplanService.findOne(bill.care_plan_id.toString());
     if (!careplan) throw new Error('Careplan không tồn tại');
-
-    const amount = careplan.monthlyPrice;
+    const amount = bill.amount || careplan.monthlyPrice;
     const orderCode = this.generateOrderCode();
-    const description = `Thanh toán gói chăm sóc: ${careplan.planName || careplan._id}`;
-
+    const rawDescription = `Thanh toán hóa đơn: ${bill._id} - gói: ${careplan.planName || careplan._id}`;
+    const description = rawDescription.slice(0, 25); // PayOS chỉ cho phép tối đa 25 ký tự
     const data = {
       orderCode,
       amount,
@@ -33,13 +41,11 @@ export class PaymentService {
       expiredAt: moment().add(15, 'minutes').unix(),
       signature: this.generateSignature(amount, orderCode, description),
     };
-
     const headers = {
       'x-client-id': this.clientId,
       'x-api-key': this.apiKey,
       'Content-Type': 'application/json',
     };
-
     try {
       const response = await axios.post(this.payosUrl, data, { headers });
       return response.data;

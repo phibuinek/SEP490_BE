@@ -25,7 +25,10 @@ export class BillsController {
   @ApiResponse({ status: 201, description: 'Bill created.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   create(@Body() createBillDto: CreateBillDto) {
-    return this.billsService.create(createBillDto);
+    return this.billsService.create(createBillDto).then(bill => ({
+      ...bill.toObject(),
+      id: bill._id
+    }));
   }
 
   @Get()

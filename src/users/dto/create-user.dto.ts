@@ -29,10 +29,36 @@ export class CreateUserDto {
   @ApiPropertyOptional({ example: '+1234567890' })
   @IsOptional()
   @IsString()
-  phoneNumber?: string;
+  phone?: string;
 
   @ApiPropertyOptional({ example: '123 Main St, City, Country' })
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiPropertyOptional({ example: 'con gái' })
+  @IsOptional()
+  @IsString()
+  relationship?: string;
+
+  @ApiPropertyOptional({ type: [String], example: ['residentId1', 'residentId2'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  residents?: string[];
+
+  @ApiPropertyOptional({ example: 'Bác sĩ' })
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @ApiPropertyOptional({ example: 'Thạc sĩ Y khoa' })
+  @IsOptional()
+  @IsString()
+  qualification?: string;
+
+  @ApiPropertyOptional({ example: '2022-06-01T00:00:00.000Z' })
+  @IsOptional()
+  @IsString()
+  joinDate?: string;
 } 

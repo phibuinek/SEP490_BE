@@ -33,10 +33,25 @@ export class User {
   isActive: boolean;
 
   @Prop()
-  phoneNumber?: string;
+  phone?: string;
 
   @Prop()
   address?: string;
+
+  @Prop()
+  relationship?: string;
+
+  @Prop([String])
+  residents?: string[];
+
+  @Prop()
+  position?: string;
+
+  @Prop()
+  qualification?: string;
+
+  @Prop()
+  joinDate?: Date;
 
   @Prop({ type: String, enum: Department })
   department?: Department;

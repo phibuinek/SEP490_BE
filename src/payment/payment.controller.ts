@@ -1,20 +1,27 @@
 import { Controller, Post, Body, Get, Query, Res } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { Response } from 'express';
 
 @ApiTags('payment')
+@ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a payment link for a bill' })
+  @ApiBody({ type: CreatePaymentDto })
+  @ApiResponse({ status: 201, description: 'Payment link created.' })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
   async create(@Body() createPaymentDto: CreatePaymentDto) {
     return this.paymentService.createPaymentLink(createPaymentDto);
   }
 
   @Get('success')
+  @ApiOperation({ summary: 'Handle payment success callback (redirect)' })
+  @ApiResponse({ status: 302, description: 'Redirect to frontend on success.' })
   handlePaymentSuccess(
     @Query() query: any,
     @Res() res: Response,
@@ -25,6 +32,8 @@ export class PaymentController {
   }
 
   @Get('cancel')
+  @ApiOperation({ summary: 'Handle payment cancel callback (redirect)' })
+  @ApiResponse({ status: 302, description: 'Redirect to frontend on cancel.' })
   handlePaymentCancel(
     @Query() query: any,
     @Res() res: Response,
@@ -35,6 +44,9 @@ export class PaymentController {
   }
 
   @Post('webhook')
+  @ApiOperation({ summary: 'Handle payment webhook from PayOS' })
+  @ApiBody({ description: 'Webhook payload', type: Object })
+  @ApiResponse({ status: 200, description: 'Webhook received.' })
   handleWebhook(@Body() data: any) {
     return this.paymentService.handlePaymentWebhook(data);
   }
