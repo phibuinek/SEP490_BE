@@ -1,15 +1,21 @@
-import { Controller, Post, Get, UseInterceptors, UploadedFile, Body, Query, Req } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, UseInterceptors, UploadedFile, Body, Query, Req, Param, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
+import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { ResidentsService } from '../residents/residents.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 
 @ApiTags('ResidentPhotos')
 @ApiBearerAuth()
 @Controller('resident-photos')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ResidentPhotosController {
   constructor(
     private readonly service: ResidentPhotosService,
@@ -63,8 +69,40 @@ export class ResidentPhotosController {
   }
 
   @Get()
-  @ApiQuery({ name: 'familyId', required: true })
-  async getPhotos(@Query('familyId') familyId: string) {
-    return this.service.getPhotos(familyId);
+  @ApiQuery({ name: 'familyId', required: false, description: 'Filter by family ID. If not provided, returns all photos (staff only)' })
+  async getPhotos(@Query('familyId') familyId: string, @Req() req) {
+    // If familyId is provided, return photos for that family
+    if (familyId) {
+      return this.service.getPhotos(familyId);
+    }
+    
+    // If no familyId provided, check if user is staff
+    if (req.user?.role !== Role.STAFF && req.user?.role !== Role.ADMIN) {
+      throw new Error('Access denied. Only staff can view all photos.');
+    }
+    
+    return this.service.getAllPhotos();
+  }
+
+  @Get(':id')
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  async getPhotoById(@Param('id') id: string) {
+    return this.service.getPhotoById(id);
+  }
+
+  @Put(':id')
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  @ApiBody({ type: UpdateResidentPhotoDto })
+  async updatePhoto(
+    @Param('id') id: string,
+    @Body() updateData: UpdateResidentPhotoDto
+  ) {
+    return this.service.updatePhoto(id, updateData);
+  }
+
+  @Delete(':id')
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  async deletePhoto(@Param('id') id: string) {
+    return this.service.deletePhoto(id);
   }
 } 
