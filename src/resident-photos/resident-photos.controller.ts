@@ -45,6 +45,7 @@ export class ResidentPhotosController {
         takenDate: { type: 'string', format: 'date-time' },
         staffNotes: { type: 'string' },
         relatedActivityId: { type: 'string' },
+        serviceStartDate: { type: 'string', format: 'date-time' },
       },
       required: ['file', 'familyId'],
     },

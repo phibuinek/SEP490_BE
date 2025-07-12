@@ -27,4 +27,8 @@ export class UpdateResidentPhotoDto {
   @IsOptional()
   @IsString()
   relatedActivityId?: string;
+
+  @IsOptional()
+  @IsString()
+  serviceStartDate?: string;
 } 

@@ -41,6 +41,9 @@ export class ResidentPhoto {
   @Prop({ name: 'staff_notes' })
   staffNotes: string;
 
+  @Prop({ name: 'service_start_date' })
+  serviceStartDate: Date;
+
   @Prop({ type: Types.ObjectId, ref: 'Activity', name: 'related_activity_id' })
   relatedActivityId: Types.ObjectId;
 }

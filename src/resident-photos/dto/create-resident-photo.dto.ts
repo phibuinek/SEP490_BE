@@ -30,4 +30,8 @@ export class CreateResidentPhotoDto {
   @IsOptional()
   @IsString()
   relatedActivityId?: string;
+
+  @IsOptional()
+  @IsString()
+  serviceStartDate?: string;
 } 
