@@ -76,12 +76,11 @@ export class ResidentPhotosController {
     if (familyId) {
       return this.service.getPhotos(familyId);
     }
-    
-    // If no familyId provided, check if user is staff
-    if (req.user?.role !== Role.STAFF && req.user?.role !== Role.ADMIN) {
+    // Nếu không có familyId, kiểm tra roles dạng mảng
+    const roles = req.user?.roles || [];
+    if (!roles.includes(Role.STAFF) && !roles.includes(Role.ADMIN)) {
       throw new Error('Access denied. Only staff can view all photos.');
     }
-    
     return this.service.getAllPhotos();
   }
 
