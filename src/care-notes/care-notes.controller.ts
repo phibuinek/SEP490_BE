@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
 @ApiTags('CareNotes')
 @ApiBearerAuth()
@@ -17,11 +17,13 @@ export class CareNotesController {
   constructor(private readonly service: CareNotesService) {}
 
   @Post()
+  @ApiBody({ type: CreateCareNoteDto })
   async create(@Body() dto: CreateCareNoteDto, @Req() req) {
+    // Đảm bảo staffRole luôn có giá trị
     const staff = {
       staffId: req.user.userId,
       staffName: req.user.fullName || req.user.username || '',
-      staffRole: req.user.role,
+      staffRole: req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : undefined),
     };
     return this.service.create(dto, staff);
   }
