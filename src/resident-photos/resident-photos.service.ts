@@ -30,6 +30,7 @@ export class ResidentPhotosService {
       staffNotes: data.staffNotes,
       relatedActivityId: data.relatedActivityId,
       serviceStartDate: data.serviceStartDate ? new Date(data.serviceStartDate) : undefined,
+      residentId: data.residentId ? new Types.ObjectId(data.residentId) : undefined,
     });
     return photo.save();
   }
@@ -64,6 +65,7 @@ export class ResidentPhotosService {
     if (updateData.staffNotes !== undefined) updateFields.staffNotes = updateData.staffNotes;
     if (updateData.relatedActivityId !== undefined) updateFields.relatedActivityId = updateData.relatedActivityId;
     if (updateData.serviceStartDate !== undefined) updateFields.serviceStartDate = new Date(updateData.serviceStartDate);
+    if (updateData.residentId !== undefined) updateFields.residentId = new Types.ObjectId(updateData.residentId);
 
     return this.photoModel.findByIdAndUpdate(id, updateFields, { new: true }).exec();
   }

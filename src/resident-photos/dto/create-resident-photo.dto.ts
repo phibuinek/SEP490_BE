@@ -34,4 +34,8 @@ export class CreateResidentPhotoDto {
   @IsOptional()
   @IsString()
   serviceStartDate?: string;
+
+  @IsOptional()
+  @IsString()
+  residentId?: string;
 } 

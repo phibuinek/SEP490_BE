@@ -46,6 +46,9 @@ export class ResidentPhoto {
 
   @Prop({ type: Types.ObjectId, ref: 'Activity', name: 'related_activity_id' })
   relatedActivityId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Resident', name: 'resident_id' })
+  residentId: Types.ObjectId;
 }
 
 export const ResidentPhotoSchema = SchemaFactory.createForClass(ResidentPhoto); 
