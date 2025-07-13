@@ -17,10 +17,40 @@ class EmergencyContactDto {
   @ApiProperty({ example: '0987654321' })
   @IsString()
   @IsNotEmpty()
-  phoneNumber: string;
+  personalPhone: string;
+
+  @ApiProperty({ example: '0911222333' })
+  @IsString()
+  @IsNotEmpty()
+  emergencyPhone: string;
 }
 
 export class CreateResidentDto {
+  @ApiProperty({ example: 'Nam' })
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @ApiProperty({ example: 'Nguyễn Văn' })
+  @IsString()
+  @IsNotEmpty()
+  middleName: string;
+
+  @ApiProperty({ example: '123456789' })
+  @IsString()
+  @IsNotEmpty()
+  identityNumber: string;
+
+  @ApiProperty({ example: 'A101' })
+  @IsString()
+  @IsNotEmpty()
+  roomNumber: string;
+
+  @ApiProperty({ example: 'Gói tiêu chuẩn' })
+  @IsString()
+  @IsNotEmpty()
+  servicePackage: string;
+
   @ApiProperty({ example: 'Nguyễn Văn Nam' })
   @IsString()
   @IsNotEmpty()
@@ -55,6 +85,11 @@ export class CreateResidentDto {
   @IsString()
   @IsOptional()
   medicalHistory?: string;
+
+  @ApiProperty({ example: 'Thông tin bổ sung khác', required: false })
+  @IsString()
+  @IsOptional()
+  additionalNotes?: string;
 
   @ApiProperty({ type: [String], example: ['Aspirin 81mg', 'Metformin 500mg'], required: false })
   @IsArray()

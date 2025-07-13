@@ -46,6 +46,7 @@ export class ResidentPhotosController {
         staffNotes: { type: 'string' },
         relatedActivityId: { type: 'string' },
         serviceStartDate: { type: 'string', format: 'date-time' },
+        residentId: { type: 'string' }, // <-- Thêm dòng này
       },
       required: ['file', 'familyId'],
     },

@@ -10,8 +10,11 @@ export class EmergencyContact {
   @Prop({ required: true })
   relationship: string;
 
-  @Prop({ required: true, name: 'phone_number' })
-  phoneNumber: string;
+  @Prop({ required: true, name: 'personal_phone' })
+  personalPhone: string;
+
+  @Prop({ required: true, name: 'emergency_phone' })
+  emergencyPhone: string;
 }
 export const EmergencyContactSchema = SchemaFactory.createForClass(EmergencyContact);
 
@@ -38,6 +41,21 @@ export enum ResidentStatus {
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }, collection: 'residents' })
 export class Resident {
+  @Prop({ required: true, name: 'first_name' })
+  firstName: string;
+
+  @Prop({ required: true, name: 'middle_name' })
+  middleName: string;
+
+  @Prop({ required: true, name: 'identity_number' })
+  identityNumber: string;
+
+  @Prop({ required: true, name: 'room_number' })
+  roomNumber: string;
+
+  @Prop({ required: true, name: 'service_package' })
+  servicePackage: string;
+
   @Prop({ required: true, name: 'full_name' })
   fullName: string;
 
@@ -76,6 +94,9 @@ export class Resident {
 
   @Prop({ type: [Types.ObjectId], ref: 'CarePlan', name: 'care_plan_ids' })
   carePlanIds?: Types.ObjectId[];
+
+  @Prop({ name: 'additional_notes' })
+  additionalNotes?: string;
 }
 
 export const ResidentSchema = SchemaFactory.createForClass(Resident); 
