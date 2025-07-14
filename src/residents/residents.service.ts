@@ -4,7 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Resident, ResidentDocument } from './schemas/resident.schema';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
-import { Bed, BedDocument, BedStatus } from '../beds/schemas/bed.schema';
+import { Bed, BedDocument } from '../beds/schemas/bed.schema';
 import { UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -76,21 +76,21 @@ export class ResidentsService {
 
     const bed = await this.bedModel.findById(bedId);
     if (!bed) throw new NotFoundException('Bed not found');
-    if (bed.status === BedStatus.OCCUPIED) {
-      throw new BadRequestException(`Bed ${bed.bedNumber} is already occupied.`);
+    if (bed.status === 'occupied') {
+      throw new BadRequestException(`Bed ${bed.bed_number} is already occupied.`);
     }
 
     // Unassign the bed from its current resident if any, just in case
-    if(bed.residentId) {
-        await this.unassignBed(bedId)
-    }
+    // if(bed.residentId) {
+    //     await this.unassignBed(bedId)
+    // }
     
     // Unassign the resident from their current bed if any
     await this.unassignBedFromResident(residentId);
 
     // Assign new bed
-    bed.status = BedStatus.OCCUPIED;
-    bed.residentId = resident._id as Types.ObjectId;
+    bed.status = 'occupied';
+    // bed.residentId = resident._id as Types.ObjectId;
     return bed.save();
   }
 
@@ -98,17 +98,18 @@ export class ResidentsService {
     const bed = await this.bedModel.findById(bedId);
     if (!bed) throw new NotFoundException('Bed not found');
 
-    bed.status = BedStatus.AVAILABLE;
-    bed.residentId = null;
+    bed.status = 'available';
+    // bed.residentId = null;
     return bed.save();
   }
 
   private async unassignBedFromResident(residentId: string): Promise<void> {
-    const currentBed = await this.bedModel.findOne({ residentId: new Types.ObjectId(residentId) });
-    if (currentBed) {
-      currentBed.status = BedStatus.AVAILABLE;
-      currentBed.residentId = null;
-      await currentBed.save();
-    }
+    // Không còn residentId trong bed, bỏ qua toàn bộ logic này
+    // const currentBed = await this.bedModel.findOne({ residentId: new Types.ObjectId(residentId) });
+    // if (currentBed) {
+    //   currentBed.status = 'available';
+    //   currentBed.residentId = null;
+    //   await currentBed.save();
+    // }
   }
 }

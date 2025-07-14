@@ -74,24 +74,4 @@ export class CreateCarePlanDto {
   @IsBoolean()
   @IsOptional()
   readonly isActive: boolean;
-
-  @ApiProperty({ example: '19001000', required: false })
-  @IsString()
-  @IsOptional()
-  readonly hotline?: string;
-
-  @ApiProperty({ example: 'Liên hệ quản lý khu A', required: false })
-  @IsString()
-  @IsOptional()
-  readonly contactInfo?: string;
-
-  @ApiProperty({ example: 'Ghi chú đặc biệt', required: false })
-  @IsString()
-  @IsOptional()
-  readonly note?: string;
-
-  @ApiProperty({ example: 'Điều khoản sử dụng dịch vụ', required: false })
-  @IsString()
-  @IsOptional()
-  readonly terms?: string;
 } 

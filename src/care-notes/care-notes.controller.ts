@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { CareNotesService } from './care-notes.service';
-import { CreateCareNoteDto } from './dto/create-care-note.dto';
+import { CreateAssessmentDto } from './dto/create-care-note.dto';
 import { UpdateCareNoteDto } from './dto/update-care-note.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -8,29 +8,24 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
-@ApiTags('CareNotes')
+@ApiTags('Assessments')
 @ApiBearerAuth()
-@Controller('care-notes')
+@Controller('assessments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.STAFF, Role.ADMIN)
-export class CareNotesController {
+export class AssessmentsController {
   constructor(private readonly service: CareNotesService) {}
 
   @Post()
-  @ApiBody({ type: CreateCareNoteDto })
-  async create(@Body() dto: CreateCareNoteDto, @Req() req) {
-    // Đảm bảo staffRole luôn có giá trị
-    const staff = {
-      staffId: req.user.userId,
-      staffName: req.user.fullName || req.user.username || '',
-      staffRole: req.user.role || (Array.isArray(req.user.roles) ? req.user.roles[0] : undefined),
-    };
-    return this.service.create(dto, staff);
+  @ApiBody({ type: CreateAssessmentDto })
+  async create(@Body() dto: CreateAssessmentDto, @Req() req) {
+    const conducted_by = dto.conducted_by || req.user?.userId;
+    return this.service.create({ ...dto, conducted_by });
   }
 
   @Get()
-  async findAll(@Query('residentId') residentId: string) {
-    return this.service.findAll(residentId);
+  async findAll(@Query('resident_id') resident_id: string) {
+    return this.service.findAll(resident_id);
   }
 
   @Put(':id')

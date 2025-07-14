@@ -1,27 +1,27 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type CareNoteDocument = CareNote & Document;
+export type AssessmentDocument = Assessment & Document;
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
-export class CareNote {
+export class Assessment {
+  @Prop({ type: String, required: false, default: null })
+  assessment_type: string | null;
+
   @Prop({ type: Date, required: true })
   date: Date;
 
-  @Prop({ required: true })
-  content: string;
+  @Prop()
+  notes: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  staffId: Types.ObjectId;
-
-  @Prop({ required: true })
-  staffName: string;
-
-  @Prop({ required: true })
-  staffRole: string;
+  @Prop({ type: String, required: false, default: null })
+  recommendations: string | null;
 
   @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
-  residentId: Types.ObjectId;
+  resident_id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  conducted_by: Types.ObjectId;
 }
 
-export const CareNoteSchema = SchemaFactory.createForClass(CareNote); 
+export const AssessmentSchema = SchemaFactory.createForClass(Assessment); 

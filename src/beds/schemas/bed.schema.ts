@@ -3,28 +3,19 @@ import { Document, Types } from 'mongoose';
 
 export type BedDocument = Bed & Document;
 
-export enum BedStatus {
-  AVAILABLE = 'available',
-  OCCUPIED = 'occupied',
-  MAINTENANCE = 'maintenance',
-}
-
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
 export class Bed {
-  @Prop({ required: true, unique: true, name: 'bed_number' })
-  bedNumber: string;
+  @Prop({ required: true })
+  bed_number: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Room', required: true, name: 'room_id' })
-  roomId: Types.ObjectId;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Room' })
+  room_id: Types.ObjectId;
 
-  @Prop({ required: true, name: 'bed_type', default: 'standard' })
-  bedType: string;
+  @Prop({ required: true, enum: ['standard', 'electric', 'medical'] })
+  bed_type: string;
 
-  @Prop({ type: String, enum: BedStatus, default: BedStatus.AVAILABLE })
-  status: BedStatus;
-
-  @Prop({ type: Types.ObjectId, ref: 'Resident', default: null, name: 'resident_id' })
-  residentId: Types.ObjectId | null;
+  @Prop({ required: true, enum: ['available', 'occupied', 'maintenance'] })
+  status: string;
 }
 
 export const BedSchema = SchemaFactory.createForClass(Bed); 

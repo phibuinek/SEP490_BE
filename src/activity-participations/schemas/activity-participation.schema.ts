@@ -7,6 +7,7 @@ export enum AttendanceStatus {
   ATTENDED = 'attended',
   EXCUSED = 'excused',
   ABSENT = 'absent',
+  PENDING = 'pending',
 }
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
@@ -30,15 +31,9 @@ export class ActivityParticipation {
     type: String,
     enum: AttendanceStatus,
     required: true,
+    default: AttendanceStatus.PENDING,
   })
   attendanceStatus: AttendanceStatus;
-
-  @Prop({
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
-  })
-  approvalStatus: string;
 }
 
 export const ActivityParticipationSchema = SchemaFactory.createForClass(ActivityParticipation); 

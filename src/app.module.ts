@@ -22,6 +22,7 @@ import { ActivityModule } from './activity/activity.module';
 import { ActivityParticipationsModule } from './activity-participations/activity-participations.module';
 import { RoomTypesModule } from './room_types/room-types.module';
 import { CareNotesModule } from './care-notes/care-notes.module';
+import { RoomsModule } from './rooms/rooms.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { CareNotesModule } from './care-notes/care-notes.module';
     ActivityParticipationsModule,
     RoomTypesModule,
     CareNotesModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [

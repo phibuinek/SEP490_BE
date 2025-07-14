@@ -1,24 +1,34 @@
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateCareNoteDto {
-  @ApiProperty({ example: '2024-07-13T09:30:00Z', description: 'Ngày ghi chú (ISO string)' })
+export class CreateAssessmentDto {
+  @ApiProperty({ example: 'Đánh giá tổng quát', required: false })
+  @IsOptional()
+  @IsString()
+  assessment_type?: string | null;
+
+  @ApiProperty({ example: '2024-07-13T09:30:00Z', description: 'Ngày đánh giá (ISO string)' })
   @IsString()
   @IsNotEmpty()
   date: string;
 
-  @ApiProperty({ example: 'Tham gia tập thể dục buổi sáng rất tích cực. Ăn hết 100% bữa sáng.', description: 'Nội dung ghi chú' })
+  @ApiProperty({ example: 'Tình trạng ổn định, cần theo dõi đường huyết thường xuyên', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  content: string;
+  notes?: string;
+
+  @ApiProperty({ example: 'Duy trì chế độ ăn kiêng, tập thể dục nhẹ, uống thuốc đúng giờ', required: false })
+  @IsOptional()
+  @IsString()
+  recommendations?: string | null;
 
   @ApiProperty({ example: '66b54634d29ee1e4a3e79952', description: 'ID của cư dân (resident)' })
   @IsString()
   @IsNotEmpty()
-  residentId: string;
+  resident_id: string;
 
-  @ApiProperty({ example: '66b54634d29ee1e4a3e79951', description: 'ID của nhân viên (staff)', required: false })
+  @ApiProperty({ example: '66b54634d29ee1e4a3e79951', description: 'ID của user (staff) thực hiện đánh giá', required: false })
   @IsOptional()
   @IsString()
-  staffId?: string;
+  conducted_by?: string;
 } 

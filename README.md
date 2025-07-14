@@ -96,3 +96,72 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Hướng dẫn test logic status động của phòng (room)
+
+## 1. Chuẩn bị dữ liệu mẫu
+
+### Tạo phòng (room)
+```http
+POST /rooms
+Content-Type: application/json
+{
+  "room_number": "101",
+  "bed_count": 4,
+  "room_type": "4_5_bed",
+  "gender": "male",
+  "floor": 1,
+  "main_care_plan_id": "<ID của care plan>",
+  "status": "available"
+}
+```
+
+### Tạo các giường (bed) thuộc phòng
+```http
+POST /beds
+Content-Type: application/json
+{
+  "bed_number": "101-1",
+  "room_id": "<ID của room 101>",
+  "bed_type": "standard",
+  "status": "available"
+}
+// Lặp lại cho đủ 4 bed với room_id giống nhau
+```
+
+### Tạo resident (người cao tuổi)
+```http
+POST /residents
+Content-Type: application/json
+{
+  "firstName": "A",
+  ...
+}
+```
+
+### Gán resident vào bed (tạo bed_assignment)
+```http
+POST /bed-assignments
+Content-Type: application/json
+{
+  "resident_id": "<ID resident>",
+  "bed_id": "<ID bed>",
+  "assigned_date": "2024-07-14T10:00:00.000Z"
+}
+// Lặp lại cho từng resident/bed
+```
+
+## 2. Test API lấy danh sách phòng
+```http
+GET /rooms
+```
+- Nếu tất cả các bed trong phòng đều có bed_assignment với `unassigned_date == null` → status phòng là `occupied`.
+- Nếu còn ít nhất 1 bed chưa có assignment active → status phòng là `available`.
+
+## 3. Test case
+- Unassign 1 resident khỏi bed (PATCH/PUT bed_assignment, set `unassigned_date` khác null), gọi lại GET /rooms sẽ thấy status phòng chuyển về `available`.
+
+---
+**Lưu ý:**
+- Có thể test trực tiếp trên Swagger UI (`/api`) với các endpoint rooms, beds, residents, bed-assignments.
+- Đảm bảo dữ liệu liên kết đúng giữa các bảng.

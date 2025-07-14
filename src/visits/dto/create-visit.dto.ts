@@ -1,11 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsString, IsDateString, IsNumber } from 'class-validator';
+import { IsString, IsDateString, IsNumber } from 'class-validator';
 
 export class CreateVisitDto {
-  @ApiProperty()
-  @IsMongoId()
-  resident_id: string;
-
   @ApiProperty()
   @IsString()
   visit_time: string;

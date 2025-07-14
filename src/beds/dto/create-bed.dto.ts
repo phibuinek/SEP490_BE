@@ -1,35 +1,22 @@
+import { IsString, IsMongoId, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
-import { BedStatus } from '../schemas/bed.schema';
 
 export class CreateBedDto {
-  @ApiProperty({ example: '101-A' })
+  @ApiProperty({ example: 'B01' })
   @IsString()
-  @IsNotEmpty()
-  bedNumber: string;
+  bed_number: string;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
-  @IsString()
-  @IsNotEmpty()
-  roomId: string;
+  @ApiProperty({ example: '60d21b4667d0d8992e610c85', type: String })
+  @IsMongoId()
+  room_id: string;
 
-  @ApiProperty({ example: 'Bed A1', description: 'Bed name or identifier' })
+  @ApiProperty({ example: 'standard', enum: ['standard', 'electric', 'medical'] })
   @IsString()
-  @IsNotEmpty()
-  bedName: string;
+  @IsEnum(['standard', 'electric', 'medical'])
+  bed_type: string;
 
-  @ApiProperty({ example: 'Single bed with adjustable height', description: 'Description of the bed' })
+  @ApiProperty({ example: 'available', enum: ['available', 'occupied', 'maintenance'] })
   @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty({ example: 'available', enum: ['available', 'occupied', 'maintenance'], description: 'Current status of the bed' })
-  @IsString()
-  @IsNotEmpty()
+  @IsEnum(['available', 'occupied', 'maintenance'])
   status: string;
-
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e751', required: false })
-  @IsString()
-  @IsOptional()
-  residentId?: string;
 } 

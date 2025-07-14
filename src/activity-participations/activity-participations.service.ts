@@ -202,8 +202,7 @@ export class ActivityParticipationsService {
         scheduleTime: activity?.scheduleTime,
         location: activity?.location,
         description: activity?.description,
-        attendanceStatus: p.attendanceStatus,
-        approvalStatus: p.approvalStatus,
+        attendanceStatus: p.attendanceStatus,       
         performanceNotes: p.performanceNotes,
       };
     });
