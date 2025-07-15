@@ -27,6 +27,10 @@ export class ActivityService {
     return activity;
   }
 
+  async update(id: string, updateActivityDto: any) {
+    return this.activityModel.findByIdAndUpdate(id, updateActivityDto, { new: true });
+  }
+
   async remove(id: string): Promise<any> {
     const result = await this.activityModel.deleteOne({ _id: id }).exec();
     if (result.deletedCount === 0) {
