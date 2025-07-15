@@ -12,7 +12,7 @@ import { VitalSignsModule } from './vital-signs/vital-signs.module';
 import { PaymentModule } from './payment/payment.module';
 import { BillsModule } from './bills/bills.module';
 import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
-import { DatabaseModule } from './database/database.module'; // Bật seeder tự động
+// import { DatabaseModule } from './database/database.module'; // Tắt seeder tự động
 import { CarePlansModule } from './care-plans/care-plans.module';
 import { ServiceRequestsModule } from './service-requests/service-requests.module';
 import { FinanceModule } from './finance/finance.module';
