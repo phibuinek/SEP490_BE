@@ -11,7 +11,10 @@ export class CreateRoomDto {
   @IsEnum([2, 3, 4, 5, 6, 7, 8])
   bed_count: number;
 
-  @ApiProperty({ example: '2_bed', enum: ['2_bed', '3_bed', '4_5_bed', '6_8_bed'] })
+  @ApiProperty({
+    example: '2_bed',
+    enum: ['2_bed', '3_bed', '4_5_bed', '6_8_bed'],
+  })
   @IsString()
   @IsEnum(['2_bed', '3_bed', '4_5_bed', '6_8_bed'])
   room_type: string;
@@ -30,8 +33,11 @@ export class CreateRoomDto {
   @IsMongoId()
   main_care_plan_id: string;
 
-  @ApiProperty({ example: 'available', enum: ['available', 'occupied', 'maintenance', 'reserved'] })
+  @ApiProperty({
+    example: 'available',
+    enum: ['available', 'occupied', 'maintenance', 'reserved'],
+  })
   @IsString()
   @IsEnum(['available', 'occupied', 'maintenance', 'reserved'])
   status: string;
-} 
+}

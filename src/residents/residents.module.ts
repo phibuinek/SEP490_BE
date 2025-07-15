@@ -6,6 +6,7 @@ import { Resident, ResidentSchema } from './schemas/resident.schema';
 import { UsersModule } from '../users/users.module';
 import { BedsModule } from '../beds/beds.module';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { Bed, BedSchema } from '../beds/schemas/bed.schema';
     ]),
     UsersModule,
     BedsModule,
+    RoomsModule,
   ],
   controllers: [ResidentsController],
   providers: [ResidentsService],

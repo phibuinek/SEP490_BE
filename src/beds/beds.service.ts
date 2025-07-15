@@ -22,10 +22,12 @@ export class BedsService {
   }
 
   async update(id: string, updateBedDto: UpdateBedDto): Promise<Bed | null> {
-    return this.bedModel.findByIdAndUpdate(id, updateBedDto, { new: true }).exec();
+    return this.bedModel
+      .findByIdAndUpdate(id, updateBedDto, { new: true })
+      .exec();
   }
 
   async remove(id: string): Promise<any> {
     return this.bedModel.findByIdAndDelete(id).exec();
   }
-} 
+}

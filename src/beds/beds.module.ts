@@ -10,4 +10,4 @@ import { Bed, BedSchema } from './schemas/bed.schema';
   providers: [BedsService],
   exports: [BedsService],
 })
-export class BedsModule {} 
+export class BedsModule {}

@@ -15,7 +15,12 @@ import { UpdateCarePlanDto } from './dto/update-care-plan.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { AssignCarePlanDto } from './dto/assign-care-plan.dto';
 
 @ApiTags('CarePlans')
@@ -34,31 +39,11 @@ export class CarePlansController {
     return this.carePlansService.create(createCarePlanDto);
   }
 
-  @Post('register')
-  @UseGuards(RolesGuard)
-  @Roles(Role.STAFF, Role.ADMIN)
-  @ApiOperation({ summary: 'Register care plan for resident (Staff/Admin only)' })
-  @ApiResponse({ status: 200, description: 'Care plan registered for resident.' })
-  async registerCarePlanForResident(
-    @Body() dto: AssignCarePlanDto
-  ) {
-    console.log('Controller params:', { carePlanId: dto.carePlanId, residentId: dto.residentId });
-    return await this.carePlansService.assignCarePlanToResident(dto.carePlanId, dto.residentId);
-  }
-
   @Get()
   @ApiOperation({ summary: 'Get all care plans (All roles)' })
   @ApiResponse({ status: 200, description: 'List all care plans.' })
   async findAll() {
     return await this.carePlansService.findAll();
-  }
-
-  @Get('by-resident')
-  @Roles(Role.FAMILY_MEMBER, Role.STAFF, Role.ADMIN)
-  @ApiOperation({ summary: 'Get care plans by residentId (All roles)' })
-  @ApiResponse({ status: 200, description: 'List care plans by resident.' })
-  async getCarePlansByResident(@Query('residentId') residentId: string) {
-    return this.carePlansService.findByResidentId(residentId);
   }
 
   @Get(':id')
@@ -75,7 +60,10 @@ export class CarePlansController {
   @ApiOperation({ summary: 'Update care plan (Admin only)' })
   @ApiResponse({ status: 200, description: 'Care plan updated.' })
   @ApiResponse({ status: 404, description: 'Care plan not found.' })
-  update(@Param('id') id: string, @Body() updateCarePlanDto: UpdateCarePlanDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCarePlanDto: UpdateCarePlanDto,
+  ) {
     return this.carePlansService.update(id, updateCarePlanDto);
   }
 
@@ -88,4 +76,4 @@ export class CarePlansController {
   remove(@Param('id') id: string) {
     return this.carePlansService.remove(id);
   }
-} 
+}

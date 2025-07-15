@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -21,7 +25,9 @@ export class ActivityParticipationsService {
     private activityModel: Model<Activity>,
   ) {}
 
-  async create(createDto: CreateActivityParticipationDto): Promise<ActivityParticipation> {
+  async create(
+    createDto: CreateActivityParticipationDto,
+  ): Promise<ActivityParticipation> {
     // Validate ObjectId format for all referenced IDs
     if (!Types.ObjectId.isValid(createDto.staffId)) {
       throw new BadRequestException('Invalid staffId format');
@@ -55,13 +61,21 @@ export class ActivityParticipationsService {
         .exec();
     } catch (error) {
       // If there are invalid ObjectIds in the database, try without populate first
-      console.warn('Error during populate, trying without populate:', error.message);
+      console.warn(
+        'Error during populate, trying without populate:',
+        error.message,
+      );
       try {
         const participations = await this.participationModel.find().exec();
         return participations;
       } catch (secondError) {
-        console.error('Error fetching activity participations:', secondError.message);
-        throw new BadRequestException('Error fetching activity participations. Please check database data integrity.');
+        console.error(
+          'Error fetching activity participations:',
+          secondError.message,
+        );
+        throw new BadRequestException(
+          'Error fetching activity participations. Please check database data integrity.',
+        );
       }
     }
   }
@@ -83,7 +97,10 @@ export class ActivityParticipationsService {
       return participation;
     } catch (error) {
       // Nếu populate lỗi, trả về document gốc không populate
-      console.warn('Error during populate in findOne, returning raw document:', error.message);
+      console.warn(
+        'Error during populate in findOne, returning raw document:',
+        error.message,
+      );
       const raw = await this.participationModel.findById(id).exec();
       if (!raw) {
         throw new NotFoundException(`Participation with ID "${id}" not found`);
@@ -92,7 +109,10 @@ export class ActivityParticipationsService {
     }
   }
 
-  async update(id: string, updateDto: UpdateActivityParticipationDto): Promise<ActivityParticipation> {
+  async update(
+    id: string,
+    updateDto: UpdateActivityParticipationDto,
+  ): Promise<ActivityParticipation> {
     // Validate ObjectId format for the participation ID
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid participation ID format');
@@ -134,7 +154,7 @@ export class ActivityParticipationsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid participation ID format');
     }
-    
+
     const result = await this.participationModel.deleteOne({ _id: id }).exec();
     if (result.deletedCount === 0) {
       throw new NotFoundException(`Participation with ID "${id}" not found`);
@@ -146,12 +166,10 @@ export class ActivityParticipationsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid participation ID format');
     }
-    
-    const participation = await this.participationModel.findByIdAndUpdate(
-      id,
-      { approvalStatus: 'approved' },
-      { new: true }
-    ).exec();
+
+    const participation = await this.participationModel
+      .findByIdAndUpdate(id, { approvalStatus: 'approved' }, { new: true })
+      .exec();
     if (!participation) {
       throw new NotFoundException(`Participation with ID "${id}" not found`);
     }
@@ -162,12 +180,10 @@ export class ActivityParticipationsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid participation ID format');
     }
-    
-    const participation = await this.participationModel.findByIdAndUpdate(
-      id,
-      { approvalStatus: 'rejected' },
-      { new: true }
-    ).exec();
+
+    const participation = await this.participationModel
+      .findByIdAndUpdate(id, { approvalStatus: 'rejected' }, { new: true })
+      .exec();
     if (!participation) {
       throw new NotFoundException(`Participation with ID "${id}" not found`);
     }
@@ -178,23 +194,30 @@ export class ActivityParticipationsService {
     if (!Types.ObjectId.isValid(residentId)) {
       throw new BadRequestException('Invalid resident ID format');
     }
-    
+
     // TODO: Nếu user không có trường residents, bỏ qua check này hoặc kiểm tra bằng service residents
     // Xác định ngày cần lấy (mặc định là hôm nay)
     const targetDate = date ? new Date(date) : new Date();
     const start = new Date(targetDate);
-    start.setHours(0,0,0,0);
+    start.setHours(0, 0, 0, 0);
     const end = new Date(targetDate);
-    end.setHours(23,59,59,999);
+    end.setHours(23, 59, 59, 999);
     // Lấy các participation của resident trong ngày
-    const participations = await this.participationModel.find({
-      residentId: new Types.ObjectId(residentId),
-      date: { $gte: start, $lte: end }
-    }).populate('activityId').exec();
+    const participations = await this.participationModel
+      .find({
+        residentId: new Types.ObjectId(residentId),
+        date: { $gte: start, $lte: end },
+      })
+      .populate('activityId')
+      .exec();
     // Map kết quả trả về thông tin cần thiết
-    return participations.map(p => {
+    return participations.map((p) => {
       let activity: any = undefined;
-      if (p.activityId && typeof p.activityId === 'object' && !('equals' in p.activityId)) {
+      if (
+        p.activityId &&
+        typeof p.activityId === 'object' &&
+        !('equals' in p.activityId)
+      ) {
         activity = p.activityId;
       }
       return {
@@ -202,9 +225,9 @@ export class ActivityParticipationsService {
         scheduleTime: activity?.scheduleTime,
         location: activity?.location,
         description: activity?.description,
-        attendanceStatus: p.attendanceStatus,       
+        attendanceStatus: p.attendanceStatus,
         performanceNotes: p.performanceNotes,
       };
     });
   }
-} 
+}

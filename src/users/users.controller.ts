@@ -1,11 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
-import { Role } from '../common/enums/role.enum';
 import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('users')
@@ -16,7 +30,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
@@ -26,8 +40,8 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get all users (Admin, Staff)' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
@@ -35,15 +49,26 @@ export class UsersController {
   }
 
   @Get('by-department')
-  @Roles(Role.ADMIN)
+  @Roles('admin')
   @ApiOperation({ summary: 'Get staff by department (Admin only)' })
-  @ApiQuery({ name: 'department', required: true, enum: ['y_te', 'cham_soc_nguoi_cao_tuoi', 'phuc_hoi_chuc_nang', 'hoat_dong', 'quan_ly'], description: 'Lọc theo khoa/phòng ban' })
+  @ApiQuery({
+    name: 'department',
+    required: true,
+    enum: [
+      'y_te',
+      'cham_soc_nguoi_cao_tuoi',
+      'phuc_hoi_chuc_nang',
+      'hoat_dong',
+      'quan_ly',
+    ],
+    description: 'Lọc theo khoa/phòng ban',
+  })
   findByDepartment(@Query('department') department: string) {
     return this.usersService.findByDepartment(department);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @Roles('admin', 'staff', 'family')
   @ApiOperation({ summary: 'Get user by ID (All roles)' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -53,17 +78,20 @@ export class UsersController {
   }
 
   @Patch(':id/roles')
-  @Roles(Role.ADMIN)
+  @Roles('admin')
   @ApiOperation({ summary: 'Update user roles (Admin only)' })
   @ApiResponse({ status: 200, description: 'User roles updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  updateRoles(@Param('id') id: string, @Body() updateRolesDto: { roles: Role[] }) {
+  updateRoles(
+    @Param('id') id: string,
+    @Body() updateRolesDto: { roles: string[] },
+  ) {
     return this.usersService.updateRoles(id, updateRolesDto.roles);
   }
 
   @Patch(':id/deactivate')
-  @Roles(Role.ADMIN)
+  @Roles('admin')
   @ApiOperation({ summary: 'Deactivate user (Admin only)' })
   @ApiResponse({ status: 200, description: 'User deactivated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
@@ -80,4 +108,4 @@ export class UsersController {
   activateUser(@Param('id') id: string) {
     return this.usersService.activateUser(id);
   }
-} 
+}

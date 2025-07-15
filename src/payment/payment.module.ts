@@ -11,7 +11,7 @@ import { Bill, BillSchema } from '../bills/schemas/bill.schema';
   imports: [
     MongooseModule.forFeature([
       { name: Payment.name, schema: PaymentSchema },
-      { name: Bill.name, schema: BillSchema }
+      { name: Bill.name, schema: BillSchema },
     ]),
     BillsModule,
     CarePlansModule,
@@ -19,4 +19,4 @@ import { Bill, BillSchema } from '../bills/schemas/bill.schema';
   controllers: [PaymentController],
   providers: [PaymentService],
 })
-export class PaymentModule {} 
+export class PaymentModule {}

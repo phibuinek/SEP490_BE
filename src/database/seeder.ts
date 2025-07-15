@@ -14,12 +14,6 @@ export class DatabaseSeeder implements OnModuleInit {
   }
 
   private async seedUsers() {
-    const adminExists = await this.userModel.findOne({ roles: Role.ADMIN });
-    if (adminExists) {
-      console.log('Admin user already exists, skipping seeding...');
-      return;
-    }
-
     const now = new Date();
     const users = [
       {
@@ -28,10 +22,9 @@ export class DatabaseSeeder implements OnModuleInit {
         password: await bcrypt.hash('admin123', 10),
         full_name: 'System Administrator',
         role: 'admin',
-        isActive: true,
+        status: 'active',
         phone: '0123456789',
         address: 'Hà Nội',
-        department: 'quan_ly',
         created_at: now,
         updated_at: now,
       },
@@ -41,10 +34,9 @@ export class DatabaseSeeder implements OnModuleInit {
         password: await bcrypt.hash('staff123', 10),
         full_name: 'Staff Member',
         role: 'staff',
-        isActive: true,
+        status: 'active',
         phone: '0987654321',
         address: 'Hồ Chí Minh',
-        department: 'y_te',
         created_at: now,
         updated_at: now,
       },
@@ -53,19 +45,31 @@ export class DatabaseSeeder implements OnModuleInit {
         email: 'family@example.com',
         password: await bcrypt.hash('family123', 10),
         full_name: 'Family Member',
-        role: 'family_member',
-        isActive: true,
+        role: 'family',
+        status: 'active',
         phone: '0111222333',
         address: 'Đà Nẵng',
-        department: 'hoat_dong',
         created_at: now,
         updated_at: now,
       },
     ];
 
     try {
-      await this.userModel.insertMany(users);
-      console.log('Seeded default users successfully');
+      for (const user of users) {
+        // Kiểm tra xem user đã tồn tại chưa
+        const existingUser = await this.userModel.findOne({ 
+          $or: [{ email: user.email }, { username: user.username }] 
+        });
+        
+        if (!existingUser) {
+          await this.userModel.create(user);
+          console.log(`Created user: ${user.email}`);
+        } else {
+          console.log(`User already exists: ${user.email}`);
+        }
+      }
+      
+      console.log('Seeding completed successfully');
       console.log('Admin: admin@example.com / admin123');
       console.log('Staff: staff@example.com / staff123');
       console.log('Family: family@example.com / family123');
@@ -73,4 +77,4 @@ export class DatabaseSeeder implements OnModuleInit {
       console.error('Error seeding users:', JSON.stringify(error, null, 2));
     }
   }
-} 
+}

@@ -28,7 +28,9 @@ export class ActivityService {
   }
 
   async update(id: string, updateActivityDto: any) {
-    return this.activityModel.findByIdAndUpdate(id, updateActivityDto, { new: true });
+    return this.activityModel.findByIdAndUpdate(id, updateActivityDto, {
+      new: true,
+    });
   }
 
   async remove(id: string): Promise<any> {
@@ -38,4 +40,4 @@ export class ActivityService {
     }
     return { deleted: true };
   }
-} 
+}

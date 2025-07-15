@@ -21,4 +21,4 @@ export class CreateVisitDto {
   @ApiProperty()
   @IsNumber()
   numberOfVisitors: number;
-} 
+}

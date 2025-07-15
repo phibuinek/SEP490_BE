@@ -16,4 +16,4 @@ import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
   providers: [CarePlansService],
   exports: [CarePlansService],
 })
-export class CarePlansModule {} 
+export class CarePlansModule {}

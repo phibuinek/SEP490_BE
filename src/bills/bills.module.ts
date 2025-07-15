@@ -13,4 +13,4 @@ import { CarePlansModule } from '../care-plans/care-plans.module';
   controllers: [BillsController],
   providers: [BillsService],
 })
-export class BillsModule {} 
+export class BillsModule {}

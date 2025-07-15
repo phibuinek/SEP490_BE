@@ -67,4 +67,4 @@ export class Bill extends Document {
   notes: string;
 }
 
-export const BillSchema = SchemaFactory.createForClass(Bill); 
+export const BillSchema = SchemaFactory.createForClass(Bill);

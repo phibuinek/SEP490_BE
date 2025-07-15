@@ -10,4 +10,4 @@ import { DatabaseSeeder } from './seeder';
   providers: [DatabaseSeeder],
   exports: [DatabaseSeeder],
 })
-export class DatabaseModule {} 
+export class DatabaseModule {}

@@ -23,8 +23,11 @@ export class Room {
   @Prop({ required: true, type: Types.ObjectId, ref: 'CarePlan' })
   main_care_plan_id: Types.ObjectId;
 
-  @Prop({ required: true, enum: ['available', 'occupied', 'maintenance', 'reserved'] })
+  @Prop({
+    required: true,
+    enum: ['available', 'occupied', 'maintenance', 'reserved'],
+  })
   status: string;
 }
 
-export const RoomSchema = SchemaFactory.createForClass(Room); 
+export const RoomSchema = SchemaFactory.createForClass(Room);

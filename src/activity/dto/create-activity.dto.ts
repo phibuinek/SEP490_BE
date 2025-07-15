@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsPositive } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsDateString,
+  IsNumber,
+  IsPositive,
+} from 'class-validator';
 
 export class CreateActivityDto {
   @ApiProperty({ example: 'Tập thể dục buổi sáng' })
@@ -31,4 +37,4 @@ export class CreateActivityDto {
   @IsNumber()
   @IsPositive()
   capacity: number;
-} 
+}

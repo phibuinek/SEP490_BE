@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+} from 'class-validator';
 import { AttendanceStatus } from '../schemas/activity-participation.schema';
 
 export class CreateActivityParticipationDto {
@@ -32,4 +38,4 @@ export class CreateActivityParticipationDto {
   @IsEnum(AttendanceStatus)
   @IsNotEmpty()
   attendanceStatus: AttendanceStatus;
-} 
+}

@@ -18,4 +18,4 @@ export class Bed {
   status: string;
 }
 
-export const BedSchema = SchemaFactory.createForClass(Bed); 
+export const BedSchema = SchemaFactory.createForClass(Bed);

@@ -18,4 +18,4 @@ export class VisitsService {
   async getByFamily(family_member_id: string) {
     return this.visitModel.find({ family_member_id }).exec();
   }
-} 
+}

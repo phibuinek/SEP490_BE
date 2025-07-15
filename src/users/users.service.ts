@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -47,32 +51,27 @@ export class UsersService {
   }
 
   async findByDepartment(department: string): Promise<User[]> {
-    return this.userModel.find({
-      department,
-      roles: { $in: ['staff'] }
-    }).select('-password').exec();
+    return this.userModel
+      .find({
+        department,
+        roles: { $in: ['staff'] },
+      })
+      .select('-password')
+      .exec();
   }
 
-  async updateRoles(userId: string, roles: Role[]): Promise<User> {
-    const user = await this.userModel.findByIdAndUpdate(
-      userId,
-      { roles },
-      { new: true }
-    ).select('-password').exec();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
+  // Sửa hàm updateRoles để nhận roles: string[]
+  async updateRoles(id: string, roles: string[]) {
+    // Nếu schema chỉ còn 1 role, chỉ lấy roles[0]
+    await this.userModel.findByIdAndUpdate(id, { role: roles[0] });
+    return { message: 'User role updated successfully.' };
   }
 
   async deactivateUser(userId: string): Promise<User> {
-    const user = await this.userModel.findByIdAndUpdate(
-      userId,
-      { isActive: false },
-      { new: true }
-    ).select('-password').exec();
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, { isActive: false }, { new: true })
+      .select('-password')
+      .exec();
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -82,11 +81,10 @@ export class UsersService {
   }
 
   async activateUser(userId: string): Promise<User> {
-    const user = await this.userModel.findByIdAndUpdate(
-      userId,
-      { isActive: true },
-      { new: true }
-    ).select('-password').exec();
+    const user = await this.userModel
+      .findByIdAndUpdate(userId, { isActive: true }, { new: true })
+      .select('-password')
+      .exec();
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -95,19 +93,29 @@ export class UsersService {
     return user;
   }
 
-  async addResidentToFamily(familyId: string, residentId: any): Promise<User | null> {
-    return this.userModel.findByIdAndUpdate(
-      familyId,
-      { $push: { residents: residentId } },
-      { new: true },
-    ).exec();
+  async addResidentToFamily(
+    familyId: string,
+    residentId: any,
+  ): Promise<User | null> {
+    return this.userModel
+      .findByIdAndUpdate(
+        familyId,
+        { $push: { residents: residentId } },
+        { new: true },
+      )
+      .exec();
   }
 
-  async removeResidentFromFamily(familyId: string, residentId: any): Promise<User | null> {
-    return this.userModel.findByIdAndUpdate(
-      familyId,
-      { $pull: { residents: residentId } },
-      { new: true },
-    ).exec();
+  async removeResidentFromFamily(
+    familyId: string,
+    residentId: any,
+  ): Promise<User | null> {
+    return this.userModel
+      .findByIdAndUpdate(
+        familyId,
+        { $pull: { residents: residentId } },
+        { new: true },
+      )
+      .exec();
   }
-} 
+}

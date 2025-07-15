@@ -32,4 +32,4 @@ export class Transaction {
   status: TransactionStatus;
 }
 
-export const TransactionSchema = SchemaFactory.createForClass(Transaction); 
+export const TransactionSchema = SchemaFactory.createForClass(Transaction);

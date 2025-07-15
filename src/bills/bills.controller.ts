@@ -11,7 +11,12 @@ import {
 // import { BillsService } from './bills.service';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { BillsService } from './bills.service';
 
 @ApiTags('Bills')
@@ -25,9 +30,9 @@ export class BillsController {
   @ApiResponse({ status: 201, description: 'Bill created.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   create(@Body() createBillDto: CreateBillDto) {
-    return this.billsService.create(createBillDto).then(bill => ({
+    return this.billsService.create(createBillDto).then((bill) => ({
       ...bill.toObject(),
-      id: bill._id
+      id: bill._id,
     }));
   }
 
@@ -68,4 +73,4 @@ export class BillsController {
   remove(@Param('id') id: string) {
     return this.billsService.remove(id);
   }
-} 
+}

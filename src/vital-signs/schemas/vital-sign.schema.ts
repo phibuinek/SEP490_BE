@@ -5,10 +5,20 @@ export type VitalSignDocument = VitalSign & Document;
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
 export class VitalSign {
-  @Prop({ type: Types.ObjectId, ref: 'Resident', required: true, name: 'resident_id' })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Resident',
+    required: true,
+    name: 'resident_id',
+  })
   residentId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, name: 'recorded_by' })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'User',
+    required: true,
+    name: 'recorded_by',
+  })
   recordedBy: Types.ObjectId;
 
   @Prop({ required: true, name: 'date_time' })
@@ -36,4 +46,4 @@ export class VitalSign {
   notes?: string;
 }
 
-export const VitalSignSchema = SchemaFactory.createForClass(VitalSign); 
+export const VitalSignSchema = SchemaFactory.createForClass(VitalSign);

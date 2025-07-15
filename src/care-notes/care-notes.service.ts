@@ -19,13 +19,18 @@ export class CareNotesService {
       notes: createAssessmentDto.notes,
       recommendations: createAssessmentDto.recommendations ?? null,
       resident_id: new Types.ObjectId(createAssessmentDto.resident_id),
-      conducted_by: createAssessmentDto.conducted_by ? new Types.ObjectId(createAssessmentDto.conducted_by) : undefined,
+      conducted_by: createAssessmentDto.conducted_by
+        ? new Types.ObjectId(createAssessmentDto.conducted_by)
+        : undefined,
     });
     return assessment.save();
   }
 
   async findAll(resident_id: string) {
-    return this.careNoteModel.find({ resident_id: new Types.ObjectId(resident_id) }).sort({ date: -1 }).exec();
+    return this.careNoteModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .sort({ date: -1 })
+      .exec();
   }
 
   async update(id: string, updateAssessmentDto: Partial<CreateAssessmentDto>) {
@@ -33,12 +38,22 @@ export class CareNotesService {
     if (!assessment) {
       throw new NotFoundException('Assessment not found');
     }
-    if (updateAssessmentDto.assessment_type !== undefined) assessment.assessment_type = updateAssessmentDto.assessment_type;
-    if (updateAssessmentDto.date !== undefined) assessment.date = new Date(updateAssessmentDto.date);
-    if (updateAssessmentDto.notes !== undefined) assessment.notes = updateAssessmentDto.notes;
-    if (updateAssessmentDto.recommendations !== undefined) assessment.recommendations = updateAssessmentDto.recommendations;
-    if (updateAssessmentDto.resident_id !== undefined) assessment.resident_id = new Types.ObjectId(updateAssessmentDto.resident_id);
-    if (updateAssessmentDto.conducted_by !== undefined) assessment.conducted_by = new Types.ObjectId(updateAssessmentDto.conducted_by);
+    if (updateAssessmentDto.assessment_type !== undefined)
+      assessment.assessment_type = updateAssessmentDto.assessment_type;
+    if (updateAssessmentDto.date !== undefined)
+      assessment.date = new Date(updateAssessmentDto.date);
+    if (updateAssessmentDto.notes !== undefined)
+      assessment.notes = updateAssessmentDto.notes;
+    if (updateAssessmentDto.recommendations !== undefined)
+      assessment.recommendations = updateAssessmentDto.recommendations;
+    if (updateAssessmentDto.resident_id !== undefined)
+      assessment.resident_id = new Types.ObjectId(
+        updateAssessmentDto.resident_id,
+      );
+    if (updateAssessmentDto.conducted_by !== undefined)
+      assessment.conducted_by = new Types.ObjectId(
+        updateAssessmentDto.conducted_by,
+      );
     return assessment.save();
   }
 
@@ -50,4 +65,4 @@ export class CareNotesService {
     await this.careNoteModel.findByIdAndDelete(id).exec();
     return { message: 'Assessment deleted successfully' };
   }
-} 
+}

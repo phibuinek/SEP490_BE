@@ -16,7 +16,9 @@ export class CreateResidentPhotoDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @Transform(({ value }) => (value === undefined ? undefined : Array.isArray(value) ? value : [value]))
+  @Transform(({ value }) =>
+    value === undefined ? undefined : Array.isArray(value) ? value : [value],
+  )
   tags?: string[];
 
   @IsOptional()
@@ -38,4 +40,4 @@ export class CreateResidentPhotoDto {
   @IsOptional()
   @IsString()
   residentId?: string;
-} 
+}

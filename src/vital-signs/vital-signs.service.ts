@@ -8,10 +8,14 @@ import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 @Injectable()
 export class VitalSignsService {
   constructor(
-    @InjectModel(VitalSign.name) private vitalSignModel: Model<VitalSignDocument>,
+    @InjectModel(VitalSign.name)
+    private vitalSignModel: Model<VitalSignDocument>,
   ) {}
 
-  async create(createDto: CreateVitalSignDto, userId: string): Promise<VitalSign> {
+  async create(
+    createDto: CreateVitalSignDto,
+    userId: string,
+  ): Promise<VitalSign> {
     const createdVitalSign = new this.vitalSignModel({
       ...createDto,
       recordedBy: userId,
@@ -34,7 +38,9 @@ export class VitalSignsService {
   }
 
   async update(id: string, updateDto: UpdateVitalSignDto): Promise<VitalSign> {
-    const vital = await this.vitalSignModel.findByIdAndUpdate(id, updateDto, { new: true });
+    const vital = await this.vitalSignModel.findByIdAndUpdate(id, updateDto, {
+      new: true,
+    });
     if (!vital) throw new NotFoundException('Vital sign not found');
     return vital;
   }
@@ -44,4 +50,4 @@ export class VitalSignsService {
     if (!vital) throw new NotFoundException('Vital sign not found');
     return vital;
   }
-} 
+}

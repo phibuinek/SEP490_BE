@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BedAssignment, BedAssignmentDocument } from './schemas/bed-assignment.schema';
+import {
+  BedAssignment,
+  BedAssignmentDocument,
+} from './schemas/bed-assignment.schema';
 
 @Injectable()
 export class BedAssignmentsService {
   constructor(
-    @InjectModel(BedAssignment.name) private model: Model<BedAssignmentDocument>
+    @InjectModel(BedAssignment.name)
+    private model: Model<BedAssignmentDocument>,
   ) {}
 
   async create(dto: any) {
@@ -21,6 +25,10 @@ export class BedAssignmentsService {
   }
 
   async unassign(id: string) {
-    return this.model.findByIdAndUpdate(id, { unassigned_date: new Date() }, { new: true });
+    return this.model.findByIdAndUpdate(
+      id,
+      { unassigned_date: new Date() },
+      { new: true },
+    );
   }
-} 
+}

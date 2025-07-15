@@ -8,17 +8,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Bill } from '../bills/schemas/bill.schema';
 
-
 @Injectable()
 export class PaymentService {
   private readonly clientId = 'd89d5297-4ff5-4f10-9d44-c8dd3f68f71b';
   private readonly apiKey = '79bc8e19-0dc0-4111-95ff-69bf4687858e';
   private readonly checksumKey =
     '0ecbdbfa3f52b73dacdd2790501563fccca43d92e039e37aef14ffca2850d147';
-  private readonly payosUrl = 'https://api-merchant.payos.vn/v2/payment-requests';
+  private readonly payosUrl =
+    'https://api-merchant.payos.vn/v2/payment-requests';
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
-    private readonly careplanService: CarePlansService
+    private readonly careplanService: CarePlansService,
   ) {}
 
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
@@ -26,7 +26,9 @@ export class PaymentService {
     const bill = await this.billModel.findById(createPaymentDto.billId).exec();
     if (!bill) throw new Error('Bill không tồn tại');
     // Lấy care plan từ bill
-    const careplan = await this.careplanService.findOne(bill.care_plan_id.toString());
+    const careplan = await this.careplanService.findOne(
+      bill.care_plan_id.toString(),
+    );
     if (!careplan) throw new Error('Careplan không tồn tại');
     const amount = bill.amount || careplan.monthlyPrice;
     const orderCode = this.generateOrderCode();
@@ -50,7 +52,10 @@ export class PaymentService {
       const response = await axios.post(this.payosUrl, data, { headers });
       return response.data;
     } catch (error) {
-      console.error('Error creating payment link:', error.response?.data || error.message);
+      console.error(
+        'Error creating payment link:',
+        error.response?.data || error.message,
+      );
       throw new Error('Failed to create payment link');
     }
   }
@@ -59,14 +64,18 @@ export class PaymentService {
     return parseInt(moment().format('YYMMDDHHmmss'));
   }
 
-  private generateSignature(amount: number, orderCode: number, description: string): string {
+  private generateSignature(
+    amount: number,
+    orderCode: number,
+    description: string,
+  ): string {
     const data = `amount=${amount}&cancelUrl=http://localhost:8000/payment/cancel&description=${description}&orderCode=${orderCode}&returnUrl=http://localhost:8000/payment/success`;
     return crypto.HmacSHA256(data, this.checksumKey).toString(crypto.enc.Hex);
-  }  
+  }
 
   handlePaymentWebhook(data: any) {
     // Implement webhook handling logic here
     console.log('Webhook received:', data);
     return { message: 'Webhook received' };
   }
-} 
+}

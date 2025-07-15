@@ -7,11 +7,13 @@ import { ResidentsModule } from '../residents/residents.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: ResidentPhoto.name, schema: ResidentPhotoSchema }]),
+    MongooseModule.forFeature([
+      { name: ResidentPhoto.name, schema: ResidentPhotoSchema },
+    ]),
     ResidentsModule,
   ],
   controllers: [ResidentPhotosController],
   providers: [ResidentPhotosService],
   exports: [ResidentPhotosService],
 })
-export class ResidentPhotosModule {} 
+export class ResidentPhotosModule {}

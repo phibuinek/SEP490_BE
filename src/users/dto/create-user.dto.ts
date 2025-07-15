@@ -1,51 +1,58 @@
-import { IsEmail, IsString, IsOptional, IsArray, IsEnum, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  MinLength,
+  IsEnum,
+  Matches,
+  IsBoolean,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Role } from '../../common/enums/role.enum';
+import { UserRole, UserStatus } from '../schemas/user.schema';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'john_doe' })
+  @ApiProperty({ example: 'Nguyễn Văn A', minLength: 1, maxLength: 100 })
   @IsString()
-  username: string;
+  @MinLength(1)
+  full_name: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'user@email.com' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', minLength: 6 })
+  @ApiProperty({ example: '0987654321', pattern: '^[0-9]{10,15}$' })
+  @IsString()
+  @Matches(/^[0-9]{10,15}$/)
+  phone: string;
+
+  @ApiProperty({ example: 'username_123', pattern: '^[a-zA-Z0-9_]{3,30}$' })
+  @IsString()
+  @Matches(/^[a-zA-Z0-9_]{3,30}$/)
+  username: string;
+
+  @ApiProperty({ example: 'hashedpassword', minLength: 6 })
   @IsString()
   @MinLength(6)
   password: string;
 
-  @ApiProperty({ example: 'John Doe' })
-  @IsString()
-  fullName: string;
-
-  @ApiPropertyOptional({ enum: Role, isArray: true, example: [Role.FAMILY_MEMBER] })
-  @IsOptional()
-  @IsArray()
-  @IsEnum(Role, { each: true })
-  roles?: Role[];
-
-  @ApiPropertyOptional({ example: '+1234567890' })
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', nullable: true })
   @IsOptional()
   @IsString()
-  phone?: string;
+  avatar?: string | null;
 
-  @ApiPropertyOptional({ example: '123 Main St, City, Country' })
-  @IsOptional()
-  @IsString()
-  address?: string;
+  @ApiProperty({ enum: UserRole, example: UserRole.FAMILY })
+  @IsEnum(UserRole)
+  role: UserRole;
 
-  @ApiPropertyOptional({ example: 'con gái' })
-  @IsOptional()
-  @IsString()
-  relationship?: string;
+  @ApiProperty({ enum: UserStatus, example: UserStatus.ACTIVE })
+  @IsEnum(UserStatus)
+  status: UserStatus;
 
-  @ApiPropertyOptional({ type: [String], example: ['residentId1', 'residentId2'] })
+  @ApiPropertyOptional({ example: false })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  residents?: string[];
+  @IsBoolean()
+  is_super_admin?: boolean;
 
   @ApiPropertyOptional({ example: 'Bác sĩ' })
   @IsOptional()
@@ -59,6 +66,24 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({ example: '2022-06-01T00:00:00.000Z' })
   @IsOptional()
+  @IsDateString()
+  join_date?: string;
+
+  @ApiPropertyOptional({ example: '123 Main St, City, Country' })
+  @IsOptional()
   @IsString()
-  joinDate?: string;
-} 
+  address?: string;
+
+  @ApiPropertyOptional({ example: 'Ghi chú về người dùng' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @IsDateString()
+  created_at: string;
+
+  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @IsDateString()
+  updated_at: string;
+}

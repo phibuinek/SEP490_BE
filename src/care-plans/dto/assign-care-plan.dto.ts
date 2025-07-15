@@ -10,4 +10,4 @@ export class AssignCarePlanDto {
   @IsString()
   @IsNotEmpty()
   residentId: string;
-} 
+}

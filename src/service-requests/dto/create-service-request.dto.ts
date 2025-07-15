@@ -35,4 +35,4 @@ export class CreateServiceRequestDto {
   @IsOptional()
   @IsString()
   medicalNote?: string;
-} 
+}

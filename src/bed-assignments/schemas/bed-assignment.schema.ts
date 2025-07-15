@@ -21,4 +21,4 @@ export class BedAssignment {
   assigned_by?: Types.ObjectId;
 }
 
-export const BedAssignmentSchema = SchemaFactory.createForClass(BedAssignment); 
+export const BedAssignmentSchema = SchemaFactory.createForClass(BedAssignment);

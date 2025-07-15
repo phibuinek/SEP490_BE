@@ -1,6 +1,26 @@
-import { Controller, Post, Get, Put, Delete, UseInterceptors, UploadedFile, Body, Query, Req, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  Body,
+  Query,
+  Req,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiConsumes, ApiBody, ApiQuery, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
@@ -23,15 +43,18 @@ export class ResidentPhotosController {
   ) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + extname(file.originalname));
-      },
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
     }),
-  }))
+  )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -54,7 +77,7 @@ export class ResidentPhotosController {
   async uploadPhoto(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateResidentPhotoDto,
-    @Req() req
+    @Req() req,
   ) {
     // Giả sử req.user._id là id người upload
     const uploadedBy = req.user?.userId || 'unknown';
@@ -71,15 +94,20 @@ export class ResidentPhotosController {
   }
 
   @Get()
-  @ApiQuery({ name: 'familyId', required: false, description: 'Filter by family ID. If not provided, returns all photos (staff only)' })
+  @ApiQuery({
+    name: 'familyId',
+    required: false,
+    description:
+      'Filter by family ID. If not provided, returns all photos (staff only)',
+  })
   async getPhotos(@Query('familyId') familyId: string, @Req() req) {
     // If familyId is provided, return photos for that family
     if (familyId) {
       return this.service.getPhotos(familyId);
     }
-    // Nếu không có familyId, kiểm tra roles dạng mảng
-    const roles = req.user?.roles || [];
-    if (!roles.includes(Role.STAFF) && !roles.includes(Role.ADMIN)) {
+    // Nếu không có familyId, kiểm tra role dạng string
+    const userRole = req.user?.role;
+    if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
       throw new Error('Access denied. Only staff can view all photos.');
     }
     return this.service.getAllPhotos();
@@ -96,7 +124,7 @@ export class ResidentPhotosController {
   @ApiBody({ type: UpdateResidentPhotoDto })
   async updatePhoto(
     @Param('id') id: string,
-    @Body() updateData: UpdateResidentPhotoDto
+    @Body() updateData: UpdateResidentPhotoDto,
   ) {
     return this.service.updatePhoto(id, updateData);
   }
@@ -106,4 +134,4 @@ export class ResidentPhotosController {
   async deletePhoto(@Param('id') id: string) {
     return this.service.deletePhoto(id);
   }
-} 
+}

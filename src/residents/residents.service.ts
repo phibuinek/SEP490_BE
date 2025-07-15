@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Param } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Param,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Resident, ResidentDocument } from './schemas/resident.schema';
@@ -10,12 +16,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
+import { RoomsService } from '../rooms/rooms.service';
 
 @Injectable()
 export class ResidentsService {
   constructor(
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
+    private roomsService: RoomsService,
   ) {}
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
@@ -24,7 +32,7 @@ export class ResidentsService {
   }
 
   async findAll(careLevel?: string): Promise<Resident[]> {
-    let filter: any = {};
+    const filter: any = {};
     if (careLevel) {
       if (careLevel === 'unregistered') {
         filter.careLevel = { $exists: false };
@@ -32,24 +40,33 @@ export class ResidentsService {
         filter.careLevel = careLevel;
       }
     }
-    const residents = await this.residentModel.find(filter).populate('familyMemberId', 'fullName email').exec();
+    const residents = await this.residentModel
+      .find(filter)
+      .populate('family_member_id', 'full_name email')
+      .exec();
     return residents;
   }
 
   async findOne(id: string): Promise<Resident> {
     const resident = await this.residentModel.findById(id);
-    if (!resident) throw new NotFoundException(`Resident with ID ${id} not found`);
+    if (!resident)
+      throw new NotFoundException(`Resident with ID ${id} not found`);
     return resident;
   }
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
     console.log('Searching for familyMemberId:', familyMemberId);
-    const residents = await this.residentModel.find({ familyMemberId: familyMemberId }).exec();
+    const residents = await this.residentModel
+      .find({ familyMemberId: familyMemberId })
+      .exec();
     console.log('Found residents:', residents);
     return residents;
   }
 
-  async update(id: string, updateResidentDto: UpdateResidentDto): Promise<Resident> {
+  async update(
+    id: string,
+    updateResidentDto: UpdateResidentDto,
+  ): Promise<Resident> {
     const updatedResident = await this.residentModel
       .findByIdAndUpdate(id, updateResidentDto, { new: true })
       .exec();
@@ -63,7 +80,9 @@ export class ResidentsService {
     // First, unassign bed if any
     await this.unassignBedFromResident(id);
 
-    const deletedResident = await this.residentModel.findByIdAndDelete(id).exec();
+    const deletedResident = await this.residentModel
+      .findByIdAndDelete(id)
+      .exec();
     if (!deletedResident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
@@ -77,21 +96,31 @@ export class ResidentsService {
     const bed = await this.bedModel.findById(bedId);
     if (!bed) throw new NotFoundException('Bed not found');
     if (bed.status === 'occupied') {
-      throw new BadRequestException(`Bed ${bed.bed_number} is already occupied.`);
+      throw new BadRequestException(
+        `Bed ${bed.bed_number} is already occupied.`,
+      );
     }
 
     // Unassign the bed from its current resident if any, just in case
     // if(bed.residentId) {
     //     await this.unassignBed(bedId)
     // }
-    
+
     // Unassign the resident from their current bed if any
     await this.unassignBedFromResident(residentId);
 
     // Assign new bed
     bed.status = 'occupied';
-    // bed.residentId = resident._id as Types.ObjectId;
-    return bed.save();
+    await bed.save();
+
+    // Sau khi gán bed, kiểm tra tất cả bed trong room
+    const roomId = bed.room_id;
+    const allBeds = await this.bedModel.find({ room_id: roomId });
+    const allOccupied = allBeds.every(b => b.status === 'occupied');
+    // Cập nhật status room
+    await this.roomsService.update(roomId.toString(), { status: allOccupied ? 'occupied' : 'available' });
+
+    return bed;
   }
 
   async unassignBed(bedId: string): Promise<Bed> {

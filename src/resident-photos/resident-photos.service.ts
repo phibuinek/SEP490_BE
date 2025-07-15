@@ -29,8 +29,12 @@ export class ResidentPhotosService {
       takenDate: data.takenDate ? new Date(data.takenDate) : undefined,
       staffNotes: data.staffNotes,
       relatedActivityId: data.relatedActivityId,
-      serviceStartDate: data.serviceStartDate ? new Date(data.serviceStartDate) : undefined,
-      residentId: data.residentId ? new Types.ObjectId(data.residentId) : undefined,
+      serviceStartDate: data.serviceStartDate
+        ? new Date(data.serviceStartDate)
+        : undefined,
+      residentId: data.residentId
+        ? new Types.ObjectId(data.residentId)
+        : undefined,
     });
     return photo.save();
   }
@@ -58,16 +62,25 @@ export class ResidentPhotosService {
     }
 
     const updateFields: any = {};
-    if (updateData.caption !== undefined) updateFields.caption = updateData.caption;
-    if (updateData.activityType !== undefined) updateFields.activityType = updateData.activityType;
+    if (updateData.caption !== undefined)
+      updateFields.caption = updateData.caption;
+    if (updateData.activityType !== undefined)
+      updateFields.activityType = updateData.activityType;
     if (updateData.tags !== undefined) updateFields.tags = updateData.tags;
-    if (updateData.takenDate !== undefined) updateFields.takenDate = new Date(updateData.takenDate);
-    if (updateData.staffNotes !== undefined) updateFields.staffNotes = updateData.staffNotes;
-    if (updateData.relatedActivityId !== undefined) updateFields.relatedActivityId = updateData.relatedActivityId;
-    if (updateData.serviceStartDate !== undefined) updateFields.serviceStartDate = new Date(updateData.serviceStartDate);
-    if (updateData.residentId !== undefined) updateFields.residentId = new Types.ObjectId(updateData.residentId);
+    if (updateData.takenDate !== undefined)
+      updateFields.takenDate = new Date(updateData.takenDate);
+    if (updateData.staffNotes !== undefined)
+      updateFields.staffNotes = updateData.staffNotes;
+    if (updateData.relatedActivityId !== undefined)
+      updateFields.relatedActivityId = updateData.relatedActivityId;
+    if (updateData.serviceStartDate !== undefined)
+      updateFields.serviceStartDate = new Date(updateData.serviceStartDate);
+    if (updateData.residentId !== undefined)
+      updateFields.residentId = new Types.ObjectId(updateData.residentId);
 
-    return this.photoModel.findByIdAndUpdate(id, updateFields, { new: true }).exec();
+    return this.photoModel
+      .findByIdAndUpdate(id, updateFields, { new: true })
+      .exec();
   }
 
   async deletePhoto(id: string) {
@@ -95,4 +108,4 @@ export class ResidentPhotosService {
     // Lấy tất cả ảnh có familyId này
     return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
   }
-} 
+}

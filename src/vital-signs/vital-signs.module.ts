@@ -7,11 +7,13 @@ import { ResidentsModule } from '../residents/residents.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: VitalSign.name, schema: VitalSignSchema }]),
+    MongooseModule.forFeature([
+      { name: VitalSign.name, schema: VitalSignSchema },
+    ]),
     ResidentsModule,
   ],
   controllers: [VitalSignsController],
   providers: [VitalSignsService],
   exports: [MongooseModule],
 })
-export class VitalSignsModule {} 
+export class VitalSignsModule {}

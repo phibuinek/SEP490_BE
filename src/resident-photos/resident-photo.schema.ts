@@ -5,10 +5,20 @@ export type ResidentPhotoDocument = ResidentPhoto & Document;
 
 @Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
 export class ResidentPhoto {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, name: 'family_id' })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'User',
+    required: true,
+    name: 'family_id',
+  })
   familyId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, name: 'uploaded_by' })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'User',
+    required: true,
+    name: 'uploaded_by',
+  })
   uploadedBy: Types.ObjectId;
 
   @Prop({ required: true, name: 'file_name' })
@@ -51,4 +61,4 @@ export class ResidentPhoto {
   residentId: Types.ObjectId;
 }
 
-export const ResidentPhotoSchema = SchemaFactory.createForClass(ResidentPhoto); 
+export const ResidentPhotoSchema = SchemaFactory.createForClass(ResidentPhoto);

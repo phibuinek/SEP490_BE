@@ -1,48 +1,52 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { Role } from '../../common/enums/role.enum';
 
 export type UserDocument = User & Document;
 
-export enum Department {
-  Y_TE = 'y_te',
-  CHAM_SOC_NGUOI_CAO_TUOI = 'cham_soc_nguoi_cao_tuoi',
-  PHUC_HOI_CHUC_NANG = 'phuc_hoi_chuc_nang',
-  HOAT_DONG = 'hoat_dong',
-  QUAN_LY = 'quan_ly',
+export enum UserRole {
+  ADMIN = 'admin',
+  STAFF = 'staff',
+  FAMILY = 'family',
 }
 
-@Schema({ timestamps: true })
-export class User {
-  @Prop({ required: true, unique: true })
-  username: string;
+export enum UserStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  DELETED = 'deleted',
+}
 
-  @Prop({ required: true, unique: true })
+@Schema({
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+  collection: 'users',
+})
+export class User {
+  @Prop({ required: true, minlength: 1, maxlength: 100 })
+  full_name: string;
+
+  @Prop({ required: true, unique: true, match: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ })
   email: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, match: /^[0-9]{10,15}$/ })
+  phone: string;
+
+  @Prop({ required: true, unique: true, match: /^[a-zA-Z0-9_]{3,30}$/ })
+  username: string;
+
+  @Prop({ required: true, minlength: 6 })
   password: string;
 
-  @Prop({ required: true })
-  fullName: string;
+  @Prop({ type: [String, null], default: null })
+  avatar?: string | null;
 
-  @Prop({ type: [String], enum: Role, default: [Role.FAMILY_MEMBER] })
-  roles: Role[];
+  @Prop({ required: true, enum: UserRole })
+  role: UserRole;
 
-  @Prop({ default: true })
-  isActive: boolean;
+  @Prop({ required: true, enum: UserStatus })
+  status: UserStatus;
 
-  @Prop()
-  phone?: string;
-
-  @Prop()
-  address?: string;
-
-  @Prop()
-  relationship?: string;
-
-  @Prop([String])
-  residents?: string[];
+  @Prop({ type: Boolean, default: false })
+  is_super_admin?: boolean;
 
   @Prop()
   position?: string;
@@ -51,10 +55,19 @@ export class User {
   qualification?: string;
 
   @Prop()
-  joinDate?: Date;
+  join_date?: Date;
 
-  @Prop({ type: String, enum: Department })
-  department?: Department;
+  @Prop()
+  address?: string;
+
+  @Prop()
+  notes?: string;
+
+  @Prop({ required: true })
+  created_at: Date;
+
+  @Prop({ required: true })
+  updated_at: Date;
 }
 
-export const UserSchema = SchemaFactory.createForClass(User); 
+export const UserSchema = SchemaFactory.createForClass(User);

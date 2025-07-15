@@ -25,4 +25,4 @@ export class Payment {
   status: string;
 }
 
-export const PaymentSchema = SchemaFactory.createForClass(Payment); 
+export const PaymentSchema = SchemaFactory.createForClass(Payment);

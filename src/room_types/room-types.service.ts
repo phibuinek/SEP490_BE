@@ -28,7 +28,9 @@ export class RoomTypesService {
   }
 
   async update(id: string, updateDto: UpdateRoomTypeDto): Promise<RoomType> {
-    const updated = await this.roomTypeModel.findByIdAndUpdate(id, updateDto, { new: true }).exec();
+    const updated = await this.roomTypeModel
+      .findByIdAndUpdate(id, updateDto, { new: true })
+      .exec();
     if (!updated) throw new NotFoundException('Room type not found');
     return updated;
   }
@@ -38,4 +40,4 @@ export class RoomTypesService {
     if (!deleted) throw new NotFoundException('Room type not found');
     return { deleted: true };
   }
-} 
+}

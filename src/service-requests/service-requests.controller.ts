@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Patch, Param, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Param,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
@@ -27,4 +35,4 @@ export class ServiceRequestsController {
   reject(@Param('id') id: string) {
     return this.service.reject(id);
   }
-} 
+}

@@ -4,14 +4,18 @@ import { Model, Types } from 'mongoose';
 import { Room, RoomDocument } from './schemas/room.schema';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
+import {
+  BedAssignment,
+  BedAssignmentDocument,
+} from '../bed-assignments/schemas/bed-assignment.schema';
 import { Bed, BedDocument } from '../beds/schemas/bed.schema';
 
 @Injectable()
 export class RoomsService {
   constructor(
     @InjectModel(Room.name) private roomModel: Model<RoomDocument>,
-    @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignmentDocument>,
+    @InjectModel(BedAssignment.name)
+    private bedAssignmentModel: Model<BedAssignmentDocument>,
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
   ) {}
 
@@ -54,10 +58,12 @@ export class RoomsService {
   }
 
   async update(id: string, updateRoomDto: UpdateRoomDto): Promise<Room | null> {
-    return this.roomModel.findByIdAndUpdate(id, updateRoomDto, { new: true }).exec();
+    return this.roomModel
+      .findByIdAndUpdate(id, updateRoomDto, { new: true })
+      .exec();
   }
 
   async remove(id: string): Promise<any> {
     return this.roomModel.findByIdAndDelete(id).exec();
   }
-} 
+}

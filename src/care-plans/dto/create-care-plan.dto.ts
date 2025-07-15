@@ -15,7 +15,10 @@ export class CreateCarePlanDto {
   @IsNotEmpty()
   readonly planName: string;
 
-  @ApiProperty({ example: 'Dành cho những người cao tuổi cần chăm sóc đặc biệt với tình trạng sức khỏe yếu.' })
+  @ApiProperty({
+    example:
+      'Dành cho những người cao tuổi cần chăm sóc đặc biệt với tình trạng sức khỏe yếu.',
+  })
   @IsString()
   @IsNotEmpty()
   readonly description: string;
@@ -58,7 +61,10 @@ export class CreateCarePlanDto {
   @IsOptional()
   readonly defaultMedications: string[];
 
-  @ApiProperty({ example: ['Không dị ứng', 'Có người thân chăm sóc'], required: false })
+  @ApiProperty({
+    example: ['Không dị ứng', 'Có người thân chăm sóc'],
+    required: false,
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
@@ -74,4 +80,4 @@ export class CreateCarePlanDto {
   @IsBoolean()
   @IsOptional()
   readonly isActive: boolean;
-} 
+}

@@ -28,4 +28,4 @@ export class Visit extends Document {
   numberOfVisitors: number;
 }
 
-export const VisitSchema = SchemaFactory.createForClass(Visit); 
+export const VisitSchema = SchemaFactory.createForClass(Visit);

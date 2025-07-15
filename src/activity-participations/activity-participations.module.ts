@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ActivityParticipationsController } from './activity-participations.controller';
 import { ActivityParticipationsService } from './activity-participations.service';
-import { ActivityParticipation, ActivityParticipationSchema } from './schemas/activity-participation.schema';
+import {
+  ActivityParticipation,
+  ActivityParticipationSchema,
+} from './schemas/activity-participation.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Activity, ActivitySchema } from '../activity/schemas/activity.schema';
 
@@ -17,4 +20,4 @@ import { Activity, ActivitySchema } from '../activity/schemas/activity.schema';
   controllers: [ActivityParticipationsController],
   providers: [ActivityParticipationsService],
 })
-export class ActivityParticipationsModule {} 
+export class ActivityParticipationsModule {}

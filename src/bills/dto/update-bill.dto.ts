@@ -16,4 +16,4 @@ export class UpdateBillDto extends PartialType(CreateBillDto) {
   @IsEnum(PaymentMethod)
   @IsOptional()
   payment_method?: PaymentMethod;
-} 
+}

@@ -10,13 +10,19 @@ export class CreateBedDto {
   @IsMongoId()
   room_id: string;
 
-  @ApiProperty({ example: 'standard', enum: ['standard', 'electric', 'medical'] })
+  @ApiProperty({
+    example: 'standard',
+    enum: ['standard', 'electric', 'medical'],
+  })
   @IsString()
   @IsEnum(['standard', 'electric', 'medical'])
   bed_type: string;
 
-  @ApiProperty({ example: 'available', enum: ['available', 'occupied', 'maintenance'] })
+  @ApiProperty({
+    example: 'available',
+    enum: ['available', 'occupied', 'maintenance'],
+  })
   @IsString()
   @IsEnum(['available', 'occupied', 'maintenance'])
   status: string;
-} 
+}

@@ -1,126 +1,164 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsMongoId,
+  IsObject,
+  IsNumberString,
+  Matches,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { Gender, CareLevel, ResidentStatus } from '../schemas/resident.schema';
 
-class EmergencyContactDto {
-  @ApiProperty({ example: 'Trần Thị B' })
+export class MedicationDto {
+  @ApiProperty({ example: 'Aspirin 81mg' })
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  medication_name: string;
 
-  @ApiProperty({ example: 'Con gái' })
+  @ApiProperty({ example: '1 viên/ngày' })
   @IsString()
   @IsNotEmpty()
-  relationship: string;
+  dosage: string;
+
+  @ApiProperty({ example: 'Sáng' })
+  @IsString()
+  @IsNotEmpty()
+  frequency: string;
+}
+
+export class EmergencyContactDto {
+  @ApiProperty({ example: 'Nguyễn Văn A' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
   @ApiProperty({ example: '0987654321' })
   @IsString()
-  @IsNotEmpty()
-  personalPhone: string;
+  @Matches(/^[0-9]{10,15}$/)
+  phone: string;
 
-  @ApiProperty({ example: '0911222333' })
-  @IsString()
-  @IsNotEmpty()
-  emergencyPhone: string;
+  @ApiProperty({
+    enum: [
+      'con trai',
+      'con gái',
+      'cháu trai',
+      'cháu gái',
+      'anh em',
+      'vợ/chồng',
+      'khác',
+    ],
+    example: 'con gái',
+  })
+  @IsEnum([
+    'con trai',
+    'con gái',
+    'cháu trai',
+    'cháu gái',
+    'anh em',
+    'vợ/chồng',
+    'khác',
+  ])
+  relationship: string;
 }
 
 export class CreateResidentDto {
-  @ApiProperty({ example: 'Nam' })
-  @IsString()
-  @IsNotEmpty()
-  firstName: string;
-
-  @ApiProperty({ example: 'Nguyễn Văn' })
-  @IsString()
-  @IsNotEmpty()
-  middleName: string;
-
-  @ApiProperty({ example: '123456789' })
-  @IsString()
-  @IsNotEmpty()
-  identityNumber: string;
-
-  @ApiProperty({ example: 'A101' })
-  @IsString()
-  @IsNotEmpty()
-  roomNumber: string;
-
-  @ApiProperty({ example: 'Gói tiêu chuẩn' })
-  @IsString()
-  @IsNotEmpty()
-  servicePackage: string;
-
   @ApiProperty({ example: 'Nguyễn Văn Nam' })
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  full_name: string;
 
   @ApiProperty({ example: '1950-05-15' })
   @IsDateString()
   @IsNotEmpty()
-  dateOfBirth: Date;
+  date_of_birth: string;
 
   @ApiProperty({ enum: Gender, example: Gender.MALE })
   @IsEnum(Gender)
-  @IsNotEmpty()
   gender: Gender;
+
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', nullable: true })
+  @IsOptional()
+  @IsString()
+  avatar?: string | null;
 
   @ApiProperty({ example: '2024-01-10' })
   @IsDateString()
   @IsNotEmpty()
-  admissionDate: Date;
+  admission_date: string;
 
-  @ApiProperty({ example: null, required: false })
+  @ApiPropertyOptional({ example: '2024-06-01', nullable: true })
+  @IsOptional()
   @IsDateString()
-  @IsOptional()
-  dischargeDate?: Date;
+  discharge_date?: string | null;
 
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750', required: false })
+  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
+  @IsMongoId()
+  family_member_id: string;
+
+  @ApiProperty({
+    enum: [
+      'con trai',
+      'con gái',
+      'cháu trai',
+      'cháu gái',
+      'anh em',
+      'vợ/chồng',
+      'khác',
+    ],
+    example: 'con gái',
+  })
+  @IsEnum([
+    'con trai',
+    'con gái',
+    'cháu trai',
+    'cháu gái',
+    'anh em',
+    'vợ/chồng',
+    'khác',
+  ])
+  relationship: string;
+
+  @ApiProperty({ example: 'Cao huyết áp, tiểu đường type 2' })
   @IsString()
-  @IsOptional()
-  familyMemberId?: string;
+  @IsNotEmpty()
+  medical_history: string;
 
-  @ApiProperty({ example: 'Cao huyết áp, tiểu đường type 2', required: false })
-  @IsString()
-  @IsOptional()
-  medicalHistory?: string;
+  @ApiProperty({ type: [MedicationDto], example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MedicationDto)
+  current_medications: MedicationDto[];
 
-  @ApiProperty({ example: 'Thông tin bổ sung khác', required: false })
-  @IsString()
-  @IsOptional()
-  additionalNotes?: string;
-
-  @ApiProperty({ type: [String], example: ['Aspirin 81mg', 'Metformin 500mg'], required: false })
+  @ApiProperty({ type: [String], example: ['Dị ứng hải sản'] })
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  currentMedications?: string[];
-
-  @ApiProperty({ type: [String], example: ['Dị ứng hải sản'], required: false })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  allergies?: string[];
+  allergies: string[];
 
   @ApiProperty({ type: EmergencyContactDto })
+  @IsObject()
   @ValidateNested()
   @Type(() => EmergencyContactDto)
-  @IsNotEmpty()
-  emergencyContact: EmergencyContactDto;
+  emergency_contact: EmergencyContactDto;
 
-  @ApiProperty({ enum: CareLevel, example: CareLevel.INTERMEDIATE })
+  @ApiProperty({ enum: CareLevel, example: CareLevel.BASIC })
   @IsEnum(CareLevel)
-  @IsNotEmpty()
-  careLevel: CareLevel;
+  care_level: CareLevel;
 
-  @ApiProperty({ enum: ResidentStatus, example: ResidentStatus.ACTIVE, required: false })
+  @ApiProperty({ enum: ResidentStatus, example: ResidentStatus.ACTIVE })
   @IsEnum(ResidentStatus)
-  @IsOptional()
-  status?: ResidentStatus;
+  status: ResidentStatus;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  carePlanIds?: string[];
-} 
+  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @IsDateString()
+  created_at: string;
+
+  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @IsDateString()
+  updated_at: string;
+}

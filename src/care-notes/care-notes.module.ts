@@ -6,10 +6,12 @@ import { AssessmentsController } from './care-notes.controller';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Assessment.name, schema: AssessmentSchema }]),
+    MongooseModule.forFeature([
+      { name: Assessment.name, schema: AssessmentSchema },
+    ]),
   ],
   controllers: [AssessmentsController],
   providers: [CareNotesService],
   exports: [CareNotesService],
 })
-export class CareNotesModule {} 
+export class CareNotesModule {}

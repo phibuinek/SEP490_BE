@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Patch, Body, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -15,7 +23,10 @@ export class BedAssignmentsController {
   }
 
   @Get()
-  findAll(@Query('bed_id') bed_id?: string, @Query('resident_id') resident_id?: string) {
+  findAll(
+    @Query('bed_id') bed_id?: string,
+    @Query('resident_id') resident_id?: string,
+  ) {
     return this.service.findAll(bed_id, resident_id);
   }
 
@@ -23,4 +34,4 @@ export class BedAssignmentsController {
   unassign(@Param('id') id: string) {
     return this.service.unassign(id);
   }
-} 
+}

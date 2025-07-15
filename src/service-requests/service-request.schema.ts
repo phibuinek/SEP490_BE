@@ -20,7 +20,11 @@ export class ServiceRequest {
   @Prop({ type: Types.ObjectId, ref: 'ServicePackage', required: true })
   servicePackageId: Types.ObjectId;
 
-  @Prop({ type: String, enum: ServiceRequestStatus, default: ServiceRequestStatus.PENDING })
+  @Prop({
+    type: String,
+    enum: ServiceRequestStatus,
+    default: ServiceRequestStatus.PENDING,
+  })
   status: ServiceRequestStatus;
 
   @Prop()
@@ -39,4 +43,5 @@ export class ServiceRequest {
   medicalNote: string;
 }
 
-export const ServiceRequestSchema = SchemaFactory.createForClass(ServiceRequest); 
+export const ServiceRequestSchema =
+  SchemaFactory.createForClass(ServiceRequest);

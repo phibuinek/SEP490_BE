@@ -24,4 +24,4 @@ export class Assessment {
   conducted_by: Types.ObjectId;
 }
 
-export const AssessmentSchema = SchemaFactory.createForClass(Assessment); 
+export const AssessmentSchema = SchemaFactory.createForClass(Assessment);

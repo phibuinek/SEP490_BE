@@ -5,7 +5,10 @@ import { RoomsController } from './rooms.controller';
 import { Room, RoomSchema } from './schemas/room.schema';
 import { BedAssignmentsModule } from '../bed-assignments/bed-assignments.module';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
-import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
+import {
+  BedAssignment,
+  BedAssignmentSchema,
+} from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Module({
   imports: [
@@ -20,4 +23,4 @@ import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/b
   providers: [RoomsService],
   exports: [RoomsService],
 })
-export class RoomsModule {} 
+export class RoomsModule {}

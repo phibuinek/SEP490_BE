@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CareNotesService } from './care-notes.service';
 import { CreateAssessmentDto } from './dto/create-care-note.dto';
 import { UpdateCareNoteDto } from './dto/update-care-note.dto';
@@ -37,4 +48,4 @@ export class AssessmentsController {
   async remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
-} 
+}

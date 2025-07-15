@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { VitalSignsService } from './vital-signs.service';
 import { ResidentsService } from '../residents/residents.service';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
@@ -36,24 +48,29 @@ export class VitalSignsController {
   @Get('resident/:residentId')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
   @ApiOperation({ summary: 'Get all vital signs by resident ID' })
-  async findAllByResidentId(@Param('residentId') residentId: string, @Req() req) {
+  async findAllByResidentId(
+    @Param('residentId') residentId: string,
+    @Req() req,
+  ) {
     const user = req.user;
-    
+
     // Lấy thông tin resident để kiểm tra quyền
     const resident = await this.residentsService.findOne(residentId);
-    
+
     if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
       return this.service.findAllByResidentId(residentId);
     }
-    
+
     if (
       user.roles.includes(Role.FAMILY_MEMBER) &&
-      resident.familyMemberId?.toString() === user.userId
+      resident.family_member_id?.toString() === user.userId
     ) {
       return this.service.findAllByResidentId(residentId);
     }
-    
-    throw new ForbiddenException('Bạn không có quyền xem vital signs của resident này!');
+
+    throw new ForbiddenException(
+      'Bạn không có quyền xem vital signs của resident này!',
+    );
   }
 
   @Get(':id')
@@ -62,21 +79,23 @@ export class VitalSignsController {
   async findOne(@Param('id') id: string, @Req() req) {
     const vitalSign = await this.service.findOne(id);
     const user = req.user;
-    
+
     // Lấy thông tin resident để kiểm tra quyền
-    const resident = await this.residentsService.findOne(vitalSign.residentId.toString());
-    
+    const resident = await this.residentsService.findOne(
+      vitalSign.residentId.toString(),
+    );
+
     if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
       return vitalSign;
     }
-    
+
     if (
       user.roles.includes(Role.FAMILY_MEMBER) &&
-      resident.familyMemberId?.toString() === user.userId
+      resident.family_member_id?.toString() === user.userId
     ) {
       return vitalSign;
     }
-    
+
     throw new ForbiddenException('Bạn không có quyền xem vital sign này!');
   }
 
@@ -93,4 +112,4 @@ export class VitalSignsController {
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
-} 
+}

@@ -36,4 +36,6 @@ export class ActivityParticipation {
   attendanceStatus: AttendanceStatus;
 }
 
-export const ActivityParticipationSchema = SchemaFactory.createForClass(ActivityParticipation); 
+export const ActivityParticipationSchema = SchemaFactory.createForClass(
+  ActivityParticipation,
+);

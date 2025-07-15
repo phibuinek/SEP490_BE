@@ -8,4 +8,4 @@ export class UpdateCareNoteDto {
   @IsOptional()
   @IsString()
   content?: string;
-} 
+}

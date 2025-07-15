@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  ForbiddenException,
+  Query,
+} from '@nestjs/common';
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
@@ -6,7 +18,13 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Role } from '../common/enums/role.enum';
-import { ApiOperation, ApiTags, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+  ApiResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 @ApiTags('residents')
 @ApiBearerAuth()
@@ -29,7 +47,10 @@ export class ResidentsController {
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get all residents' })
-  @ApiResponse({ status: 200, description: 'Residents retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Residents retrieved successfully.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
@@ -39,7 +60,12 @@ export class ResidentsController {
   @Get('by-care-level')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get residents by care level' })
-  @ApiQuery({ name: 'careLevel', required: true, enum: ['basic', 'intermediate', 'advanced', 'specialized', 'unregistered'], description: 'Lọc theo gói chăm sóc' })
+  @ApiQuery({
+    name: 'careLevel',
+    required: true,
+    enum: ['basic', 'intermediate', 'advanced', 'specialized', 'unregistered'],
+    description: 'Lọc theo gói chăm sóc',
+  })
   findByCareLevel(@Query('careLevel') careLevel: string) {
     return this.residentsService.findAll(careLevel);
   }
@@ -47,7 +73,10 @@ export class ResidentsController {
   @Get('family-member/:familyMemberId')
   @Roles(Role.FAMILY_MEMBER, Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get residents by family member ID' })
-  @ApiResponse({ status: 200, description: 'Residents retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Residents retrieved successfully.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAllByFamilyMemberId(@Param('familyMemberId') familyMemberId: string) {
@@ -64,12 +93,12 @@ export class ResidentsController {
   async findOne(@Param('id') id: string, @Req() req) {
     const resident = await this.residentsService.findOne(id);
     const user = req.user;
-    if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
+    if (user.role === Role.ADMIN || user.role === Role.STAFF) {
       return resident;
     }
     if (
-      user.roles.includes(Role.FAMILY_MEMBER) &&
-      resident.familyMemberId?.toString() === user.userId
+      user.role === Role.FAMILY_MEMBER &&
+      resident.family_member_id?.toString() === user.userId
     ) {
       return resident;
     }
@@ -84,7 +113,10 @@ export class ResidentsController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Resident not found.' })
-  update(@Param('id') id: string, @Body() updateResidentDto: UpdateResidentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateResidentDto: UpdateResidentDto,
+  ) {
     return this.residentsService.update(id, updateResidentDto);
   }
 
@@ -101,7 +133,10 @@ export class ResidentsController {
 
   @Post(':id/assign-bed/:bedId')
   @ApiOperation({ summary: 'Assign a bed to a resident' })
-  @ApiResponse({ status: 200, description: 'Bed assigned to resident successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bed assigned to resident successfully.',
+  })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })

@@ -29,7 +29,10 @@ export enum DurationType {
   ONE_TIME = 'one_time',
 }
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }, collection: 'care_plans' })
+@Schema({
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+  collection: 'care_plans',
+})
 export class CarePlan {
   @Prop({ required: true, name: 'plan_name' })
   planName: string;
@@ -52,11 +55,15 @@ export class CarePlan {
   @Prop({
     type: [
       {
-        medication_id: { type: Types.ObjectId, ref: 'Medication', required: true },
+        medication_id: {
+          type: Types.ObjectId,
+          ref: 'Medication',
+          required: true,
+        },
         dosage: { type: String, required: true },
         frequency: { type: String, required: true },
-        _id: false // Không sinh _id phụ cho từng phần tử
-      }
+        _id: false, // Không sinh _id phụ cho từng phần tử
+      },
     ],
     default: null,
     name: 'default_medications',
@@ -77,7 +84,11 @@ export class CarePlan {
   @Prop({ required: true, name: 'staff_ratio' })
   staffRatio: string;
 
-  @Prop({ required: true, name: 'duration_type', enum: Object.values(DurationType) })
+  @Prop({
+    required: true,
+    name: 'duration_type',
+    enum: Object.values(DurationType),
+  })
   durationType: DurationType;
 
   @Prop({ default: true, name: 'is_active' })
