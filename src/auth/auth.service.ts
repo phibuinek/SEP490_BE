@@ -22,7 +22,7 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
     if (
       user &&
-      user.status === UserStatus.ACTIVE &&
+      user.status === 'active' &&
       (await bcrypt.compare(password, user.password))
     ) {
       const { password, ...result } = user.toObject();
