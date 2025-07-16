@@ -1,16 +1,27 @@
-import { IsString, IsOptional, IsArray , IsMongoId} from 'class-validator';
+import { IsString, IsOptional, IsArray, IsMongoId, IsEnum, IsDateString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateResidentPhotoDto {
   @IsMongoId()
-  family_id: string;
+  resident_id: string;
 
   @IsOptional()
   @IsString()
   caption?: string;
 
   @IsOptional()
-  @IsString()
+  @IsEnum([
+    'Hoạt động thể chất', 
+    'Hoạt động tinh thần', 
+    'Bữa ăn', 
+    'Y tế/Chăm sóc', 
+    'Hoạt động xã hội', 
+    'Giải trí', 
+    'Học tập', 
+    'Thăm viếng gia đình', 
+    'Sinh nhật/Lễ hội', 
+    'Khác'
+  ])
   activity_type?: string;
 
   @IsOptional()
@@ -22,7 +33,7 @@ export class CreateResidentPhotoDto {
   tags?: string[];
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   taken_date?: string;
 
   @IsOptional()
@@ -30,14 +41,6 @@ export class CreateResidentPhotoDto {
   staff_notes?: string;
 
   @IsOptional()
-  @IsString()
+  @IsMongoId()
   related_activity_id?: string;
-
-  @IsOptional()
-  @IsString()
-  service_start_date?: string;
-
-  @IsOptional()
-  @IsString()
-  resident_id?: string;
 }

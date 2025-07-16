@@ -63,17 +63,30 @@ export class ResidentPhotosController {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
-        family_id: { type: 'string' },
-        caption: { type: 'string' },
-        activity_type: { type: 'string' },
-        tags: { type: 'array', items: { type: 'string' } },
-        taken_date: { type: 'string', format: 'date-time' },
-        staff_notes: { type: 'string' },
-        related_activity_id: { type: 'string' },
-        service_start_date: { type: 'string', format: 'date-time' },
-        resident_id: { type: 'string' },
+        resident_id: { type: 'string', description: 'ID của người cao tuổi' },
+        caption: { type: 'string', description: 'Mô tả về ảnh' },
+        activity_type: { 
+          type: 'string', 
+          enum: [
+            'Hoạt động thể chất', 
+            'Hoạt động tinh thần', 
+            'Bữa ăn', 
+            'Y tế/Chăm sóc', 
+            'Hoạt động xã hội', 
+            'Giải trí', 
+            'Học tập', 
+            'Thăm viếng gia đình', 
+            'Sinh nhật/Lễ hội', 
+            'Khác'
+          ],
+          description: 'Loại hoạt động trong ảnh'
+        },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Các tag cho ảnh' },
+        taken_date: { type: 'string', format: 'date-time', description: 'Ngày chụp ảnh' },
+        staff_notes: { type: 'string', description: 'Ghi chú của nhân viên' },
+        related_activity_id: { type: 'string', description: 'ID của hoạt động liên quan (nếu có)' },
       },
-      required: ['file', 'family_id'],
+      required: ['file', 'resident_id'],
     },
   })
   async uploadPhoto(
