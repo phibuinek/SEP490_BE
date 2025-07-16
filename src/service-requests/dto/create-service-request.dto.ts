@@ -4,7 +4,7 @@ import { IsString, IsOptional } from 'class-validator';
 export class CreateServiceRequestDto {
   @ApiProperty()
   @IsString()
-  residentId: string;
+  resident_id: string;
 
   @ApiProperty()
   @IsString()

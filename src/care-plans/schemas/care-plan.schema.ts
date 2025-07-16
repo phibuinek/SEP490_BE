@@ -34,23 +34,23 @@ export enum DurationType {
   collection: 'care_plans',
 })
 export class CarePlan {
-  @Prop({ required: true, name: 'plan_name' })
-  planName: string;
+  @Prop({ required: true })
+  plan_name: string;
 
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true, name: 'monthly_price', min: 0 })
-  monthlyPrice: number;
+  @Prop({ required: true, min: 0 })
+  monthly_price: number;
 
-  @Prop({ required: true, name: 'plan_type', enum: Object.values(PlanType) })
-  planType: PlanType;
+  @Prop({ required: true, enum: Object.values(PlanType) })
+  plan_type: PlanType;
 
   @Prop({ required: true, enum: Object.values(CategoryType) })
   category: CategoryType;
 
-  @Prop({ type: [String], name: 'services_included', required: true })
-  servicesIncluded: string[];
+  @Prop({ type: [String], required: true })
+  services_included: string[];
 
   @Prop({
     type: [
@@ -66,10 +66,9 @@ export class CarePlan {
       },
     ],
     default: null,
-    name: 'default_medications',
     required: false,
   })
-  defaultMedications: Array<{
+  default_medications: Array<{
     medication_id: Types.ObjectId;
     dosage: string;
     frequency: string;
@@ -81,18 +80,17 @@ export class CarePlan {
   @Prop({ type: [String], default: null })
   contraindications: (string | null)[] | null;
 
-  @Prop({ required: true, name: 'staff_ratio' })
-  staffRatio: string;
+  @Prop({ required: true })
+  staff_ratio: string;
 
   @Prop({
     required: true,
-    name: 'duration_type',
     enum: Object.values(DurationType),
   })
-  durationType: DurationType;
+  duration_type: DurationType;
 
-  @Prop({ default: true, name: 'is_active' })
-  isActive: boolean;
+  @Prop({ default: true })
+  is_active: boolean;
 
   _id?: Types.ObjectId;
 }

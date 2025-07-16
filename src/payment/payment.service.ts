@@ -22,17 +22,17 @@ export class PaymentService {
   ) {}
 
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
-    // Lấy bill theo billId
-    const bill = await this.billModel.findById(createPaymentDto.billId).exec();
+    // Lấy bill theo bill_id
+    const bill = await this.billModel.findById(createPaymentDto.bill_id).exec();
     if (!bill) throw new Error('Bill không tồn tại');
     // Lấy care plan từ bill
     const careplan = await this.careplanService.findOne(
       bill.care_plan_id.toString(),
     );
     if (!careplan) throw new Error('Careplan không tồn tại');
-    const amount = bill.amount || careplan.monthlyPrice;
+    const amount = bill.amount || careplan.monthly_price;
     const orderCode = this.generateOrderCode();
-    const rawDescription = `Thanh toán hóa đơn: ${bill._id} - gói: ${careplan.planName || careplan._id}`;
+    const rawDescription = `Thanh toán hóa đơn: ${bill._id} - gói: ${careplan.plan_name || careplan._id}`;
     const description = rawDescription.slice(0, 25); // PayOS chỉ cho phép tối đa 25 ký tự
     const data = {
       orderCode,

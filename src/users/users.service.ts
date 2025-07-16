@@ -67,9 +67,9 @@ export class UsersService {
     return { message: 'User role updated successfully.' };
   }
 
-  async deactivateUser(userId: string): Promise<User> {
+  async deactivateUser(user_id: string): Promise<User> {
     const user = await this.userModel
-      .findByIdAndUpdate(userId, { isActive: false }, { new: true })
+      .findByIdAndUpdate(user_id, { is_active: false }, { new: true })
       .select('-password')
       .exec();
 
@@ -80,9 +80,9 @@ export class UsersService {
     return user;
   }
 
-  async activateUser(userId: string): Promise<User> {
+  async activateUser(user_id: string): Promise<User> {
     const user = await this.userModel
-      .findByIdAndUpdate(userId, { isActive: true }, { new: true })
+      .findByIdAndUpdate(user_id, { is_active: true }, { new: true })
       .select('-password')
       .exec();
 
@@ -94,26 +94,26 @@ export class UsersService {
   }
 
   async addResidentToFamily(
-    familyId: string,
-    residentId: any,
+    family_id: string,
+    resident_id: any,
   ): Promise<User | null> {
     return this.userModel
       .findByIdAndUpdate(
-        familyId,
-        { $push: { residents: residentId } },
+        family_id,
+        { $push: { residents: resident_id } },
         { new: true },
       )
       .exec();
   }
 
   async removeResidentFromFamily(
-    familyId: string,
-    residentId: any,
+    family_id: string,
+    resident_id: any,
   ): Promise<User | null> {
     return this.userModel
       .findByIdAndUpdate(
-        familyId,
-        { $pull: { residents: residentId } },
+        family_id,
+        { $pull: { residents: resident_id } },
         { new: true },
       )
       .exec();

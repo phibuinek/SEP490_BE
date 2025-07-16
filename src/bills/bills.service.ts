@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Bill } from './schemas/bill.schema';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
 import { CarePlansService } from '../care-plans/care-plans.service';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class BillsService {
@@ -26,14 +27,15 @@ export class BillsService {
 
     const newBill = new this.billModel({
       ...createBillDto,
-      amount: carePlan.monthlyPrice,
+      amount: carePlan.monthly_price,
+      bill_date: new Date(),
       care_plan_snapshot: {
-        planName: carePlan.planName,
+        plan_name: carePlan.plan_name,
+        monthly_price: carePlan.monthly_price,
+        plan_type: carePlan.plan_type,
         description: carePlan.description,
-        monthlyPrice: carePlan.monthlyPrice,
-        planType: carePlan.planType,
+        staff_ratio: carePlan.staff_ratio,
         category: carePlan.category,
-        staffRatio: carePlan.staffRatio,
       },
     });
 
@@ -70,7 +72,17 @@ export class BillsService {
     return bill;
   }
 
-  async findByResidentId(residentId: string): Promise<Bill[]> {
-    return this.billModel.find({ resident_id: residentId }).exec();
+  async findByResidentId(resident_id: string): Promise<Bill[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident ID format');
+    }
+    
+    return this.billModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .sort({ due_date: -1 })
+      .exec();
   }
 }

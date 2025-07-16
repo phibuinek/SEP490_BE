@@ -11,6 +11,7 @@ import {
   Req,
   Param,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -57,21 +58,22 @@ export class ResidentPhotosController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
+    description: 'Upload photo with metadata',
     schema: {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
-        familyId: { type: 'string' },
+        family_id: { type: 'string' },
         caption: { type: 'string' },
-        activityType: { type: 'string' },
+        activity_type: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
-        takenDate: { type: 'string', format: 'date-time' },
-        staffNotes: { type: 'string' },
-        relatedActivityId: { type: 'string' },
-        serviceStartDate: { type: 'string', format: 'date-time' },
-        residentId: { type: 'string' }, // <-- Thêm dòng này
+        taken_date: { type: 'string', format: 'date-time' },
+        staff_notes: { type: 'string' },
+        related_activity_id: { type: 'string' },
+        service_start_date: { type: 'string', format: 'date-time' },
+        resident_id: { type: 'string' },
       },
-      required: ['file', 'familyId'],
+      required: ['file', 'family_id'],
     },
   })
   async uploadPhoto(
@@ -80,35 +82,37 @@ export class ResidentPhotosController {
     @Req() req,
   ) {
     // Giả sử req.user._id là id người upload
-    const uploadedBy = req.user?.userId || 'unknown';
+    const uploaded_by = req.user?.userId || 'unknown';
     console.log('Uploaded file:', file);
-    const filePath = file.path || `uploads/${file.filename}`;
+    const file_path = file.path || `uploads/${file.filename}`;
     return this.service.uploadPhoto({
       ...body,
-      fileName: file.originalname,
-      filePath,
-      fileType: file.mimetype,
-      fileSize: file.size,
-      uploadedBy,
+      file_name: file.originalname,
+      file_path,
+      file_type: file.mimetype,
+      file_size: file.size,
+      uploaded_by,
     });
   }
 
   @Get()
   @ApiQuery({
-    name: 'familyId',
+    name: 'family_id',
     required: false,
     description:
       'Filter by family ID. If not provided, returns all photos (staff only)',
   })
-  async getPhotos(@Query('familyId') familyId: string, @Req() req) {
-    // If familyId is provided, return photos for that family
-    if (familyId) {
-      return this.service.getPhotos(familyId);
+  async getPhotos(@Query('family_id') family_id: string, @Req() req) {
+    // If family_id is provided, return photos for that family
+    if (family_id) {
+      return this.service.getPhotos(family_id);
     }
-    // Nếu không có familyId, kiểm tra role dạng string
+    // Nếu không có family_id, kiểm tra role dạng string
     const userRole = req.user?.role;
     if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
-      throw new Error('Access denied. Only staff can view all photos.');
+      throw new ForbiddenException(
+        'Only staff and admin can view all photos',
+      );
     }
     return this.service.getAllPhotos();
   }

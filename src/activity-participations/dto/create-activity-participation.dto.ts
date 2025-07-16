@@ -12,17 +12,17 @@ export class CreateActivityParticipationDto {
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
   @IsString()
   @IsNotEmpty()
-  staffId: string;
+  staff_id: string;
 
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e751' })
   @IsString()
   @IsNotEmpty()
-  activityId: string;
+  activity_id: string;
 
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e752' })
   @IsString()
   @IsNotEmpty()
-  residentId: string;
+  resident_id: string;
 
   @ApiProperty({ example: '2024-03-02T00:00:00Z' })
   @IsDateString()
@@ -32,10 +32,10 @@ export class CreateActivityParticipationDto {
   @ApiProperty({ example: 'Tham gia tích cực, tinh thần tốt', required: false })
   @IsString()
   @IsOptional()
-  performanceNotes?: string;
+  performance_notes?: string;
 
   @ApiProperty({ enum: AttendanceStatus, example: AttendanceStatus.PENDING })
   @IsEnum(AttendanceStatus)
   @IsNotEmpty()
-  attendanceStatus: AttendanceStatus;
+  attendance_status: AttendanceStatus;
 }

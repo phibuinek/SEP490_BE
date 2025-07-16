@@ -131,17 +131,16 @@ export class ResidentsController {
     return this.residentsService.remove(id);
   }
 
-  @Post(':id/assign-bed/:bedId')
+  @Post(':id/assign-bed/:bed_id')
+  @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Assign a bed to a resident' })
   @ApiResponse({
     status: 200,
-    description: 'Bed assigned to resident successfully.',
+    description: 'Bed assigned successfully.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Resident or bed not found.' })
-  assignBed(@Param('id') id: string, @Param('bedId') bedId: string) {
-    return this.residentsService.assignBed(id, bedId);
+  assignBed(@Param('id') id: string, @Param('bed_id') bed_id: string) {
+    return this.residentsService.assignBed(id, bed_id);
   }
 }

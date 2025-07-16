@@ -16,19 +16,19 @@ export enum AttendanceStatus {
 })
 export class ActivityParticipation {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  staffId: Types.ObjectId;
+  staff_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Activity', required: true })
-  activityId: Types.ObjectId;
+  activity_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
-  residentId: Types.ObjectId;
+  resident_id: Types.ObjectId;
 
   @Prop({ required: true })
   date: Date;
 
   @Prop()
-  performanceNotes: string;
+  performance_notes: string;
 
   @Prop({
     type: String,
@@ -36,7 +36,7 @@ export class ActivityParticipation {
     required: true,
     default: AttendanceStatus.PENDING,
   })
-  attendanceStatus: AttendanceStatus;
+  attendance_status: AttendanceStatus;
 }
 
 export const ActivityParticipationSchema = SchemaFactory.createForClass(

@@ -14,7 +14,7 @@ export class CreateVitalSignDto {
   })
   @IsString()
   @IsNotEmpty()
-  residentId: string;
+  resident_id: string;
 
   @ApiProperty({
     example: '2024-03-01T08:00:00Z',
@@ -22,7 +22,7 @@ export class CreateVitalSignDto {
   })
   @IsDateString()
   @IsNotEmpty()
-  dateTime: Date;
+  date_time: Date;
 
   @ApiProperty({ example: 36.5, required: false })
   @IsNumber()
@@ -32,22 +32,22 @@ export class CreateVitalSignDto {
   @ApiProperty({ example: 75, required: false })
   @IsNumber()
   @IsOptional()
-  heartRate?: number;
+  heart_rate?: number;
 
   @ApiProperty({ example: '130/80', required: false })
   @IsString()
   @IsOptional()
-  bloodPressure?: string;
+  blood_pressure?: string;
 
   @ApiProperty({ example: 18, required: false })
   @IsNumber()
   @IsOptional()
-  respiratoryRate?: number;
+  respiratory_rate?: number;
 
   @ApiProperty({ example: 98.5, required: false })
   @IsNumber()
   @IsOptional()
-  oxygenLevel?: number;
+  oxygen_level?: number;
 
   @ApiProperty({ example: 65.5, required: false })
   @IsNumber()

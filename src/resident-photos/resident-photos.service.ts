@@ -16,35 +16,35 @@ export class ResidentPhotosService {
 
   async uploadPhoto(data: any) {
     const photo = new this.photoModel({
-      familyId: data.familyId,
-      uploadedBy: data.uploadedBy,
-      fileName: data.fileName,
-      filePath: data.filePath,
-      fileType: data.fileType,
-      fileSize: data.fileSize,
+      family_id: data.family_id,
+      uploaded_by: data.uploaded_by,
+      file_name: data.file_name,
+      file_path: data.file_path,
+      file_type: data.file_type,
+      file_size: data.file_size,
       caption: data.caption,
-      activityType: data.activityType,
+      activity_type: data.activity_type,
       tags: data.tags,
-      uploadDate: new Date(),
-      takenDate: data.takenDate ? new Date(data.takenDate) : undefined,
-      staffNotes: data.staffNotes,
-      relatedActivityId: data.relatedActivityId,
-      serviceStartDate: data.serviceStartDate
-        ? new Date(data.serviceStartDate)
+      upload_date: new Date(),
+      taken_date: data.taken_date ? new Date(data.taken_date) : undefined,
+      staff_notes: data.staff_notes,
+      related_activity_id: data.related_activity_id,
+      service_start_date: data.service_start_date
+        ? new Date(data.service_start_date)
         : undefined,
-      residentId: data.residentId
-        ? new Types.ObjectId(data.residentId)
+      resident_id: data.resident_id
+        ? new Types.ObjectId(data.resident_id)
         : undefined,
     });
     return photo.save();
   }
 
-  async getPhotos(familyId: string) {
-    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
+  async getPhotos(family_id: string) {
+    return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
   }
 
   async getAllPhotos() {
-    return this.photoModel.find().sort({ uploadDate: -1 }).exec();
+    return this.photoModel.find().sort({ upload_date: -1 }).exec();
   }
 
   async getPhotoById(id: string) {
@@ -64,19 +64,19 @@ export class ResidentPhotosService {
     const updateFields: any = {};
     if (updateData.caption !== undefined)
       updateFields.caption = updateData.caption;
-    if (updateData.activityType !== undefined)
-      updateFields.activityType = updateData.activityType;
+    if (updateData.activity_type !== undefined)
+      updateFields.activity_type = updateData.activity_type;
     if (updateData.tags !== undefined) updateFields.tags = updateData.tags;
-    if (updateData.takenDate !== undefined)
-      updateFields.takenDate = new Date(updateData.takenDate);
-    if (updateData.staffNotes !== undefined)
-      updateFields.staffNotes = updateData.staffNotes;
-    if (updateData.relatedActivityId !== undefined)
-      updateFields.relatedActivityId = updateData.relatedActivityId;
-    if (updateData.serviceStartDate !== undefined)
-      updateFields.serviceStartDate = new Date(updateData.serviceStartDate);
-    if (updateData.residentId !== undefined)
-      updateFields.residentId = new Types.ObjectId(updateData.residentId);
+    if (updateData.taken_date !== undefined)
+      updateFields.taken_date = new Date(updateData.taken_date);
+    if (updateData.staff_notes !== undefined)
+      updateFields.staff_notes = updateData.staff_notes;
+    if (updateData.related_activity_id !== undefined)
+      updateFields.related_activity_id = updateData.related_activity_id;
+    if (updateData.service_start_date !== undefined)
+      updateFields.service_start_date = new Date(updateData.service_start_date);
+    if (updateData.resident_id !== undefined)
+      updateFields.resident_id = new Types.ObjectId(updateData.resident_id);
 
     return this.photoModel
       .findByIdAndUpdate(id, updateFields, { new: true })
@@ -91,9 +91,9 @@ export class ResidentPhotosService {
 
     // Delete the physical file
     try {
-      const filePath = path.join(process.cwd(), photo.filePath);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const file_path = path.join(process.cwd(), photo.file_path);
+      if (fs.existsSync(file_path)) {
+        fs.unlinkSync(file_path);
       }
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -104,8 +104,8 @@ export class ResidentPhotosService {
     return { message: 'Photo deleted successfully' };
   }
 
-  async getPhotosByFamilyId(familyId: string, residentsService: any) {
-    // Lấy tất cả ảnh có familyId này
-    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
+  async getPhotosByFamilyId(family_id: string, residentsService: any) {
+    // Lấy tất cả ảnh có family_id này
+    return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
   }
 }

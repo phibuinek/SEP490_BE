@@ -28,7 +28,7 @@ export class CarePlanAssignmentsService {
   ): Promise<CarePlanAssignment> {
     try {
       // Lấy staff_id từ user đã login
-      const staff_id = req.user.userId;
+      const staff_id = req.user.user_id;
 
       // Lấy resident để có family_member_id
       const resident = await this.residentModel.findById(createCarePlanAssignmentDto.resident_id);
@@ -119,21 +119,18 @@ export class CarePlanAssignmentsService {
     }
   }
 
-  async findByResident(residentId: string): Promise<CarePlanAssignment[]> {
+  async findByResident(resident_id: string): Promise<CarePlanAssignment[]> {
     try {
-      if (!Types.ObjectId.isValid(residentId)) {
+      if (!Types.ObjectId.isValid(resident_id)) {
         throw new BadRequestException('Invalid resident ID format');
       }
 
       return await this.carePlanAssignmentModel
-        .find({ resident_id: residentId })
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
-        .sort({ created_at: -1 })
+        .find({ resident_id: new Types.ObjectId(resident_id) })
+        .populate('staff_id', 'full_name email')
+        .populate('care_plan_ids', 'plan_name monthly_price')
+        .populate('resident_id', 'full_name')
+        .populate('family_member_id', 'full_name email')
         .exec();
     } catch (error: any) {
       if (error instanceof BadRequestException) {

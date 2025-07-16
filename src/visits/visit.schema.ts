@@ -1,31 +1,40 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ timestamps: true })
-export class Visit extends Document {
+export type VisitDocument = Visit & Document;
+
+@Schema({ 
+  collection: 'visits',
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+})
+export class Visit {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
-
-  @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
-  resident_id: Types.ObjectId;
-
-  @Prop({ required: true })
-  visit_time: string;
 
   @Prop({ required: true })
   visit_date: Date;
 
   @Prop({ required: true })
-  duration: number;
+  visit_time: string;
 
-  @Prop({ default: 'pending' })
+  @Prop({ type: Number, min: 1, required: false, default: null })
+  duration?: number | null;
+
+  @Prop({ 
+    required: true,
+    enum: ['completed', 'cancelled'],
+    default: 'completed' 
+  })
   status: string;
 
-  @Prop()
+  @Prop({ required: true })
   purpose: string;
 
-  @Prop()
+  @Prop({ required: true, min: 1 })
   numberOfVisitors: number;
+
+  @Prop({ type: String, required: false, default: null })
+  notes?: string | null;
 }
 
 export const VisitSchema = SchemaFactory.createForClass(Visit);

@@ -12,7 +12,7 @@ export enum ServiceRequestStatus {
 @Schema({ timestamps: true })
 export class ServiceRequest {
   @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
-  residentId: Types.ObjectId;
+  resident_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   familyMemberId: Types.ObjectId;

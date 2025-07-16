@@ -12,56 +12,54 @@ export class ResidentPhoto {
     type: Types.ObjectId,
     ref: 'User',
     required: true,
-    name: 'family_id',
   })
-  familyId: Types.ObjectId;
+  family_id: Types.ObjectId;
 
   @Prop({
     type: Types.ObjectId,
     ref: 'User',
     required: true,
-    name: 'uploaded_by',
   })
-  uploadedBy: Types.ObjectId;
+  uploaded_by: Types.ObjectId;
 
-  @Prop({ required: true, name: 'file_name' })
-  fileName: string;
+  @Prop({ required: true })
+  file_name: string;
 
-  @Prop({ required: true, name: 'file_path' })
-  filePath: string;
+  @Prop({ required: true })
+  file_path: string;
 
-  @Prop({ required: true, name: 'file_type' })
-  fileType: string;
+  @Prop({ required: true })
+  file_type: string;
 
-  @Prop({ required: true, name: 'file_size' })
-  fileSize: number;
+  @Prop({ required: true })
+  file_size: number;
 
   @Prop()
   caption: string;
 
-  @Prop({ name: 'activity_type' })
-  activityType: string;
+  @Prop()
+  activity_type: string;
 
   @Prop([String])
   tags: string[];
 
-  @Prop({ name: 'upload_date' })
-  uploadDate: Date;
+  @Prop()
+  upload_date: Date;
 
-  @Prop({ name: 'taken_date' })
-  takenDate: Date;
+  @Prop()
+  taken_date: Date;
 
-  @Prop({ name: 'staff_notes' })
-  staffNotes: string;
+  @Prop()
+  staff_notes: string;
 
-  @Prop({ name: 'service_start_date' })
-  serviceStartDate: Date;
+  @Prop()
+  service_start_date: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'Activity', name: 'related_activity_id' })
-  relatedActivityId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Activity' })
+  related_activity_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Resident', name: 'resident_id' })
-  residentId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Resident' })
+  resident_id: Types.ObjectId;
 }
 
 export const ResidentPhotoSchema = SchemaFactory.createForClass(ResidentPhoto);

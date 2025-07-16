@@ -45,27 +45,27 @@ export class VitalSignsController {
     return this.service.findAll();
   }
 
-  @Get('resident/:residentId')
+  @Get('resident/:resident_id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get all vital signs by resident ID' })
   async findAllByResidentId(
-    @Param('residentId') residentId: string,
+    @Param('resident_id') resident_id: string,
     @Req() req,
   ) {
     const user = req.user;
 
     // Lấy thông tin resident để kiểm tra quyền
-    const resident = await this.residentsService.findOne(residentId);
+    const resident = await this.residentsService.findOne(resident_id);
 
-    if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
-      return this.service.findAllByResidentId(residentId);
+    if (user?.role === Role.ADMIN || user?.role === Role.STAFF) {
+      return this.service.findAllByResidentId(resident_id);
     }
 
     if (
-      user.roles.includes(Role.FAMILY) &&
+      user?.role === Role.FAMILY &&
       resident.family_member_id?.toString() === user.userId
     ) {
-      return this.service.findAllByResidentId(residentId);
+      return this.service.findAllByResidentId(resident_id);
     }
 
     throw new ForbiddenException(
@@ -82,15 +82,15 @@ export class VitalSignsController {
 
     // Lấy thông tin resident để kiểm tra quyền
     const resident = await this.residentsService.findOne(
-      vitalSign.residentId.toString(),
+      vitalSign.resident_id.toString(),
     );
 
-    if (user.roles.includes(Role.ADMIN) || user.roles.includes(Role.STAFF)) {
+    if (user?.role === Role.ADMIN || user?.role === Role.STAFF) {
       return vitalSign;
     }
 
     if (
-      user.roles.includes(Role.FAMILY) &&
+      user?.role === Role.FAMILY &&
       resident.family_member_id?.toString() === user.userId
     ) {
       return vitalSign;

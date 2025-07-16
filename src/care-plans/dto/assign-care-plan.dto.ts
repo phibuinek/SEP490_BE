@@ -5,9 +5,9 @@ export class AssignCarePlanDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  carePlanId: string;
+  care_plan_id: string;
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  residentId: string;
+  resident_id: string;
 }

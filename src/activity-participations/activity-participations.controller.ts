@@ -73,11 +73,11 @@ export class ActivityParticipationsController {
   @ApiOperation({ summary: 'Family get today activities of their resident' })
   async getTodayForFamily(
     @Req() req,
-    @Query('resident_id') residentId: string,
+    @Query('resident_id') resident_id: string,
     @Query('date') date?: string,
   ) {
     // Lấy userId từ JWT
-    const familyId = req.user.userId;
-    return this.service.getTodayForFamily(familyId, residentId, date);
+    const family_id = req.user.userId;
+    return this.service.getTodayForFamily(family_id, resident_id, date);
   }
 }

@@ -3,7 +3,7 @@ import { Transform } from 'class-transformer';
 
 export class CreateResidentPhotoDto {
   @IsString()
-  familyId: string;
+  family_id: string;
 
   @IsOptional()
   @IsString()
@@ -11,7 +11,7 @@ export class CreateResidentPhotoDto {
 
   @IsOptional()
   @IsString()
-  activityType?: string;
+  activity_type?: string;
 
   @IsOptional()
   @IsArray()
@@ -23,21 +23,21 @@ export class CreateResidentPhotoDto {
 
   @IsOptional()
   @IsString()
-  takenDate?: string;
+  taken_date?: string;
 
   @IsOptional()
   @IsString()
-  staffNotes?: string;
+  staff_notes?: string;
 
   @IsOptional()
   @IsString()
-  relatedActivityId?: string;
+  related_activity_id?: string;
 
   @IsOptional()
   @IsString()
-  serviceStartDate?: string;
+  service_start_date?: string;
 
   @IsOptional()
   @IsString()
-  residentId?: string;
+  resident_id?: string;
 }

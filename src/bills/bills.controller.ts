@@ -44,10 +44,10 @@ export class BillsController {
   }
 
   @Get('by-resident')
-  @ApiOperation({ summary: 'Get bills by residentId' })
-  @ApiResponse({ status: 200, description: 'List bills by resident.' })
-  async getBillsByResident(@Query('residentId') residentId: string) {
-    return this.billsService.findByResidentId(residentId);
+  @ApiOperation({ summary: 'Get bills by resident_id' })
+  @ApiResponse({ status: 200, description: 'List of bills for the resident.' })
+  async getBillsByResident(@Query('resident_id') resident_id: string) {
+    return this.billsService.findByResidentId(resident_id);
   }
 
   @Get(':id')

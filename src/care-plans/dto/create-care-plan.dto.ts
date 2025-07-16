@@ -13,7 +13,7 @@ export class CreateCarePlanDto {
   @ApiProperty({ example: 'Gói Chăm Sóc Đặc Biệt' })
   @IsString()
   @IsNotEmpty()
-  readonly planName: string;
+  readonly plan_name: string;
 
   @ApiProperty({
     example:
@@ -27,12 +27,12 @@ export class CreateCarePlanDto {
   @IsNumber()
   @IsNotEmpty()
   @Min(0)
-  readonly monthlyPrice: number;
+  readonly monthly_price: number;
 
   @ApiProperty({ example: 'cham_soc_dac_biet' })
   @IsString()
   @IsNotEmpty()
-  readonly planType: string;
+  readonly plan_type: string;
 
   @ApiProperty({ example: 'main' })
   @IsString()
@@ -43,23 +43,23 @@ export class CreateCarePlanDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  readonly servicesIncluded: string[];
+  readonly services_included: string[];
 
   @ApiProperty({ example: '1:3' })
   @IsString()
   @IsNotEmpty()
-  readonly staffRatio: string;
+  readonly staff_ratio: string;
 
   @ApiProperty({ example: 'monthly' })
   @IsString()
   @IsNotEmpty()
-  readonly durationType: string;
+  readonly duration_type: string;
 
   @ApiProperty({ example: ['Thuốc A', 'Thuốc B'], required: false })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  readonly defaultMedications: string[];
+  readonly default_medications: string[];
 
   @ApiProperty({
     example: ['Không dị ứng', 'Có người thân chăm sóc'],
@@ -79,5 +79,5 @@ export class CreateCarePlanDto {
   @ApiProperty({ example: true, required: false })
   @IsBoolean()
   @IsOptional()
-  readonly isActive: boolean;
+  readonly is_active: boolean;
 }

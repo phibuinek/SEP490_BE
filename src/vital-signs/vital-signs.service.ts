@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { VitalSign, VitalSignDocument } from './schemas/vital-sign.schema';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
@@ -14,11 +14,11 @@ export class VitalSignsService {
 
   async create(
     createDto: CreateVitalSignDto,
-    userId: string,
+    user_id: string,
   ): Promise<VitalSign> {
     const createdVitalSign = new this.vitalSignModel({
       ...createDto,
-      recordedBy: userId,
+      recorded_by: user_id,
     });
     return createdVitalSign.save();
   }
@@ -27,8 +27,11 @@ export class VitalSignsService {
     return this.vitalSignModel.find();
   }
 
-  async findAllByResidentId(residentId: string): Promise<VitalSign[]> {
-    return this.vitalSignModel.find({ residentId: residentId }).exec();
+  async findAllByResidentId(resident_id: string): Promise<VitalSign[]> {
+    // Convert string to ObjectId and use correct field name from DB
+    return this.vitalSignModel.find({ 
+      resident_id: new Types.ObjectId(resident_id) 
+    }).exec();
   }
 
   async findOne(id: string): Promise<VitalSign> {

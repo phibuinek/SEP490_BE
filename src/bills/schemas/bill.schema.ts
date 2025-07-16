@@ -35,12 +35,12 @@ export class Bill extends Document {
 
   @Prop({ type: Object })
   care_plan_snapshot: {
-    planName: string;
+    plan_name: string;
     description: string;
-    monthlyPrice: number;
-    planType: string;
+    monthly_price: number;
+    plan_type: string;
     category: string;
-    staffRatio: string;
+    staff_ratio: string;
   };
 
   @Prop({ required: true })

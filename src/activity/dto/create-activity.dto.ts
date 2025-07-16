@@ -11,7 +11,7 @@ export class CreateActivityDto {
   @ApiProperty({ example: 'Tập thể dục buổi sáng' })
   @IsString()
   @IsNotEmpty()
-  activityName: string;
+  activity_name: string;
 
   @ApiProperty({ example: 'Các bài tập nhẹ nhàng phù hợp với người cao tuổi' })
   @IsString()
@@ -26,7 +26,7 @@ export class CreateActivityDto {
   @ApiProperty({ example: '2024-03-02T07:00:00.000Z' })
   @IsDateString()
   @IsNotEmpty()
-  scheduleTime: Date;
+  schedule_time: Date;
 
   @ApiProperty({ example: 'Sân vườn' })
   @IsString()
