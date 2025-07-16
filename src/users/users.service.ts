@@ -118,4 +118,24 @@ export class UsersService {
       )
       .exec();
   }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('Invalid userId');
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) throw new BadRequestException('Old password is incorrect');
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    return { message: 'Password changed successfully' };
+  }
+
+  async resetPassword(userId: string, newPassword: string) {
+    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('Invalid userId');
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    return { message: 'Password reset successfully' };
+  }
 }

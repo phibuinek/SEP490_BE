@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,6 +22,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { ChangePasswordDto, ResetPasswordDto } from './dto/change-password.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -40,8 +42,8 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin', 'staff')
-  @ApiOperation({ summary: 'Get all users (Admin, Staff)' })
+  @Roles('admin', 'staff', 'family')
+  @ApiOperation({ summary: 'Get all users (Admin, Staff, Family)' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
@@ -107,5 +109,20 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   activateUser(@Param('id') id: string) {
     return this.usersService.activateUser(id);
+  }
+
+  @Patch('change-password')
+  @Roles('admin', 'staff', 'family')
+  @ApiOperation({ summary: 'User self change password (must provide oldPassword & newPassword)' })
+  async changePassword(@Body() dto: ChangePasswordDto, @Req() req) {
+    const userId = req.user.userId;
+    return this.usersService.changePassword(userId, dto.oldPassword, dto.newPassword);
+  }
+
+  @Patch(':id/reset-password')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Admin reset password for user (set new password directly)' })
+  async resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    return this.usersService.resetPassword(id, dto.newPassword);
   }
 }
