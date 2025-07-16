@@ -13,7 +13,10 @@ export enum BillStatus {
   OVERDUE = 'overdue',
 }
 
-@Schema({ timestamps: true })
+@Schema({ 
+  collection: 'billings',
+  timestamps: true 
+})
 export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   family_member_id: MongooseSchema.Types.ObjectId;

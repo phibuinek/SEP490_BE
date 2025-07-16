@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 export type VitalSignDocument = VitalSign & Document;
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ 
+  collection: 'vital_signs',
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+})
 export class VitalSign {
   @Prop({
     type: Types.ObjectId,

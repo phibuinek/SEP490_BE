@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 export type BedAssignmentDocument = BedAssignment & Document;
 
-@Schema({ timestamps: false })
+@Schema({ 
+  collection: 'bed_assignments',
+  timestamps: false 
+})
 export class BedAssignment {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Resident' })
   resident_id: Types.ObjectId;
