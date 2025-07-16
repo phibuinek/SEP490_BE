@@ -97,17 +97,17 @@ export class ResidentPhotosController {
 
   @Get()
   @ApiQuery({
-    name: 'family_id',
+    name: 'family_member_id',
     required: false,
     description:
-      'Filter by family ID. If not provided, returns all photos (staff only)',
+      'Filter by family member ID. If not provided, returns all photos (staff only)',
   })
-  async getPhotos(@Query('family_id') family_id: string, @Req() req) {
-    // If family_id is provided, return photos for that family
-    if (family_id) {
-      return this.service.getPhotos(family_id);
+  async getPhotos(@Query('family_member_id') family_member_id: string, @Req() req) {
+    // If family_member_id is provided, return photos for that family member's residents
+    if (family_member_id) {
+      return this.service.getPhotos(family_member_id);
     }
-    // Nếu không có family_id, kiểm tra role dạng string
+    // Nếu không có family_member_id, kiểm tra role dạng string
     const userRole = req.user?.role;
     if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
       throw new ForbiddenException(

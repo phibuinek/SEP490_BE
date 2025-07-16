@@ -12,6 +12,8 @@ export class ResidentPhotosService {
   constructor(
     @InjectModel(ResidentPhoto.name)
     private photoModel: Model<ResidentPhotoDocument>,
+    @InjectModel('Resident')
+    private residentModel: Model<any>,
   ) {}
 
   async uploadPhoto(data: any) {
@@ -39,8 +41,24 @@ export class ResidentPhotosService {
     return photo.save();
   }
 
-  async getPhotos(family_id: string) {
-    return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
+  async getPhotos(family_member_id: string) {
+    // Validate family_member_id
+    if (!Types.ObjectId.isValid(family_member_id)) {
+      throw new Error('Invalid family_member_id format');
+    }
+
+    // Step 1: Find all residents that belong to this family member
+    const residents = await this.residentModel.find({
+      family_member_id: new Types.ObjectId(family_member_id)
+    }).select('_id');
+
+    // Step 2: Extract resident IDs
+    const residentIds = residents.map(resident => resident._id);
+
+    // Step 3: Find all photos where resident_id is in the list of resident IDs
+    return this.photoModel.find({
+      resident_id: { $in: residentIds }
+    }).sort({ upload_date: -1 }).exec();
   }
 
   async getAllPhotos() {

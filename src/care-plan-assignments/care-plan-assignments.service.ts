@@ -152,7 +152,7 @@ export class CarePlanAssignmentsService {
       }
 
       return await this.carePlanAssignmentModel
-        .find({ family_member_id: familyMemberId })
+        .find({ family_member_id: new Types.ObjectId(familyMemberId) })
         .populate('staff_id', 'name email')
         .populate('resident_id', 'name date_of_birth')
         .populate('family_member_id', 'name email')
