@@ -26,6 +26,7 @@ export class CarePlanAssignmentsService {
     createCarePlanAssignmentDto: CreateCarePlanAssignmentDto,
     req: any,
   ): Promise<CarePlanAssignment> {
+    
     try {
       // Lấy staff_id từ user đã login
       const staff_id = req.user.user_id;

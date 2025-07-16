@@ -16,6 +16,7 @@ export class VitalSignsService {
     createDto: CreateVitalSignDto,
     user_id: string,
   ): Promise<VitalSign> {
+    
     const createdVitalSign = new this.vitalSignModel({
       ...createDto,
       recorded_by: user_id,

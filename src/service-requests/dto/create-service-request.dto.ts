@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional , IsMongoId} from 'class-validator';
 
 export class CreateServiceRequestDto {
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   resident_id: string;
 
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   familyMemberId: string;
 
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   servicePackageId: string;
 
   @ApiProperty({ required: false })

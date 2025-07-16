@@ -15,6 +15,7 @@ export class BillsService {
   ) {}
 
   async create(createBillDto: CreateBillDto): Promise<Bill> {
+    
     const carePlan = await this.carePlansService.findOne(
       createBillDto.care_plan_id.toString(),
     );

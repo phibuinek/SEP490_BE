@@ -9,16 +9,16 @@ export enum ServiceRequestStatus {
   REJECTED = 'rejected',
 }
 
-@Schema({ timestamps: true })
+@Schema({ collection: 'servicerequests', timestamps: true })
 export class ServiceRequest {
   @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
   resident_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  familyMemberId: Types.ObjectId;
+  family_member_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'ServicePackage', required: true })
-  servicePackageId: Types.ObjectId;
+  service_package_id: Types.ObjectId;
 
   @Prop({
     type: String,

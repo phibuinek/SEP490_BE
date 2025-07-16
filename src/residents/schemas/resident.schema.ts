@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 // Sub-schema for current medications
-@Schema({ _id: false })
+@Schema({ collection: 'medications', _id: false })
 export class Medication {
   @Prop({ required: true })
   medication_name: string;

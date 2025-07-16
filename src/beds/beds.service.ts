@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Bed, BedDocument } from './schemas/bed.schema';
 import { CreateBedDto } from './dto/create-bed.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';

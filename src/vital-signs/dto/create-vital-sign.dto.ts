@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsDateString,
   IsNumber,
+  IsMongoId,
 } from 'class-validator';
 
 export class CreateVitalSignDto {
@@ -12,7 +13,7 @@ export class CreateVitalSignDto {
     example: '664f1b2c2f8b2c0012a4e750',
     description: 'Resident ID',
   })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   resident_id: string;
 

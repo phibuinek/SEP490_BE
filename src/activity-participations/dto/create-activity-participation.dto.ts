@@ -5,22 +5,23 @@ import {
   IsOptional,
   IsDateString,
   IsEnum,
+  IsMongoId,
 } from 'class-validator';
 import { AttendanceStatus } from '../schemas/activity-participation.schema';
 
 export class CreateActivityParticipationDto {
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   staff_id: string;
 
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e751' })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   activity_id: string;
 
   @ApiProperty({ example: '664f1b2c2f8b2c0012a4e752' })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   resident_id: string;
 

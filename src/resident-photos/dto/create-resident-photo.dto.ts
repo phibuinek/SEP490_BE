@@ -1,8 +1,8 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray , IsMongoId} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateResidentPhotoDto {
-  @IsString()
+  @IsMongoId()
   family_id: string;
 
   @IsOptional()

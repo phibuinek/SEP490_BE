@@ -36,7 +36,7 @@ export class CreateUserDto {
   @MinLength(6)
   password: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', nullable: true })
+  @ApiPropertyOptional({ example: 'https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg', nullable: true })
   @IsOptional()
   @IsString()
   avatar?: string | null;
