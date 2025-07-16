@@ -55,12 +55,10 @@ export class ResidentsService {
   }
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
-    console.log('Searching for familyMemberId:', familyMemberId);
-    const residents = await this.residentModel
-      .find({ familyMemberId: familyMemberId })
+    // Đảm bảo so sánh đúng kiểu ObjectId với trường family_member_id
+    return this.residentModel
+      .find({ family_member_id: new Types.ObjectId(familyMemberId) })
       .exec();
-    console.log('Found residents:', residents);
-    return residents;
   }
 
   async update(

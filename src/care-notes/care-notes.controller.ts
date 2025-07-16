@@ -23,7 +23,7 @@ import { ApiTags, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 @ApiBearerAuth()
 @Controller('assessments')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+@Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
 export class AssessmentsController {
   constructor(private readonly service: CareNotesService) {}
 

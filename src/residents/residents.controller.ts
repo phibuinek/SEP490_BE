@@ -71,7 +71,7 @@ export class ResidentsController {
   }
 
   @Get('family-member/:familyMemberId')
-  @Roles(Role.FAMILY_MEMBER, Role.ADMIN, Role.STAFF)
+  @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get residents by family member ID' })
   @ApiResponse({
     status: 200,
@@ -84,7 +84,7 @@ export class ResidentsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })
   @ApiResponse({ status: 200, description: 'Resident retrieved successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
@@ -97,7 +97,7 @@ export class ResidentsController {
       return resident;
     }
     if (
-      user.role === Role.FAMILY_MEMBER &&
+      user.role === Role.FAMILY &&
       resident.family_member_id?.toString() === user.userId
     ) {
       return resident;

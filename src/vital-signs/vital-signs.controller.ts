@@ -46,7 +46,7 @@ export class VitalSignsController {
   }
 
   @Get('resident/:residentId')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get all vital signs by resident ID' })
   async findAllByResidentId(
     @Param('residentId') residentId: string,
@@ -62,7 +62,7 @@ export class VitalSignsController {
     }
 
     if (
-      user.roles.includes(Role.FAMILY_MEMBER) &&
+      user.roles.includes(Role.FAMILY) &&
       resident.family_member_id?.toString() === user.userId
     ) {
       return this.service.findAllByResidentId(residentId);
@@ -74,7 +74,7 @@ export class VitalSignsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get a vital sign record by ID' })
   async findOne(@Param('id') id: string, @Req() req) {
     const vitalSign = await this.service.findOne(id);
@@ -90,7 +90,7 @@ export class VitalSignsController {
     }
 
     if (
-      user.roles.includes(Role.FAMILY_MEMBER) &&
+      user.roles.includes(Role.FAMILY) &&
       resident.family_member_id?.toString() === user.userId
     ) {
       return vitalSign;

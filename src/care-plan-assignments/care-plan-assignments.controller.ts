@@ -62,7 +62,7 @@ export class CarePlanAssignmentsController {
   }
 
   @Get(':id')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a care plan assignment by ID' })
   @ApiParam({ name: 'id', description: 'Care plan assignment ID' })
@@ -79,7 +79,7 @@ export class CarePlanAssignmentsController {
   }
 
   @Get('by-resident/:residentId')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get care plan assignments by resident ID' })
   @ApiParam({ name: 'residentId', description: 'Resident ID' })
@@ -95,7 +95,7 @@ export class CarePlanAssignmentsController {
   }
 
   @Get('by-family-member/:familyMemberId')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get care plan assignments by family member ID' })
   @ApiParam({ name: 'familyMemberId', description: 'Family member ID' })
