@@ -242,4 +242,12 @@ export class ActivityParticipationsService {
       .populate('resident_id', 'full_name')
       .exec();
   }
+
+  // API đơn giản: trả về document gốc không populate
+  async findByResidentIdRaw(resident_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    return this.participationModel.find({ resident_id: new Types.ObjectId(resident_id) }).exec();
+  }
 }
