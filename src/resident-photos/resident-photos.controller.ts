@@ -99,20 +99,23 @@ export class ResidentPhotosController {
   @ApiQuery({
     name: 'family_member_id',
     required: false,
-    description:
-      'Filter by family member ID. If not provided, returns all photos (staff only)',
+    description: 'Filter by family member ID. If not provided, returns all photos (staff/admin only)',
   })
   async getPhotos(@Query('family_member_id') family_member_id: string, @Req() req) {
-    // If family_member_id is provided, return photos for that family member's residents
+    const userRole = req.user?.role;
+    const userId = req.user?.userId;
+
     if (family_member_id) {
+      // Nếu là FAMILY thì chỉ cho xem đúng family_member_id của mình
+      if (userRole === Role.FAMILY && family_member_id !== userId) {
+        throw new ForbiddenException('Bạn chỉ được xem ảnh của gia đình mình!');
+      }
       return this.service.getPhotos(family_member_id);
     }
-    // Nếu không có family_member_id, kiểm tra role dạng string
-    const userRole = req.user?.role;
+
+    // Nếu không truyền family_member_id, chỉ staff/admin được xem tất cả
     if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
-      throw new ForbiddenException(
-        'Only staff and admin can view all photos',
-      );
+      throw new ForbiddenException('Only staff and admin can view all photos');
     }
     return this.service.getAllPhotos();
   }
