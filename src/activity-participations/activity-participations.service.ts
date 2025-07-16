@@ -230,4 +230,16 @@ export class ActivityParticipationsService {
       };
     });
   }
+
+  async findByResidentId(resident_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    return this.participationModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate('staff_id', 'full_name')
+      .populate('activity_id', 'activity_name')
+      .populate('resident_id', 'full_name')
+      .exec();
+  }
 }

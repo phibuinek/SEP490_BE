@@ -68,16 +68,9 @@ export class ActivityParticipationsController {
     return this.service.remove(id);
   }
 
-  @Get('family-today')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Family get today activities of their resident' })
-  async getTodayForFamily(
-    @Req() req,
-    @Query('resident_id') resident_id: string,
-    @Query('date') date?: string,
-  ) {
-    // Lấy userId từ JWT
-    const family_id = req.user.userId;
-    return this.service.getTodayForFamily(family_id, resident_id, date);
+  @Get('by-resident')
+  @ApiOperation({ summary: 'Get all activity participations by residentId' })
+  async getByResident(@Query('resident_id') resident_id: string) {
+    return this.service.findByResidentId(resident_id);
   }
 }
