@@ -25,14 +25,10 @@ export class PaymentService {
     // Lấy bill theo bill_id
     const bill = await this.billModel.findById(createPaymentDto.bill_id).exec();
     if (!bill) throw new Error('Bill không tồn tại');
-    // Lấy care plan từ bill
-    const careplan = await this.careplanService.findOne(
-      bill.care_plan_id.toString(),
-    );
-    if (!careplan) throw new Error('Careplan không tồn tại');
-    const amount = bill.amount || careplan.monthly_price;
+    // Nếu cần lấy thông tin care plan, hãy lấy từ assignment hoặc chỉ dùng bill.amount
+    const amount = bill.amount;
     const orderCode = this.generateOrderCode();
-    const rawDescription = `Thanh toán hóa đơn: ${bill._id} - gói: ${careplan.plan_name || careplan._id}`;
+    const rawDescription = `Thanh toán hóa đơn: ${bill._id}`;
     const description = rawDescription.slice(0, 25); // PayOS chỉ cho phép tối đa 25 ký tự
     const data = {
       orderCode,

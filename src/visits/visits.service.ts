@@ -8,19 +8,21 @@ export class VisitsService {
   constructor(@InjectModel(Visit.name) private visitModel: Model<Visit>) {}
 
   async create(data: any) {
-    // Convert family_member_id to ObjectId if it's a string
     if (data.family_member_id && typeof data.family_member_id === 'string') {
       if (!Types.ObjectId.isValid(data.family_member_id)) {
         throw new Error('Invalid family_member_id format');
       }
       data.family_member_id = new Types.ObjectId(data.family_member_id);
     }
-    
-    // Add default status if not provided
+    if (data.resident_id && typeof data.resident_id === 'string') {
+      if (!Types.ObjectId.isValid(data.resident_id)) {
+        throw new Error('Invalid resident_id format');
+      }
+      data.resident_id = new Types.ObjectId(data.resident_id);
+    }
     if (!data.status) {
       data.status = 'completed';
     }
-    
     return this.visitModel.create(data);
   }
 

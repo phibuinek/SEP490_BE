@@ -17,14 +17,6 @@ export class CreateVitalSignDto {
   @IsNotEmpty()
   resident_id: string;
 
-  @ApiProperty({
-    example: '2024-03-01T08:00:00Z',
-    description: 'Date and time of measurement',
-  })
-  @IsDateString()
-  @IsNotEmpty()
-  date_time: Date;
-
   @ApiProperty({ example: 36.5, required: false })
   @IsNumber()
   @IsOptional()

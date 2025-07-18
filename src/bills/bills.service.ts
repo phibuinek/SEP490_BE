@@ -15,31 +15,16 @@ export class BillsService {
   ) {}
 
   async create(createBillDto: CreateBillDto): Promise<Bill> {
-    
-    const carePlan = await this.carePlansService.findOne(
-      createBillDto.care_plan_id.toString(),
-    );
-
-    if (!carePlan) {
-      throw new NotFoundException(
-        `CarePlan with ID "${createBillDto.care_plan_id}" not found`,
-      );
-    }
-
+    const toVNDate = (d: Date | string | undefined) => d ? new Date(new Date(d).getTime() + 7 * 60 * 60 * 1000) : undefined;
     const newBill = new this.billModel({
       ...createBillDto,
-      amount: carePlan.monthly_price,
-      bill_date: new Date(),
-      care_plan_snapshot: {
-        plan_name: carePlan.plan_name,
-        monthly_price: carePlan.monthly_price,
-        plan_type: carePlan.plan_type,
-        description: carePlan.description,
-        staff_ratio: carePlan.staff_ratio,
-        category: carePlan.category,
-      },
+      due_date: toVNDate(createBillDto.due_date),
+      status: 'pending',
+      payment_method: 'qr_payment',
+      paid_date: null,
+      created_at: toVNDate(new Date()),
+      updated_at: toVNDate(new Date()),
     });
-
     return newBill.save();
   }
 

@@ -29,11 +29,11 @@ export class CreateBillDto {
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1c',
-    description: 'ID của care plan',
+    description: 'ID của care plan assignment',
   })
   @IsMongoId()
   @IsNotEmpty()
-  readonly care_plan_id: Schema.Types.ObjectId;
+  readonly care_plan_assignment_id: Schema.Types.ObjectId;
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1d',
@@ -56,31 +56,12 @@ export class CreateBillDto {
   readonly due_date: Date;
 
   @ApiProperty({
-    example: '2024-03-05T00:00:00.000Z',
-    description: 'Ngày đã thanh toán',
-    required: false,
+    example: 'Hóa đơn tháng 2/2024 cho gói chăm sóc cao cấp',
+    description: 'Tiêu đề hóa đơn',
   })
-  @IsDateString()
-  @IsOptional()
-  readonly paid_date?: Date;
-
-  @ApiProperty({
-    example: 'bank_transfer',
-    enum: PaymentMethod,
-    description: 'Phương thức thanh toán',
-    required: false,
-  })
-  @IsOptional()
-  readonly payment_method?: PaymentMethod;
-
-  @ApiProperty({
-    example: 'pending',
-    enum: BillStatus,
-    description: 'Trạng thái hóa đơn',
-    required: false,
-  })
-  @IsOptional()
-  readonly status?: BillStatus;
+  @IsString()
+  @IsNotEmpty()
+  readonly title: string;
 
   @ApiProperty({
     example: 'Chưa thanh toán cho gói cao cấp + phòng 2 giường tháng 2/2024',

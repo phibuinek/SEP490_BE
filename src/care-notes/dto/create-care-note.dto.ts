@@ -8,14 +8,6 @@ export class CreateAssessmentDto {
   assessment_type?: string | null;
 
   @ApiProperty({
-    example: '2024-07-13T09:30:00Z',
-    description: 'Ngày đánh giá (ISO string)',
-  })
-  @IsString()
-  @IsNotEmpty()
-  date: string;
-
-  @ApiProperty({
     example: 'Tình trạng ổn định, cần theo dõi đường huyết thường xuyên',
     required: false,
   })
