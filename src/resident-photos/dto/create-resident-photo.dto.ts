@@ -10,18 +10,7 @@ export class CreateResidentPhotoDto {
   caption?: string;
 
   @IsOptional()
-  @IsEnum([
-    'Hoạt động thể chất', 
-    'Hoạt động tinh thần', 
-    'Bữa ăn', 
-    'Y tế/Chăm sóc', 
-    'Hoạt động xã hội', 
-    'Giải trí', 
-    'Học tập', 
-    'Thăm viếng gia đình', 
-    'Sinh nhật/Lễ hội', 
-    'Khác'
-  ])
+  @IsString()
   activity_type?: string;
 
   @IsOptional()

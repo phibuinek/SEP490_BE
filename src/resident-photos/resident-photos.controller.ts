@@ -67,18 +67,6 @@ export class ResidentPhotosController {
         caption: { type: 'string', description: 'Mô tả về ảnh' },
         activity_type: { 
           type: 'string', 
-          enum: [
-            'Hoạt động thể chất', 
-            'Hoạt động tinh thần', 
-            'Bữa ăn', 
-            'Y tế/Chăm sóc', 
-            'Hoạt động xã hội', 
-            'Giải trí', 
-            'Học tập', 
-            'Thăm viếng gia đình', 
-            'Sinh nhật/Lễ hội', 
-            'Khác'
-          ],
           description: 'Loại hoạt động trong ảnh'
         },
         tags: { type: 'array', items: { type: 'string' }, description: 'Các tag cho ảnh' },
