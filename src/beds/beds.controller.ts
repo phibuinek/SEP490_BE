@@ -28,6 +28,11 @@ export class BedsController {
     return this.bedsService.findAll();
   }
 
+  @Get('by-room/:room_id')
+  async getBedsByRoom(@Param('room_id') room_id: string) {
+    return this.bedsService.findByRoomIdWithStatus(room_id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.bedsService.findOne(id);

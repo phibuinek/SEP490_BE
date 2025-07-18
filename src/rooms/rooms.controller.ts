@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
@@ -29,6 +30,16 @@ export class RoomsController {
   @Public()
   findAll() {
     return this.roomsService.findAll();
+  }
+
+  @Get('filter')
+  async filterRooms(
+    @Query('room_type') room_type?: string,
+    @Query('status') status?: string,
+    @Query('main_care_plan_id') main_care_plan_id?: string,
+    @Query('gender') gender?: string,
+  ) {
+    return this.roomsService.filterRooms(room_type, status, main_care_plan_id, gender);
   }
 
   @Get(':id')
