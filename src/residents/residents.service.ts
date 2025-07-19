@@ -31,17 +31,9 @@ export class ResidentsService {
     return createdResident.save();
   }
 
-  async findAll(careLevel?: string): Promise<Resident[]> {
-    const filter: any = {};
-    if (careLevel) {
-      if (careLevel === 'unregistered') {
-        filter.careLevel = { $exists: false };
-      } else {
-        filter.careLevel = careLevel;
-      }
-    }
+  async findAll(): Promise<Resident[]> {
     const residents = await this.residentModel
-      .find(filter)
+      .find()
       .populate('family_member_id', 'full_name email')
       .exec();
     return residents;

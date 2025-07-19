@@ -57,19 +57,6 @@ export class ResidentsController {
     return this.residentsService.findAll();
   }
 
-  @Get('by-care-level')
-  @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Get residents by care level' })
-  @ApiQuery({
-    name: 'careLevel',
-    required: true,
-    enum: ['basic', 'intermediate', 'advanced', 'specialized', 'unregistered'],
-    description: 'Lọc theo gói chăm sóc',
-  })
-  findByCareLevel(@Query('careLevel') careLevel: string) {
-    return this.residentsService.findAll(careLevel);
-  }
-
   @Get('family-member/:familyMemberId')
   @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get residents by family member ID' })

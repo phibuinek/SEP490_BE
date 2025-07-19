@@ -13,7 +13,7 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Gender, CareLevel, ResidentStatus } from '../schemas/resident.schema';
+import { Gender, ResidentStatus } from '../schemas/resident.schema';
 
 export class MedicationDto {
   @ApiProperty({ example: 'Aspirin 81mg' })
@@ -145,10 +145,6 @@ export class CreateResidentDto {
   @ValidateNested()
   @Type(() => EmergencyContactDto)
   emergency_contact: EmergencyContactDto;
-
-  @ApiProperty({ enum: CareLevel, example: CareLevel.BASIC })
-  @IsEnum(CareLevel)
-  care_level: CareLevel;
 
   @ApiProperty({ enum: ResidentStatus, example: ResidentStatus.ACTIVE })
   @IsEnum(ResidentStatus)

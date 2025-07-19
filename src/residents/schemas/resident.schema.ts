@@ -44,13 +44,6 @@ export enum Gender {
   FEMALE = 'female',
 }
 
-export enum CareLevel {
-  BASIC = 'basic',
-  INTERMEDIATE = 'intermediate',
-  INTENSIVE = 'intensive',
-  SPECIALIZED = 'specialized',
-}
-
 export enum ResidentStatus {
   ACTIVE = 'active',
   DISCHARGED = 'discharged',
@@ -105,9 +98,6 @@ export class Resident {
 
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;
-
-  @Prop({ type: String, enum: CareLevel, required: true })
-  care_level: CareLevel;
 
   @Prop({ type: String, enum: ResidentStatus, required: true })
   status: ResidentStatus;
