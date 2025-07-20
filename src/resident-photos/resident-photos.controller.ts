@@ -21,6 +21,7 @@ import {
   ApiBody,
   ApiQuery,
   ApiParam,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
@@ -54,6 +55,17 @@ export class ResidentPhotosController {
           cb(null, uniqueSuffix + extname(file.originalname));
         },
       }),
+      fileFilter: (req, file, cb) => {
+        // Chỉ cho phép upload ảnh
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
     }),
   )
   @ApiConsumes('multipart/form-data')
@@ -77,23 +89,61 @@ export class ResidentPhotosController {
       required: ['file', 'resident_id'],
     },
   })
+  @ApiResponse({ status: 201, description: 'Photo uploaded successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid file or data.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
   async uploadPhoto(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateResidentPhotoDto,
     @Req() req,
   ) {
-    // Giả sử req.user._id là id người upload
-    const uploaded_by = req.user?.userId || 'unknown';
-    console.log('Uploaded file:', file);
-    const file_path = file.path || `uploads/${file.filename}`;
-    return this.service.uploadPhoto({
-      ...body,
-      file_name: file.originalname,
-      file_path,
-      file_type: file.mimetype,
-      file_size: file.size,
-      uploaded_by,
-    });
+    try {
+      console.log('Upload photo request - File:', file);
+      console.log('Upload photo request - Body:', body);
+      console.log('Upload photo request - User:', req.user);
+
+      // Validate file
+      if (!file) {
+        throw new Error('File is required');
+      }
+
+      // Validate resident_id
+      if (!body.resident_id) {
+        throw new Error('resident_id is required');
+      }
+
+      // Validate user
+      if (!req.user?.userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const uploaded_by = req.user.userId;
+      console.log('Uploaded by user ID:', uploaded_by);
+      
+      const file_path = file.path || `uploads/${file.filename}`;
+      console.log('File path:', file_path);
+
+      const uploadData = {
+        ...body,
+        file_name: file.originalname,
+        file_path,
+        file_type: file.mimetype,
+        file_size: file.size,
+        uploaded_by,
+      };
+
+      console.log('Upload data to service:', uploadData);
+      
+      const result = await this.service.uploadPhoto(uploadData);
+      console.log('Upload result:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error in uploadPhoto controller:', error);
+      throw error;
+    }
   }
 
   @Get()

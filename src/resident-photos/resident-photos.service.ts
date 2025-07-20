@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ResidentPhoto, ResidentPhotoDocument } from './resident-photo.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import * as fs from 'fs';
@@ -12,33 +13,63 @@ export class ResidentPhotosService {
   constructor(
     @InjectModel(ResidentPhoto.name)
     private photoModel: Model<ResidentPhotoDocument>,
-    @InjectModel('Resident')
-    private residentModel: Model<any>,
+    @InjectModel(Resident.name)
+    private residentModel: Model<ResidentDocument>,
   ) {}
 
   async uploadPhoto(data: any) {
-    const photo = new this.photoModel({
-      family_id: data.family_id,
-      uploaded_by: data.uploaded_by,
-      file_name: data.file_name,
-      file_path: data.file_path,
-      file_type: data.file_type,
-      file_size: data.file_size,
-      caption: data.caption,
-      activity_type: data.activity_type,
-      tags: data.tags,
-      upload_date: new Date(),
-      taken_date: data.taken_date ? new Date(data.taken_date) : undefined,
-      staff_notes: data.staff_notes,
-      related_activity_id: data.related_activity_id,
-      service_start_date: data.service_start_date
-        ? new Date(data.service_start_date)
-        : undefined,
-      resident_id: data.resident_id
-        ? new Types.ObjectId(data.resident_id)
-        : undefined,
-    });
-    return photo.save();
+    try {
+      console.log('Upload photo data:', data);
+      
+      // Validate resident_id
+      if (!data.resident_id) {
+        throw new Error('resident_id is required');
+      }
+      
+      if (!Types.ObjectId.isValid(data.resident_id)) {
+        throw new Error('Invalid resident_id format');
+      }
+
+      // Check if resident exists
+      const resident = await this.residentModel.findById(data.resident_id);
+      if (!resident) {
+        throw new Error('Resident not found');
+      }
+
+      // Validate uploaded_by
+      if (!data.uploaded_by) {
+        throw new Error('uploaded_by is required');
+      }
+      
+      if (!Types.ObjectId.isValid(data.uploaded_by)) {
+        throw new Error('Invalid uploaded_by format');
+      }
+
+      const photo = new this.photoModel({
+        family_id: new Types.ObjectId(data.uploaded_by), // Use uploaded_by as family_id
+        uploaded_by: new Types.ObjectId(data.uploaded_by),
+        file_name: data.file_name,
+        file_path: data.file_path,
+        file_type: data.file_type,
+        file_size: data.file_size,
+        caption: data.caption,
+        activity_type: data.activity_type,
+        tags: data.tags,
+        upload_date: new Date(),
+        taken_date: data.taken_date ? new Date(data.taken_date) : undefined,
+        staff_notes: data.staff_notes,
+        related_activity_id: data.related_activity_id ? new Types.ObjectId(data.related_activity_id) : undefined,
+        resident_id: new Types.ObjectId(data.resident_id),
+      });
+      
+      console.log('Photo object to save:', photo);
+      const savedPhoto = await photo.save();
+      console.log('Photo saved successfully:', savedPhoto);
+      return savedPhoto;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      throw error;
+    }
   }
 
   async getPhotos(family_member_id: string) {
