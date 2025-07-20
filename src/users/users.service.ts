@@ -35,8 +35,15 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<UserDocument> {
+    console.log('UsersService.findOne - input id:', id);
+    console.log('UsersService.findOne - id type:', typeof id);
+    console.log('UsersService.findOne - isValid ObjectId:', Types.ObjectId.isValid(id));
+    
     const user = await this.userModel.findById(id).select('-password').exec();
+    console.log('UsersService.findOne - found user:', user ? user.email : 'null');
+    
     if (!user) {
+      console.log('UsersService.findOne - User not found for ID:', id);
       throw new NotFoundException('User not found');
     }
     return user;

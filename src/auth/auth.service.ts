@@ -71,11 +71,23 @@ export class AuthService {
   }
 
   async getProfile(user: any) {
-    const userProfile = await this.usersService.findOne(user.sub);
+    console.log('getProfile - user object:', user);
+    console.log('getProfile - user.userId:', user.userId);
+    console.log('getProfile - user.sub:', user.sub);
+    console.log('getProfile - user.email:', user.email);
+    
+    // Thử cả hai cách để đảm bảo
+    const userId = user.userId || user.sub;
+    console.log('getProfile - final userId:', userId);
+    
+    const userProfile = await this.usersService.findOne(userId);
     if (!userProfile) {
+      console.log('getProfile - User not found with ID:', userId);
       throw new NotFoundException('User not found');
     }
 
+    console.log('getProfile - User found:', userProfile.email);
+    
     // Convert to plain object and add id field
     const profileData = userProfile.toObject();
     return {
@@ -86,7 +98,7 @@ export class AuthService {
 
   async updateProfile(user: any, updateProfileDto: UpdateProfileDto) {
     // Sử dụng findOne và save thay vì update method
-    const userProfile = await this.usersService.findOne(user.sub);
+    const userProfile = await this.usersService.findOne(user.userId);
     if (!userProfile) {
       throw new NotFoundException('User not found');
     }
@@ -113,7 +125,7 @@ export class AuthService {
 
     // Sử dụng method có sẵn từ UsersService
     return await this.usersService.changePassword(
-      user.sub,
+      user.userId,
       currentPassword,
       newPassword
     );
