@@ -67,11 +67,18 @@ export class Resident {
   @Prop({ type: [String, null], default: null })
   avatar?: string | null;
 
-  @Prop({ required: true })
-  admission_date: Date;
+  @Prop({ 
+    required: true,
+    default: () => {
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
+      return vietnamTime.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    }
+  })
+  admission_date: string;
 
-  @Prop({ type: Date, default: null })
-  discharge_date?: Date | null;
+  @Prop({ type: String, default: null })
+  discharge_date?: string | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;

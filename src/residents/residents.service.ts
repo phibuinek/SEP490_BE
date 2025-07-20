@@ -27,7 +27,17 @@ export class ResidentsService {
   ) {}
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
-    const createdResident = new this.residentModel(createResidentDto);
+    // Tạo ngày hiện tại theo timezone Vietnam (GMT+7)
+    const now = new Date();
+    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
+    
+    const residentData = {
+      ...createResidentDto,
+      created_at: vietnamTime.toISOString(),
+      updated_at: vietnamTime.toISOString(),
+    };
+    
+    const createdResident = new this.residentModel(residentData);
     return createdResident.save();
   }
 

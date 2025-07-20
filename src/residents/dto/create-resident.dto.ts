@@ -68,36 +68,43 @@ export class EmergencyContactDto {
 }
 
 export class CreateResidentDto {
-  @ApiProperty({ example: 'Nguyễn Văn Nam' })
+  @ApiProperty({ 
+    example: 'Nguyễn Văn Nam',
+    description: 'Full name of the resident'
+  })
   @IsString()
   @IsNotEmpty()
   full_name: string;
 
-  @ApiProperty({ example: '1950-05-15' })
+  @ApiProperty({ 
+    example: '1950-05-15',
+    description: 'Date of birth in YYYY-MM-DD format'
+  })
   @IsDateString()
   @IsNotEmpty()
   date_of_birth: string;
 
-  @ApiProperty({ enum: Gender, example: Gender.MALE })
+  @ApiProperty({ 
+    enum: Gender, 
+    example: Gender.MALE,
+    description: 'Gender of the resident'
+  })
   @IsEnum(Gender)
   gender: Gender;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg', nullable: true })
+  @ApiPropertyOptional({ 
+    example: 'https://example.com/avatar.jpg', 
+    nullable: true,
+    description: 'Avatar URL (optional)'
+  })
   @IsOptional()
   @IsString()
   avatar?: string | null;
 
-  @ApiProperty({ example: '2024-01-10' })
-  @IsDateString()
-  @IsNotEmpty()
-  admission_date: string;
-
-  @ApiPropertyOptional({ example: '2024-06-01', nullable: true })
-  @IsOptional()
-  @IsDateString()
-  discharge_date?: string | null;
-
-  @ApiProperty({ example: '664f1b2c2f8b2c0012a4e750' })
+  @ApiProperty({ 
+    example: '664f1b2c2f8b2c0012a4e750',
+    description: 'Family member ID (MongoDB ObjectId)'
+  })
   @IsMongoId()
   family_member_id: string;
 
@@ -112,6 +119,7 @@ export class CreateResidentDto {
       'khác',
     ],
     example: 'con gái',
+    description: 'Relationship with family member'
   })
   @IsEnum([
     'con trai',
@@ -124,37 +132,47 @@ export class CreateResidentDto {
   ])
   relationship: string;
 
-  @ApiProperty({ example: 'Cao huyết áp, tiểu đường type 2' })
+  @ApiProperty({ 
+    example: 'Cao huyết áp, tiểu đường type 2',
+    description: 'Medical history of the resident'
+  })
   @IsString()
   @IsNotEmpty()
   medical_history: string;
 
-  @ApiProperty({ type: [MedicationDto], example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }] })
+  @ApiProperty({ 
+    type: [MedicationDto], 
+    example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }],
+    description: 'Current medications list'
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MedicationDto)
   current_medications: MedicationDto[];
 
-  @ApiProperty({ type: [String], example: ['Dị ứng hải sản'] })
+  @ApiProperty({ 
+    type: [String], 
+    example: ['Dị ứng hải sản'],
+    description: 'List of allergies'
+  })
   @IsArray()
   @IsString({ each: true })
   allergies: string[];
 
-  @ApiProperty({ type: EmergencyContactDto })
+  @ApiProperty({ 
+    type: EmergencyContactDto,
+    description: 'Emergency contact information'
+  })
   @IsObject()
   @ValidateNested()
   @Type(() => EmergencyContactDto)
   emergency_contact: EmergencyContactDto;
 
-  @ApiProperty({ enum: ResidentStatus, example: ResidentStatus.ACTIVE })
+  @ApiProperty({ 
+    enum: ResidentStatus, 
+    example: ResidentStatus.ACTIVE,
+    description: 'Status of the resident'
+  })
   @IsEnum(ResidentStatus)
   status: ResidentStatus;
-
-  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
-  @IsDateString()
-  created_at: string;
-
-  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
-  @IsDateString()
-  updated_at: string;
 }

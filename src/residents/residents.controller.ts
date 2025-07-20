@@ -35,7 +35,10 @@ export class ResidentsController {
 
   @Post()
   @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Create a new resident' })
+  @ApiOperation({ 
+    summary: 'Create a new resident',
+    description: 'Create a new resident. admission_date will be automatically set to current date (Vietnam timezone GMT+7) and discharge_date will be set to null.'
+  })
   @ApiResponse({ status: 201, description: 'Resident created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
