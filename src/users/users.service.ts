@@ -29,7 +29,7 @@ export class UsersService {
       filter.department = department;
     }
     if (role) {
-      filter.roles = { $in: [role] };
+      filter.role = role; // Sử dụng 'role' thay vì 'roles'
     }
     return this.userModel.find(filter).select('-password').exec();
   }
@@ -61,10 +61,57 @@ export class UsersService {
     return this.userModel
       .find({
         department,
-        roles: { $in: ['staff'] },
+        role: 'staff', // Sử dụng 'role' thay vì 'roles'
       })
       .select('-password')
       .exec();
+  }
+
+  async findByRoles(roles: string[]): Promise<User[]> {
+    return this.userModel
+      .find({
+        role: { $in: roles }, // Sử dụng $in để tìm users có role trong danh sách
+      })
+      .select('-password')
+      .exec();
+  }
+
+  async getUserStatsByRole() {
+    const stats = await this.userModel.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 },
+          active: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
+            }
+          },
+          inactive: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          role: '$_id',
+          total: '$count',
+          active: '$active',
+          inactive: '$inactive',
+          _id: 0
+        }
+      },
+      {
+        $sort: { role: 1 }
+      }
+    ]);
+
+    return {
+      total_users: await this.userModel.countDocuments(),
+      by_role: stats
+    };
   }
 
   // Sửa hàm updateRoles để nhận roles: string[]

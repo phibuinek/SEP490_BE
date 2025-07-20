@@ -8,6 +8,7 @@ import {
   UseGuards,
   Query,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -48,6 +49,63 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Get('by-role')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get users by role (Admin, Staff only)' })
+  @ApiQuery({
+    name: 'role',
+    required: true,
+    enum: ['admin', 'staff', 'family'],
+    description: 'Role để lọc users',
+  })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid role.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  findByRole(@Query('role') role: string) {
+    // Validate role parameter
+    const validRoles = ['admin', 'staff', 'family'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+    
+    return this.usersService.findAll(undefined, role);
+  }
+
+  @Get('by-roles')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get users by multiple roles (Admin, Staff only)' })
+  @ApiQuery({
+    name: 'roles',
+    required: true,
+    description: 'Comma-separated list of roles (e.g., admin,staff)',
+    example: 'admin,staff',
+  })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid roles.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  findByRoles(@Query('roles') roles: string) {
+    // Validate and parse roles parameter
+    const validRoles = ['admin', 'staff', 'family'];
+    const roleList = roles.split(',').map(r => r.trim());
+    
+    for (const role of roleList) {
+      if (!validRoles.includes(role)) {
+        throw new BadRequestException(`Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}`);
+      }
+    }
+    
+    return this.usersService.findByRoles(roleList);
+  }
+
+  @Get('stats/by-role')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get user statistics by role (Admin, Staff only)' })
+  @ApiResponse({ status: 200, description: 'User statistics retrieved successfully.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  getUserStatsByRole() {
+    return this.usersService.getUserStatsByRole();
   }
 
   @Get('by-department')
