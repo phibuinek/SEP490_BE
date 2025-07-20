@@ -34,7 +34,7 @@ export class UsersService {
     return this.userModel.find(filter).select('-password').exec();
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string): Promise<UserDocument> {
     const user = await this.userModel.findById(id).select('-password').exec();
     if (!user) {
       throw new NotFoundException('User not found');
