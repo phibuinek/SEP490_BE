@@ -6,18 +6,24 @@ import { CreateBillDto } from './dto/create-bill.dto';
 import { UpdateBillDto } from './dto/update-bill.dto';
 import { CarePlansService } from '../care-plans/care-plans.service';
 import { Types } from 'mongoose';
+import { ResidentsService } from '../residents/residents.service';
 
 @Injectable()
 export class BillsService {
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
     private readonly carePlansService: CarePlansService,
+    private readonly residentsService: ResidentsService,
   ) {}
 
   async create(createBillDto: CreateBillDto): Promise<Bill> {
     const toVNDate = (d: Date | string | undefined) => d ? new Date(new Date(d).getTime() + 7 * 60 * 60 * 1000) : undefined;
+    // Lấy family_member_id từ resident_id
+    const resident = await this.residentsService.findOne(createBillDto.resident_id.toString());
+    if (!resident) throw new NotFoundException('Resident not found');
     const newBill = new this.billModel({
       ...createBillDto,
+      family_member_id: resident.family_member_id,
       due_date: toVNDate(createBillDto.due_date),
       status: 'pending',
       payment_method: 'qr_payment',

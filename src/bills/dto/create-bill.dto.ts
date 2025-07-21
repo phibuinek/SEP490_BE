@@ -11,13 +11,7 @@ import { PaymentMethod } from '../schemas/bill.schema';
 import { BillStatus } from '../schemas/bill.schema';
 
 export class CreateBillDto {
-  @ApiProperty({
-    example: '605c5f2e8e3b3a2f8c8e4b1a',
-    description: 'ID của family member',
-  })
-  @IsMongoId()
-  @IsNotEmpty()
-  readonly family_member_id: Schema.Types.ObjectId;
+  // Đã xóa trường family_member_id, BE sẽ tự động lấy từ resident_id
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1b',
