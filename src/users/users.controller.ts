@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +25,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { ResetPasswordDto } from './dto/change-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -169,7 +171,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async updateUserById(@Param('id') id: string, @Body() updateUserDto: import('./dto/update-user.dto').UpdateUserDto) {
+  async updateUserById(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     // Chỉ cho phép cập nhật các trường hợp lệ
     const allowedFields = ['full_name', 'email', 'phone', 'avatar', 'notes', 'address', 'position', 'qualification'];
     const filteredDto: any = {};
@@ -180,7 +182,9 @@ export class UsersController {
     }
     filteredDto.updated_at = new Date();
     const updated = await this.usersService.updateUserById(id, filteredDto);
-    // Trả về các trường cần thiết theo role
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
     const user: any = updated; // ép kiểu để truy cập _id
     const baseFields = {
       _id: user._id,
