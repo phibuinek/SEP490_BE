@@ -35,15 +35,9 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<UserDocument> {
-    console.log('UsersService.findOne - input id:', id);
-    console.log('UsersService.findOne - id type:', typeof id);
-    console.log('UsersService.findOne - isValid ObjectId:', Types.ObjectId.isValid(id));
-    
-    const user = await this.userModel.findById(id).select('-password').exec();
-    console.log('UsersService.findOne - found user:', user ? user.email : 'null');
-    
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid user id');
+    const user = await this.userModel.findById(new Types.ObjectId(id)).select('-password').exec();
     if (!user) {
-      console.log('UsersService.findOne - User not found for ID:', id);
       throw new NotFoundException('User not found');
     }
     return user;
@@ -114,16 +108,12 @@ export class UsersService {
     };
   }
 
-  // Sửa hàm updateRoles để nhận roles: string[]
-  async updateRoles(id: string, roles: string[]) {
-    // Nếu schema chỉ còn 1 role, chỉ lấy roles[0]
-    await this.userModel.findByIdAndUpdate(id, { role: roles[0] });
-    return { message: 'User role updated successfully.' };
-  }
+  // XÓA TOÀN BỘ HÀM updateRoles
 
   async deactivateUser(user_id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(user_id)) throw new BadRequestException('Invalid user id');
     const user = await this.userModel
-      .findByIdAndUpdate(user_id, { is_active: false }, { new: true })
+      .findByIdAndUpdate(new Types.ObjectId(user_id), { status: 'inactive', updated_at: new Date() }, { new: true })
       .select('-password')
       .exec();
 
@@ -135,8 +125,9 @@ export class UsersService {
   }
 
   async activateUser(user_id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(user_id)) throw new BadRequestException('Invalid user id');
     const user = await this.userModel
-      .findByIdAndUpdate(user_id, { is_active: true }, { new: true })
+      .findByIdAndUpdate(new Types.ObjectId(user_id), { status: 'active', updated_at: new Date() }, { new: true })
       .select('-password')
       .exec();
 
@@ -191,5 +182,18 @@ export class UsersService {
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
     return { message: 'Password reset successfully' };
+  }
+
+  async updateUserById(id: string, updateUserDto: Partial<User>): Promise<User> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid user id');
+    // Nếu có trường role, ép kiểu về UserRole
+    if (updateUserDto.role && typeof updateUserDto.role === 'string') {
+      updateUserDto.role = updateUserDto.role as any; // ép kiểu để tránh lỗi linter
+    }
+    const user = await this.userModel.findByIdAndUpdate(new Types.ObjectId(id), updateUserDto, { new: true }).select('-password').exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 }
