@@ -43,6 +43,15 @@ export class UsersService {
     return user;
   }
 
+  async findOneWithPassword(id: string): Promise<UserDocument> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid user id');
+    const user = await this.userModel.findById(new Types.ObjectId(id)).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email }).exec();
   }
@@ -195,5 +204,11 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async getPasswordById(id: string): Promise<string | undefined> {
+    if (!Types.ObjectId.isValid(id)) return undefined;
+    const user = await this.userModel.findById(new Types.ObjectId(id)).exec();
+    return user?.password;
   }
 }

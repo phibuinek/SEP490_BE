@@ -237,8 +237,8 @@ export class ActivityParticipationsService {
     }
     return this.participationModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
-      .populate('staff_id', 'full_name')
-      .populate('activity_id', 'activity_name')
+      .populate('staff_id', 'full_name position')
+      .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
       .populate('resident_id', 'full_name')
       .exec();
   }

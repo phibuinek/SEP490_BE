@@ -314,12 +314,55 @@ export class UsersController {
     if (!file) {
       throw new BadRequestException('Avatar file is required');
     }
-    const updateUserDto = { avatar: file.path || `uploads/${file.filename}` };
-    const updated = await this.usersService.updateUserById(id, updateUserDto);
-    if (!updated) {
+    // Lấy user hiện tại từ DB (đầy đủ trường password)
+    const currentUser = await this.usersService.findOneWithPassword(id);
+    if (!currentUser) {
       throw new NotFoundException('User not found');
     }
-    return updated;
+    // Lưu ý: password đã mã hóa, chỉ giữ nguyên, không hash lại khi update avatar
+    // Xử lý các trường optional: nếu undefined thì bỏ qua hoặc truyền null
+    // Đảm bảo avatar là string, không phải array
+    let avatarPath = file.path || `uploads/${file.filename}`;
+    if (Array.isArray(avatarPath)) {
+      avatarPath = avatarPath[0];
+    }
+    const updateUserDto: any = {
+      full_name: currentUser.full_name,
+      email: currentUser.email,
+      phone: currentUser.phone,
+      username: currentUser.username,
+      password: currentUser.password,
+      role: currentUser.role,
+      status: currentUser.status,
+      created_at: currentUser.created_at,
+      updated_at: new Date(),
+      avatar: avatarPath,
+    };
+    if (typeof currentUser.is_super_admin !== 'undefined') updateUserDto.is_super_admin = currentUser.is_super_admin;
+    if (typeof currentUser.position !== 'undefined') updateUserDto.position = currentUser.position ?? null;
+    if (typeof currentUser.qualification !== 'undefined') updateUserDto.qualification = currentUser.qualification ?? null;
+    if (typeof currentUser.join_date !== 'undefined') updateUserDto.join_date = currentUser.join_date ?? null;
+    if (typeof currentUser.address !== 'undefined') updateUserDto.address = currentUser.address ?? null;
+    if (typeof currentUser.notes !== 'undefined') updateUserDto.notes = currentUser.notes ?? null;
+    // Log dữ liệu gửi lên DB
+    console.log('PATCH /users/:id/avatar - updateUserDto:', updateUserDto);
+    try {
+      const updated = await this.usersService.updateUserById(id, updateUserDto);
+      if (!updated) {
+        throw new NotFoundException('User not found');
+      }
+      return updated;
+    } catch (err) {
+      // Log lỗi chi tiết nếu có
+      console.error('PATCH /users/:id/avatar - MongoDB error:', err);
+      if (err && err.errInfo) {
+        console.error('errInfo:', JSON.stringify(err.errInfo, null, 2));
+        if (err.errInfo.details) {
+          console.error('details:', JSON.stringify(err.errInfo.details, null, 2));
+        }
+      }
+      throw err;
+    }
   }
 
   @Patch(':id/role')
