@@ -12,7 +12,7 @@ import { VitalSignsModule } from './vital-signs/vital-signs.module';
 import { PaymentModule } from './payment/payment.module';
 import { BillsModule } from './bills/bills.module';
 import { CarePlanAssignmentsModule } from './care-plan-assignments/care-plan-assignments.module';
-// import { DatabaseModule } from './database/database.module'; // Tắt seeder tự động
+import { DatabaseModule } from './database/database.module'; // Bật seeder tự động
 import { CarePlansModule } from './care-plans/care-plans.module';
 import { ServiceRequestsModule } from './service-requests/service-requests.module';
 import { FinanceModule } from './finance/finance.module';
@@ -28,9 +28,9 @@ import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 @Module({
   imports: [
     MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nhms_db',
+      process.env.MONGODB_URI || 'mongodb+srv://baotranlechi05:Gdebju5xwSxFII2I@nursinghomemanagementsy.v48raye.mongodb.net/nhms_db?retryWrites=true&w=majority&appName=NursingHomeManagementSystem'
     ),
-    // DatabaseModule, // Bật seeder tự động
+    DatabaseModule, // Bật seeder tự động
     UsersModule,
     AuthModule,
     ResidentsModule,

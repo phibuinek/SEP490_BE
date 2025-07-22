@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { ChangePasswordDto } from './dto/update-user.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -107,5 +108,15 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   activateUser(@Param('id') id: string) {
     return this.usersService.activateUser(id);
+  }
+
+  @Patch(':id/change-password')
+  @Roles('admin', 'staff', 'family')
+  @ApiOperation({ summary: 'Change user password (All roles)' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  changePassword(@Param('id') id: string, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(id, dto.oldPassword, dto.newPassword);
   }
 }
