@@ -64,18 +64,15 @@ export class Resident {
   @Prop({ type: String, enum: Gender, required: true })
   gender: Gender;
 
-  @Prop({ type: [String, null], default: null })
+  @Prop({ type: String, required: false, default: null })
   avatar?: string | null;
 
-  @Prop({ 
-    required: true,
-    default: () => {
-      const now = new Date();
-      const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
-      return vietnamTime.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    }
-  })
-  admission_date: string;
+  @Prop({ type: Date, required: true, default: () => {
+    const now = new Date();
+    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return vietnamTime;
+  }})
+  admission_date: Date;
 
   @Prop({ type: String, default: null })
   discharge_date?: string | null;

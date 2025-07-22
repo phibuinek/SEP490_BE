@@ -28,10 +28,21 @@ export class BillsService {
       status: 'pending',
       payment_method: 'qr_payment',
       paid_date: null,
-      created_at: toVNDate(new Date()),
-      updated_at: toVNDate(new Date()),
     });
-    return newBill.save();
+    try {
+      return await newBill.save();
+    } catch (err) {
+      // Log chi tiết lỗi MongoDB
+      console.error('MongoDB Error when creating bill:', err);
+      if (err.name === 'MongoServerError' && err.code === 121) {
+        // Lỗi document failed validation
+        throw new BadRequestException({
+          message: 'MongoDB validation error',
+          details: err.errInfo?.details || err.errmsg || err.message,
+        });
+      }
+      throw err;
+    }
   }
 
   async findAll(): Promise<Bill[]> {
