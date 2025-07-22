@@ -12,6 +12,7 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
@@ -26,6 +27,8 @@ import {
   ApiBearerAuth,
   ApiResponse,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -57,6 +60,22 @@ export class ResidentsController {
     },
     limits: { fileSize: 5 * 1024 * 1024 },
   }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Tạo resident mới, có thể upload avatar',
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
+        name: { type: 'string' },
+        gender: { type: 'string' },
+        date_of_birth: { type: 'string', format: 'date' },
+        family_member_id: { type: 'string' },
+        // ... các trường khác của CreateResidentDto ...
+      },
+      required: ['name', 'gender', 'date_of_birth', 'family_member_id'],
+    },
+  })
   @ApiOperation({ 
     summary: 'Create a new resident',
     description: 'Create a new resident. admission_date will be automatically set to current date (Vietnam timezone GMT+7) and discharge_date will be set to null.'
@@ -153,6 +172,53 @@ export class ResidentsController {
     if (file) {
       updateResidentDto.avatar = file.path || `uploads/${file.filename}`;
     }
+    return this.residentsService.update(id, updateResidentDto);
+  }
+
+  @Patch(':id/avatar')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Cập nhật avatar cho resident',
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện mới' },
+      },
+      required: ['avatar'],
+    },
+  })
+  @ApiOperation({ summary: 'Update resident avatar' })
+  @ApiResponse({ status: 200, description: 'Resident avatar updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  async updateAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Avatar file is required');
+    }
+    const updateResidentDto = { avatar: file.path || `uploads/${file.filename}` };
     return this.residentsService.update(id, updateResidentDto);
   }
 

@@ -19,6 +19,8 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -58,6 +60,22 @@ export class UsersController {
     },
     limits: { fileSize: 5 * 1024 * 1024 },
   }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Tạo user mới, có thể upload avatar',
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
+        username: { type: 'string' },
+        password: { type: 'string' },
+        email: { type: 'string' },
+        role: { type: 'string' },
+        // ... các trường khác của CreateUserDto ...
+      },
+      required: ['username', 'password', 'email', 'role'],
+    },
+  })
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
@@ -251,6 +269,57 @@ export class UsersController {
       return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
     }
     return baseFields;
+  }
+
+  @Patch(':id/avatar')
+  @Roles('admin', 'staff')
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Cập nhật avatar cho user',
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện mới' },
+      },
+      required: ['avatar'],
+    },
+  })
+  @ApiOperation({ summary: 'Update user avatar' })
+  @ApiResponse({ status: 200, description: 'User avatar updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  async updateAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Avatar file is required');
+    }
+    const updateUserDto = { avatar: file.path || `uploads/${file.filename}` };
+    const updated = await this.usersService.updateUserById(id, updateUserDto);
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
+    return updated;
   }
 
   @Patch(':id/role')

@@ -14,7 +14,7 @@ export enum BillStatus {
 
 @Schema({ 
   collection: 'billings',
-  timestamps: true 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
 })
 export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
