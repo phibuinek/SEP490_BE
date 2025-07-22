@@ -67,13 +67,42 @@ export class ResidentsController {
       type: 'object',
       properties: {
         avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
-        name: { type: 'string' },
-        gender: { type: 'string' },
-        date_of_birth: { type: 'string', format: 'date' },
-        family_member_id: { type: 'string' },
-        // ... các trường khác của CreateResidentDto ...
+        full_name: { type: 'string', description: 'Họ tên đầy đủ' },
+        gender: { type: 'string', description: 'Giới tính' },
+        date_of_birth: { type: 'string', format: 'date', description: 'Ngày sinh' },
+        family_member_id: { type: 'string', description: 'ID thành viên gia đình' },
+        relationship: { type: 'string', description: 'Mối quan hệ với thành viên gia đình' },
+        medical_history: { type: 'string', description: 'Tiền sử bệnh' },
+        current_medications: {
+          type: 'array',
+          description: 'Danh sách thuốc đang dùng',
+          items: {
+            type: 'object',
+            properties: {
+              medication_name: { type: 'string', description: 'Tên thuốc' },
+              dosage: { type: 'string', description: 'Liều lượng' },
+              frequency: { type: 'string', description: 'Tần suất' },
+            },
+            required: ['medication_name', 'dosage', 'frequency'],
+          },
+        },
+        allergies: {
+          type: 'array',
+          description: 'Dị ứng',
+          items: { type: 'string' },
+        },
+        emergency_contact: {
+          type: 'object',
+          description: 'Liên hệ khẩn cấp',
+          properties: {
+            name: { type: 'string', description: 'Tên người liên hệ' },
+            phone: { type: 'string', description: 'Số điện thoại' },
+            relationship: { type: 'string', description: 'Mối quan hệ' },
+          },
+          required: ['name', 'phone', 'relationship'],
+        },
       },
-      required: ['name', 'gender', 'date_of_birth', 'family_member_id'],
+      required: ['full_name', 'gender', 'date_of_birth', 'family_member_id', 'relationship', 'medical_history', 'current_medications', 'allergies'],
     },
   })
   @ApiOperation({ 
