@@ -163,10 +163,11 @@ export class CreateResidentDto {
     type: EmergencyContactDto,
     description: 'Emergency contact information'
   })
+  @IsOptional()
   @IsObject()
   @ValidateNested()
   @Type(() => EmergencyContactDto)
-  emergency_contact: EmergencyContactDto;
+  emergency_contact?: EmergencyContactDto;
 
   @ApiHideProperty()
   @IsOptional()

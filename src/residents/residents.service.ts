@@ -185,7 +185,7 @@ export class ResidentsService {
     } else if (updateData.created_at) {
       updateData.created_at = new Date(updateData.created_at);
     }
-    // updated_at luôn lấy thời gian hiện tại GMT+7 (ISO 8601)
+    // updated_at luôn là giờ Việt Nam (GMT+7)
     const now = new Date();
     const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
     updateData.updated_at = vietnamTime;
@@ -243,30 +243,19 @@ export class ResidentsService {
     ];
     for (const field of requiredFields) {
       if (typeof updateData[field] === 'undefined' || updateData[field] === null) {
-        if (Array.isArray(oldResident[field])) {
-          updateData[field] = [...oldResident[field]];
-        } else if (typeof oldResident[field] === 'object' && oldResident[field] !== null) {
-          updateData[field] = { ...oldResident[field] };
-        } else if (typeof oldResident[field] !== 'undefined' && oldResident[field] !== null) {
-          updateData[field] = oldResident[field];
-        } else {
-          // Fallback mặc định nếu DB cũng thiếu
-          if (field === 'current_medications' || field === 'allergies') {
-            updateData[field] = [];
-          } else if (field === 'emergency_contact') {
-            updateData[field] = { name: '', phone: '', relationship: 'khác' };
-          } else if (field === 'medical_history') {
-            updateData[field] = '';
-          } else if (field === 'admission_date' || field === 'created_at' || field === 'updated_at') {
-            updateData[field] = new Date();
-          } else {
-            updateData[field] = '';
-          }
-        }
+        updateData[field] = oldResident[field];
       }
-      // Nếu là trường date, ép lại thành Date
-      if ([ 'admission_date', 'created_at', 'updated_at', 'date_of_birth', 'discharge_date' ].includes(field) && updateData[field]) {
-        updateData[field] = new Date(updateData[field]);
+      // Nếu là trường date, ép lại thành Date nếu là string, nếu không hợp lệ thì lấy từ DB hoặc new Date()
+      if (
+        ['date_of_birth', 'admission_date', 'created_at', 'updated_at', 'discharge_date'].includes(field)
+      ) {
+        if (typeof updateData[field] === 'string') {
+          const d = new Date(updateData[field]);
+          updateData[field] = isNaN(d.getTime()) ? oldResident[field] || new Date() : d;
+        }
+        if (!(updateData[field] instanceof Date)) {
+          updateData[field] = oldResident[field] || new Date();
+        }
       }
     }
 
