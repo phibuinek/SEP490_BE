@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
@@ -168,11 +168,8 @@ export class CreateResidentDto {
   @Type(() => EmergencyContactDto)
   emergency_contact: EmergencyContactDto;
 
-  @ApiProperty({ 
-    enum: ResidentStatus, 
-    example: ResidentStatus.ACTIVE,
-    description: 'Status of the resident'
-  })
+  @ApiHideProperty()
+  @IsOptional()
   @IsEnum(ResidentStatus)
-  status: ResidentStatus;
+  status?: ResidentStatus;
 }

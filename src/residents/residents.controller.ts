@@ -10,6 +10,8 @@ import {
   Req,
   ForbiddenException,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
@@ -25,6 +27,9 @@ import {
   ApiResponse,
   ApiQuery,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @ApiTags('residents')
 @ApiBearerAuth()
@@ -35,6 +40,23 @@ export class ResidentsController {
 
   @Post()
   @Roles(Role.ADMIN, Role.STAFF)
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
   @ApiOperation({ 
     summary: 'Create a new resident',
     description: 'Create a new resident. admission_date will be automatically set to current date (Vietnam timezone GMT+7) and discharge_date will be set to null.'
@@ -43,7 +65,10 @@ export class ResidentsController {
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() createResidentDto: CreateResidentDto) {
+  create(@UploadedFile() file: Express.Multer.File, @Body() createResidentDto: CreateResidentDto) {
+    if (file) {
+      createResidentDto.avatar = file.path || `uploads/${file.filename}`;
+    }
     return this.residentsService.create(createResidentDto);
   }
 
@@ -97,6 +122,23 @@ export class ResidentsController {
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.STAFF)
+  @UseInterceptors(FileInterceptor('avatar', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+  }))
   @ApiOperation({ summary: 'Update a resident' })
   @ApiResponse({ status: 200, description: 'Resident updated successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
@@ -105,8 +147,12 @@ export class ResidentsController {
   @ApiResponse({ status: 404, description: 'Resident not found.' })
   update(
     @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
     @Body() updateResidentDto: UpdateResidentDto,
   ) {
+    if (file) {
+      updateResidentDto.avatar = file.path || `uploads/${file.filename}`;
+    }
     return this.residentsService.update(id, updateResidentDto);
   }
 
