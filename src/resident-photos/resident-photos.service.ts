@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ResidentPhoto, ResidentPhotoDocument } from './resident-photo.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import * as fs from 'fs';
@@ -12,39 +13,87 @@ export class ResidentPhotosService {
   constructor(
     @InjectModel(ResidentPhoto.name)
     private photoModel: Model<ResidentPhotoDocument>,
+    @InjectModel(Resident.name)
+    private residentModel: Model<ResidentDocument>,
   ) {}
 
   async uploadPhoto(data: any) {
-    const photo = new this.photoModel({
-      familyId: data.familyId,
-      uploadedBy: data.uploadedBy,
-      fileName: data.fileName,
-      filePath: data.filePath,
-      fileType: data.fileType,
-      fileSize: data.fileSize,
-      caption: data.caption,
-      activityType: data.activityType,
-      tags: data.tags,
-      uploadDate: new Date(),
-      takenDate: data.takenDate ? new Date(data.takenDate) : undefined,
-      staffNotes: data.staffNotes,
-      relatedActivityId: data.relatedActivityId,
-      serviceStartDate: data.serviceStartDate
-        ? new Date(data.serviceStartDate)
-        : undefined,
-      residentId: data.residentId
-        ? new Types.ObjectId(data.residentId)
-        : undefined,
-    });
-    return photo.save();
+    try {
+      console.log('Upload photo data:', data);
+      
+      // Validate resident_id
+      if (!data.resident_id) {
+        throw new Error('resident_id is required');
+      }
+      
+      if (!Types.ObjectId.isValid(data.resident_id)) {
+        throw new Error('Invalid resident_id format');
+      }
+
+      // Check if resident exists
+      const resident = await this.residentModel.findById(data.resident_id);
+      if (!resident) {
+        throw new Error('Resident not found');
+      }
+
+      // Validate uploaded_by
+      if (!data.uploaded_by) {
+        throw new Error('uploaded_by is required');
+      }
+      
+      if (!Types.ObjectId.isValid(data.uploaded_by)) {
+        throw new Error('Invalid uploaded_by format');
+      }
+
+      const photo = new this.photoModel({
+        family_id: new Types.ObjectId(data.uploaded_by), // Use uploaded_by as family_id
+        uploaded_by: new Types.ObjectId(data.uploaded_by),
+        file_name: data.file_name,
+        file_path: data.file_path,
+        file_type: data.file_type,
+        file_size: data.file_size,
+        caption: data.caption,
+        activity_type: data.activity_type,
+        tags: data.tags,
+        upload_date: new Date(),
+        taken_date: data.taken_date ? new Date(data.taken_date) : undefined,
+        staff_notes: data.staff_notes,
+        related_activity_id: data.related_activity_id ? new Types.ObjectId(data.related_activity_id) : undefined,
+        resident_id: new Types.ObjectId(data.resident_id),
+      });
+      
+      console.log('Photo object to save:', photo);
+      const savedPhoto = await photo.save();
+      console.log('Photo saved successfully:', savedPhoto);
+      return savedPhoto;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      throw error;
+    }
   }
 
-  async getPhotos(familyId: string) {
-    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
+  async getPhotos(family_member_id: string) {
+    // Validate family_member_id
+    if (!Types.ObjectId.isValid(family_member_id)) {
+      throw new Error('Invalid family_member_id format');
+    }
+
+    // Step 1: Find all residents that belong to this family member
+    const residents = await this.residentModel.find({
+      family_member_id: new Types.ObjectId(family_member_id)
+    }).select('_id');
+
+    // Step 2: Extract resident IDs
+    const residentIds = residents.map(resident => resident._id);
+
+    // Step 3: Find all photos where resident_id is in the list of resident IDs
+    return this.photoModel.find({
+      resident_id: { $in: residentIds }
+    }).sort({ upload_date: -1 }).exec();
   }
 
   async getAllPhotos() {
-    return this.photoModel.find().sort({ uploadDate: -1 }).exec();
+    return this.photoModel.find().sort({ upload_date: -1 }).exec();
   }
 
   async getPhotoById(id: string) {
@@ -64,19 +113,19 @@ export class ResidentPhotosService {
     const updateFields: any = {};
     if (updateData.caption !== undefined)
       updateFields.caption = updateData.caption;
-    if (updateData.activityType !== undefined)
-      updateFields.activityType = updateData.activityType;
+    if (updateData.activity_type !== undefined)
+      updateFields.activity_type = updateData.activity_type;
     if (updateData.tags !== undefined) updateFields.tags = updateData.tags;
-    if (updateData.takenDate !== undefined)
-      updateFields.takenDate = new Date(updateData.takenDate);
-    if (updateData.staffNotes !== undefined)
-      updateFields.staffNotes = updateData.staffNotes;
-    if (updateData.relatedActivityId !== undefined)
-      updateFields.relatedActivityId = updateData.relatedActivityId;
-    if (updateData.serviceStartDate !== undefined)
-      updateFields.serviceStartDate = new Date(updateData.serviceStartDate);
-    if (updateData.residentId !== undefined)
-      updateFields.residentId = new Types.ObjectId(updateData.residentId);
+    if (updateData.taken_date !== undefined)
+      updateFields.taken_date = new Date(updateData.taken_date);
+    if (updateData.staff_notes !== undefined)
+      updateFields.staff_notes = updateData.staff_notes;
+    if (updateData.related_activity_id !== undefined)
+      updateFields.related_activity_id = updateData.related_activity_id;
+    if (updateData.service_start_date !== undefined)
+      updateFields.service_start_date = new Date(updateData.service_start_date);
+    if (updateData.resident_id !== undefined)
+      updateFields.resident_id = new Types.ObjectId(updateData.resident_id);
 
     return this.photoModel
       .findByIdAndUpdate(id, updateFields, { new: true })
@@ -91,9 +140,9 @@ export class ResidentPhotosService {
 
     // Delete the physical file
     try {
-      const filePath = path.join(process.cwd(), photo.filePath);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const file_path = path.join(process.cwd(), photo.file_path);
+      if (fs.existsSync(file_path)) {
+        fs.unlinkSync(file_path);
       }
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -104,8 +153,8 @@ export class ResidentPhotosService {
     return { message: 'Photo deleted successfully' };
   }
 
-  async getPhotosByFamilyId(familyId: string, residentsService: any) {
-    // Lấy tất cả ảnh có familyId này
-    return this.photoModel.find({ familyId }).sort({ uploadDate: -1 }).exec();
+  async getPhotosByFamilyId(family_id: string, residentsService: any) {
+    // Lấy tất cả ảnh có family_id này
+    return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
   }
 }

@@ -10,19 +10,6 @@ export class CreateBedAssignmentDto {
   @IsMongoId()
   bed_id: string;
 
-  @ApiProperty({ example: '2024-07-14T10:00:00.000Z', type: String })
-  @IsDateString()
-  assigned_date: string;
-
-  @ApiPropertyOptional({
-    example: '2024-07-15T10:00:00.000Z',
-    type: String,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsDateString()
-  unassigned_date?: string | null;
-
   @ApiPropertyOptional({ example: '60d21b4667d0d8992e610c87', type: String })
   @IsOptional()
   @IsMongoId()

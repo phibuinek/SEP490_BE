@@ -9,6 +9,7 @@ import {
   BedAssignmentDocument,
 } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Bed, BedDocument } from '../beds/schemas/bed.schema';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class RoomsService {
@@ -20,7 +21,16 @@ export class RoomsService {
   ) {}
 
   async create(createRoomDto: CreateRoomDto): Promise<Room> {
-    return this.roomModel.create(createRoomDto);
+    // Kiểm tra main_care_plan_id có hợp lệ không
+    if (!Types.ObjectId.isValid(createRoomDto.main_care_plan_id)) {
+      throw new BadRequestException('main_care_plan_id không hợp lệ');
+    }
+    // Convert main_care_plan_id sang ObjectId
+    const data = {
+      ...createRoomDto,
+      main_care_plan_id: new Types.ObjectId(createRoomDto.main_care_plan_id),
+    };
+    return this.roomModel.create(data);
   }
 
   async findAll(): Promise<any[]> {
@@ -65,5 +75,31 @@ export class RoomsService {
 
   async remove(id: string): Promise<any> {
     return this.roomModel.findByIdAndDelete(id).exec();
+  }
+
+  async filterRooms(room_type?: string, status?: string, main_care_plan_id?: string, gender?: string): Promise<any[]> {
+    const filter: any = {};
+    if (room_type) filter.room_type = room_type;
+    if (main_care_plan_id && Types.ObjectId.isValid(main_care_plan_id)) filter.main_care_plan_id = new Types.ObjectId(main_care_plan_id);
+    if (gender) filter.gender = gender;
+    if (status && status !== 'occupied' && status !== 'available') filter.status = status;
+    // occupied/available sẽ tính động
+    const rooms = await this.roomModel.find(filter).lean();
+    const result: any[] = [];
+    for (const room of rooms) {
+      const beds = await this.bedModel.find({ room_id: room._id }).lean();
+      let occupiedBeds = 0;
+      for (const bed of beds) {
+        const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null });
+        if (assignment) occupiedBeds++;
+      }
+      let dynamicStatus = 'available';
+      if (occupiedBeds === room.bed_count) dynamicStatus = 'occupied';
+      if (room.status === 'maintenance' || room.status === 'reserved') dynamicStatus = room.status;
+      if (!status || status === dynamicStatus) {
+        result.push({ ...room, status: dynamicStatus });
+      }
+    }
+    return result;
   }
 }

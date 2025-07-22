@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 // Sub-schema for current medications
-@Schema({ _id: false })
+@Schema({ collection: 'medications', _id: false })
 export class Medication {
   @Prop({ required: true })
   medication_name: string;
@@ -44,13 +44,6 @@ export enum Gender {
   FEMALE = 'female',
 }
 
-export enum CareLevel {
-  BASIC = 'basic',
-  INTERMEDIATE = 'intermediate',
-  INTENSIVE = 'intensive',
-  SPECIALIZED = 'specialized',
-}
-
 export enum ResidentStatus {
   ACTIVE = 'active',
   DISCHARGED = 'discharged',
@@ -74,11 +67,18 @@ export class Resident {
   @Prop({ type: [String, null], default: null })
   avatar?: string | null;
 
-  @Prop({ required: true })
-  admission_date: Date;
+  @Prop({ 
+    required: true,
+    default: () => {
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
+      return vietnamTime.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    }
+  })
+  admission_date: string;
 
-  @Prop({ type: Date, default: null })
-  discharge_date?: Date | null;
+  @Prop({ type: String, default: null })
+  discharge_date?: string | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
@@ -105,9 +105,6 @@ export class Resident {
 
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;
-
-  @Prop({ type: String, enum: CareLevel, required: true })
-  care_level: CareLevel;
 
   @Prop({ type: String, enum: ResidentStatus, required: true })
   status: ResidentStatus;

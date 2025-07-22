@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 export type BedDocument = Bed & Document;
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ 
+  collection: 'beds',
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+})
 export class Bed {
   @Prop({ required: true, unique: true })
   bed_number: string;

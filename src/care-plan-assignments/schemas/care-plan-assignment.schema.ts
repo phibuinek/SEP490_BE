@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 export type CarePlanAssignmentDocument = CarePlanAssignment & Document;
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ 
+  collection: 'care_plan_assignments',
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+})
 export class CarePlanAssignment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   staff_id: Types.ObjectId;

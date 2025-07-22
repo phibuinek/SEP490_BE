@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
   BedAssignment,
@@ -6,16 +6,18 @@ import {
 } from './schemas/bed-assignment.schema';
 import { BedAssignmentsController } from './bed-assignments.controller';
 import { BedAssignmentsService } from './bed-assignments.service';
-import { BedsModule } from '../beds/beds.module';
-import { RoomsModule } from '../rooms/rooms.module';
+import { ResidentsModule } from '../residents/residents.module';
+import { Room, RoomSchema } from '../rooms/schemas/room.schema';
+import { Bed, BedSchema } from '../beds/schemas/bed.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: BedAssignment.name, schema: BedAssignmentSchema },
+      { name: Bed.name, schema: BedSchema },
+      { name: Room.name, schema: RoomSchema },
     ]),
-    BedsModule,
-    forwardRef(() => RoomsModule),
+    forwardRef(() => ResidentsModule),
   ],
   controllers: [BedAssignmentsController],
   providers: [BedAssignmentsService],

@@ -35,7 +35,10 @@ export class ResidentsController {
 
   @Post()
   @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Create a new resident' })
+  @ApiOperation({ 
+    summary: 'Create a new resident',
+    description: 'Create a new resident. admission_date will be automatically set to current date (Vietnam timezone GMT+7) and discharge_date will be set to null.'
+  })
   @ApiResponse({ status: 201, description: 'Resident created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
@@ -57,21 +60,8 @@ export class ResidentsController {
     return this.residentsService.findAll();
   }
 
-  @Get('by-care-level')
-  @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Get residents by care level' })
-  @ApiQuery({
-    name: 'careLevel',
-    required: true,
-    enum: ['basic', 'intermediate', 'advanced', 'specialized', 'unregistered'],
-    description: 'Lọc theo gói chăm sóc',
-  })
-  findByCareLevel(@Query('careLevel') careLevel: string) {
-    return this.residentsService.findAll(careLevel);
-  }
-
   @Get('family-member/:familyMemberId')
-  @Roles(Role.FAMILY_MEMBER, Role.ADMIN, Role.STAFF)
+  @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get residents by family member ID' })
   @ApiResponse({
     status: 200,
@@ -84,7 +74,7 @@ export class ResidentsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY_MEMBER)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })
   @ApiResponse({ status: 200, description: 'Resident retrieved successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
@@ -97,7 +87,7 @@ export class ResidentsController {
       return resident;
     }
     if (
-      user.role === Role.FAMILY_MEMBER &&
+      user.role === Role.FAMILY &&
       resident.family_member_id?.toString() === user.userId
     ) {
       return resident;
@@ -131,17 +121,16 @@ export class ResidentsController {
     return this.residentsService.remove(id);
   }
 
-  @Post(':id/assign-bed/:bedId')
+  @Post(':id/assign-bed/:bed_id')
+  @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Assign a bed to a resident' })
   @ApiResponse({
     status: 200,
-    description: 'Bed assigned to resident successfully.',
+    description: 'Bed assigned successfully.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Resident or bed not found.' })
-  assignBed(@Param('id') id: string, @Param('bedId') bedId: string) {
-    return this.residentsService.assignBed(id, bedId);
+  assignBed(@Param('id') id: string, @Param('bed_id') bed_id: string) {
+    return this.residentsService.assignBed(id, bed_id);
   }
 }

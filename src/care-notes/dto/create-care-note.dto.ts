@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional , IsMongoId} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAssessmentDto {
@@ -6,14 +6,6 @@ export class CreateAssessmentDto {
   @IsOptional()
   @IsString()
   assessment_type?: string | null;
-
-  @ApiProperty({
-    example: '2024-07-13T09:30:00Z',
-    description: 'Ngày đánh giá (ISO string)',
-  })
-  @IsString()
-  @IsNotEmpty()
-  date: string;
 
   @ApiProperty({
     example: 'Tình trạng ổn định, cần theo dõi đường huyết thường xuyên',
@@ -35,7 +27,7 @@ export class CreateAssessmentDto {
     example: '66b54634d29ee1e4a3e79952',
     description: 'ID của cư dân (resident)',
   })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
   resident_id: string;
 
@@ -45,6 +37,6 @@ export class CreateAssessmentDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
+  @IsMongoId()
   conducted_by?: string;
 }

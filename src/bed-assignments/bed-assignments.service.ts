@@ -1,84 +1,117 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   BedAssignment,
   BedAssignmentDocument,
 } from './schemas/bed-assignment.schema';
-import { BedsService } from '../beds/beds.service';
-import { RoomsService } from '../rooms/rooms.service';
-import { BadRequestException } from '@nestjs/common';
+import { Bed, BedDocument } from '../beds/schemas/bed.schema';
+import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 
 @Injectable()
 export class BedAssignmentsService {
   constructor(
     @InjectModel(BedAssignment.name)
     private model: Model<BedAssignmentDocument>,
-    private bedsService: BedsService,
-    private roomsService: RoomsService,
+    @InjectModel(Bed.name)
+    private bedModel: Model<BedDocument>,
+    @InjectModel(Room.name)
+    private roomModel: Model<RoomDocument>,
   ) {}
 
   async create(dto: any) {
-    // Check if resident đã có assignment active
-    const activeAssignmentOfResident = await this.model.findOne({
-      resident_id: dto.resident_id,
-      unassigned_date: null,
-    });
-    if (activeAssignmentOfResident) {
-      throw new BadRequestException('Resident is already assigned to a bed.');
+    // Validate ObjectIds in dto
+    if (dto.resident_id && !Types.ObjectId.isValid(dto.resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
     }
-    // Check if bed đã có assignment active
-    const activeAssignmentOfBed = await this.model.findOne({
-      bed_id: dto.bed_id,
-      unassigned_date: null,
-    });
-    if (activeAssignmentOfBed) {
-      throw new BadRequestException('Bed is already assigned to a resident.');
+    if (dto.bed_id && !Types.ObjectId.isValid(dto.bed_id)) {
+      throw new BadRequestException('Invalid bed_id format');
     }
-    const assignment = await this.model.create(dto);
-    // Nếu unassigned_date là null, cập nhật bed sang occupied
-    if (!assignment.unassigned_date) {
-      const bed = await this.bedsService.findOne(assignment.bed_id.toString());
-      await this.bedsService.update(assignment.bed_id.toString(), { status: 'occupied' });
-      // Kiểm tra tất cả bed trong room
-      if (bed && bed.room_id) {
-        await this.updateRoomStatus(bed.room_id.toString());
-      }
+    if (dto.assigned_by && !Types.ObjectId.isValid(dto.assigned_by)) {
+      throw new BadRequestException('Invalid assigned_by format');
     }
-    return assignment;
+
+    // Convert to ObjectIds
+    const createData = {
+      ...dto,
+      resident_id: dto.resident_id ? new Types.ObjectId(dto.resident_id) : undefined,
+      bed_id: dto.bed_id ? new Types.ObjectId(dto.bed_id) : undefined,
+      assigned_by: dto.assigned_by ? new Types.ObjectId(dto.assigned_by) : undefined,
+      assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
+      unassigned_date: null, // luôn set null khi tạo mới
+    };
+
+    const result = await this.model.create(createData);
+    await this.updateBedAndRoomStatus(createData.bed_id);
+    return result;
   }
 
   async findAll(bed_id?: string, resident_id?: string) {
     const filter: any = {};
-    if (bed_id) filter.bed_id = bed_id;
-    if (resident_id) filter.resident_id = resident_id;
-    return this.model.find(filter).exec();
+    
+    if (bed_id) {
+      if (!Types.ObjectId.isValid(bed_id)) {
+        throw new BadRequestException('Invalid bed_id format');
+      }
+      filter.bed_id = new Types.ObjectId(bed_id);
+    }
+    
+    if (resident_id) {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Invalid resident_id format');
+      }
+      filter.resident_id = new Types.ObjectId(resident_id);
+    }
+    
+    return this.model
+      .find(filter)
+      .populate('resident_id', 'full_name')
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number room_id',
+        populate: {
+          path: 'room_id',
+          select: 'room_number',
+        },
+      })
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 })
+      .exec();
   }
 
   async unassign(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid assignment ID format');
+    }
     const assignment = await this.model.findByIdAndUpdate(
       id,
       { unassigned_date: new Date() },
       { new: true },
     );
     if (assignment) {
-      const bed = await this.bedsService.findOne(assignment.bed_id.toString());
-      await this.bedsService.update(assignment.bed_id.toString(), { status: 'available' });
-      // Kiểm tra lại room
-      if (bed && bed.room_id) {
-        await this.updateRoomStatus(bed.room_id.toString());
-      }
+      await this.updateBedAndRoomStatus(assignment.bed_id);
     }
     return assignment;
   }
 
-  // Hàm phụ: cập nhật trạng thái room dựa trên trạng thái các bed
-  private async updateRoomStatus(roomId: string) {
-    // Lấy tất cả bed thuộc room
-    const beds = await this.bedsService.findAll();
-    const bedsInRoom = beds.filter(b => b.room_id.toString() === roomId);
-    if (bedsInRoom.length === 0) return;
-    const allOccupied = bedsInRoom.every(b => b.status === 'occupied');
-    await this.roomsService.update(roomId, { status: allOccupied ? 'occupied' : 'available' });
+  async updateBedAndRoomStatus(bed_id: Types.ObjectId) {
+    // 1. Cập nhật trạng thái bed
+    const activeAssignment = await this.model.findOne({ bed_id, unassigned_date: null });
+    const bedStatus = activeAssignment ? 'occupied' : 'available';
+    await this.bedModel.findByIdAndUpdate(bed_id, { status: bedStatus });
+
+    // 2. Cập nhật trạng thái room chứa bed này
+    const bed = await this.bedModel.findById(bed_id);
+    if (bed) {
+      const allBeds = await this.bedModel.find({ room_id: bed.room_id });
+      const allOccupied = await Promise.all(
+        allBeds.map(async b => {
+          const a = await this.model.findOne({ bed_id: b._id, unassigned_date: null });
+          return !!a;
+        })
+      );
+      const roomStatus = allOccupied.every(Boolean) ? 'occupied' : 'available';
+      await this.roomModel.findByIdAndUpdate(bed.room_id, { status: roomStatus });
+    }
   }
 }

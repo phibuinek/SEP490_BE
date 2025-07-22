@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNumber } from 'class-validator';
+import { IsString, IsDateString, IsNumber, IsOptional, IsEnum, Min } from 'class-validator';
 
 export class CreateVisitDto {
   @ApiProperty()
@@ -10,9 +10,11 @@ export class CreateVisitDto {
   @IsDateString()
   visit_date: Date;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
-  duration: number;
+  @Min(1)
+  duration?: number;
 
   @ApiProperty()
   @IsString()
@@ -20,5 +22,11 @@ export class CreateVisitDto {
 
   @ApiProperty()
   @IsNumber()
+  @Min(1)
   numberOfVisitors: number;
+
+  @ApiProperty({ required: false, enum: ['completed', 'cancelled'], default: 'completed' })
+  @IsOptional()
+  @IsEnum(['completed', 'cancelled'])
+  status?: string;
 }

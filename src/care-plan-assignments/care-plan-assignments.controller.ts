@@ -62,7 +62,7 @@ export class CarePlanAssignmentsController {
   }
 
   @Get(':id')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a care plan assignment by ID' })
   @ApiParam({ name: 'id', description: 'Care plan assignment ID' })
@@ -78,24 +78,23 @@ export class CarePlanAssignmentsController {
     return this.carePlanAssignmentsService.findOne(id);
   }
 
-  @Get('by-resident/:residentId')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get care plan assignments by resident ID' })
-  @ApiParam({ name: 'residentId', description: 'Resident ID' })
+  @Get('by-resident/:resident_id')
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
+  @ApiOperation({
+    summary: 'Get care plan assignments by resident ID',
+  })
+  @ApiParam({ name: 'resident_id', description: 'Resident ID' })
   @ApiResponse({
     status: 200,
-    description: 'Return care plan assignments for resident',
+    description: 'Care plan assignments for the resident.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  findByResident(@Param('residentId') residentId: string) {
-    return this.carePlanAssignmentsService.findByResident(residentId);
+  @ApiResponse({ status: 404, description: 'No assignments found.' })
+  findByResident(@Param('resident_id') resident_id: string) {
+    return this.carePlanAssignmentsService.findByResident(resident_id);
   }
 
   @Get('by-family-member/:familyMemberId')
-  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY_MEMBER)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get care plan assignments by family member ID' })
   @ApiParam({ name: 'familyMemberId', description: 'Family member ID' })

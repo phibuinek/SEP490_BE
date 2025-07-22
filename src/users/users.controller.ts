@@ -7,6 +7,9 @@ import {
   Param,
   UseGuards,
   Query,
+  Req,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,7 +24,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
-import { ChangePasswordDto } from './dto/update-user.dto';
+import { ResetPasswordDto } from './dto/change-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -41,12 +45,69 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin', 'staff')
-  @ApiOperation({ summary: 'Get all users (Admin, Staff)' })
+  @Roles('admin', 'staff', 'family')
+  @ApiOperation({ summary: 'Get all users (Admin, Staff, Family)' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Get('by-role')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get users by role (Admin, Staff only)' })
+  @ApiQuery({
+    name: 'role',
+    required: true,
+    enum: ['admin', 'staff', 'family'],
+    description: 'Role để lọc users',
+  })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid role.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  findByRole(@Query('role') role: string) {
+    // Validate role parameter
+    const validRoles = ['admin', 'staff', 'family'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+    }
+    
+    return this.usersService.findAll(undefined, role);
+  }
+
+  @Get('by-roles')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get users by multiple roles (Admin, Staff only)' })
+  @ApiQuery({
+    name: 'roles',
+    required: true,
+    description: 'Comma-separated list of roles (e.g., admin,staff)',
+    example: 'admin,staff',
+  })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid roles.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  findByRoles(@Query('roles') roles: string) {
+    // Validate and parse roles parameter
+    const validRoles = ['admin', 'staff', 'family'];
+    const roleList = roles.split(',').map(r => r.trim());
+    
+    for (const role of roleList) {
+      if (!validRoles.includes(role)) {
+        throw new BadRequestException(`Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}`);
+      }
+    }
+    
+    return this.usersService.findByRoles(roleList);
+  }
+
+  @Get('stats/by-role')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Get user statistics by role (Admin, Staff only)' })
+  @ApiResponse({ status: 200, description: 'User statistics retrieved successfully.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  getUserStatsByRole() {
+    return this.usersService.getUserStatsByRole();
   }
 
   @Get('by-department')
@@ -78,19 +139,6 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @Patch(':id/roles')
-  @Roles('admin')
-  @ApiOperation({ summary: 'Update user roles (Admin only)' })
-  @ApiResponse({ status: 200, description: 'User roles updated successfully.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  updateRoles(
-    @Param('id') id: string,
-    @Body() updateRolesDto: { roles: string[] },
-  ) {
-    return this.usersService.updateRoles(id, updateRolesDto.roles);
-  }
-
   @Patch(':id/deactivate')
   @Roles('admin')
   @ApiOperation({ summary: 'Deactivate user (Admin only)' })
@@ -110,13 +158,66 @@ export class UsersController {
     return this.usersService.activateUser(id);
   }
 
-  @Patch(':id/change-password')
-  @Roles('admin', 'staff', 'family')
-  @ApiOperation({ summary: 'Change user password (All roles)' })
-  @ApiResponse({ status: 200, description: 'Password changed successfully.' })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @Patch(':id/reset-password')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Admin reset password for user (set new password directly)' })
+  async resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    return this.usersService.resetPassword(id, dto.newPassword);
+  }
+
+  @Patch(':id')
+  @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Update user by ID (Admin, Staff only)' })
+  @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  changePassword(@Param('id') id: string, @Body() dto: ChangePasswordDto) {
-    return this.usersService.changePassword(id, dto.oldPassword, dto.newPassword);
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async updateUserById(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    // Chỉ cho phép cập nhật các trường hợp lệ
+    const allowedFields = ['full_name', 'email', 'phone', 'avatar', 'notes', 'address', 'position', 'qualification'];
+    const filteredDto: any = {};
+    for (const key of allowedFields) {
+      if (updateUserDto[key] !== undefined) {
+        filteredDto[key] = updateUserDto[key];
+      }
+    }
+    filteredDto.updated_at = new Date();
+    const updated = await this.usersService.updateUserById(id, filteredDto);
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
+    const user: any = updated; // ép kiểu để truy cập _id
+    const baseFields = {
+      _id: user._id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      avatar: user.avatar,
+      notes: user.notes,
+      address: user.address,
+      role: user.role,
+      status: user.status,
+      updated_at: user.updated_at
+    };
+    if (user.role === 'staff') {
+      return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
+    }
+    return baseFields;
+  }
+
+  @Patch(':id/role')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User role updated successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async updateUserRole(@Param('id') id: string, @Body() body: { role: string }) {
+    const validRoles = ['admin', 'staff', 'family'];
+    if (!body.role || !validRoles.includes(body.role)) {
+      throw new BadRequestException('Invalid role');
+    }
+    // Ép kiểu về UserRole
+    const updated = await this.usersService.updateUserById(id, { role: body.role as import('./schemas/user.schema').UserRole, updated_at: new Date() });
+    const user: any = updated;
+    return { _id: user._id, role: user.role, updated_at: user.updated_at };
   }
 }

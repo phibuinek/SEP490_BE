@@ -9,12 +9,14 @@ import {
   UseGuards,
   Req,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ActivityParticipationsService } from './activity-participations.service';
 import { CreateActivityParticipationDto } from './dto/create-activity-participation.dto';
 import { UpdateActivityParticipationDto } from './dto/update-activity-participation.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Types } from 'mongoose';
 
 @ApiTags('Activity Participations')
 @ApiBearerAuth()
@@ -31,14 +33,52 @@ export class ActivityParticipationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all activity participation records' })
-  findAll() {
-    return this.service.findAll();
+  async findAll() {
+    console.log('[findAll] Called');
+    try {
+      const result = await this.service.findAll();
+      console.log('[findAll] result count:', result.length);
+      return result;
+    } catch (err) {
+      console.error('[findAll] Error:', err.message);
+      console.error(err.stack);
+      throw err;
+    }
+  }
+
+  @Get('by-resident')
+  @ApiOperation({ summary: 'Get all activity participations by residentId' })
+  async getByResident(@Query('resident_id') resident_id: string) {
+    console.log('[by-resident] resident_id:', resident_id);
+    try {
+      // Chuyển đổi resident_id sang ObjectId nếu hợp lệ
+      if (!Types.ObjectId.isValid(resident_id)) {
+        console.error('[by-resident] Invalid resident_id format:', resident_id);
+        throw new BadRequestException('Invalid resident_id format');
+      }
+      const result = await this.service.findByResidentId(resident_id);
+      console.log('[by-resident] result count:', result.length);
+      return result;
+    } catch (err) {
+      console.error('[by-resident] Error:', err.message);
+      console.error(err.stack);
+      throw err;
+    }
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single participation record by ID' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  async findOne(@Param('id') id: string) {
+    console.log('[findOne] id:', id);
+    try {
+      const result = await this.service.findOne(id);
+      console.log('[findOne] result:', result);
+      return result;
+    } catch (err) {
+      console.error('[findOne] Error:', err.message);
+      console.error(err.stack);
+      throw err;
+    }
   }
 
   @Patch(':id')
@@ -66,18 +106,5 @@ export class ActivityParticipationsController {
   @ApiOperation({ summary: 'Delete a participation record' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);
-  }
-
-  @Get('family-today')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Family get today activities of their resident' })
-  async getTodayForFamily(
-    @Req() req,
-    @Query('resident_id') residentId: string,
-    @Query('date') date?: string,
-  ) {
-    // Lấy userId từ JWT
-    const familyId = req.user.userId;
-    return this.service.getTodayForFamily(familyId, residentId, date);
   }
 }

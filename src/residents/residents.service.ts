@@ -27,21 +27,23 @@ export class ResidentsService {
   ) {}
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
-    const createdResident = new this.residentModel(createResidentDto);
+    // Tạo ngày hiện tại theo timezone Vietnam (GMT+7)
+    const now = new Date();
+    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
+    
+    const residentData = {
+      ...createResidentDto,
+      created_at: vietnamTime.toISOString(),
+      updated_at: vietnamTime.toISOString(),
+    };
+    
+    const createdResident = new this.residentModel(residentData);
     return createdResident.save();
   }
 
-  async findAll(careLevel?: string): Promise<Resident[]> {
-    const filter: any = {};
-    if (careLevel) {
-      if (careLevel === 'unregistered') {
-        filter.careLevel = { $exists: false };
-      } else {
-        filter.careLevel = careLevel;
-      }
-    }
+  async findAll(): Promise<Resident[]> {
     const residents = await this.residentModel
-      .find(filter)
+      .find()
       .populate('family_member_id', 'full_name email')
       .exec();
     return residents;
@@ -55,12 +57,10 @@ export class ResidentsService {
   }
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
-    console.log('Searching for familyMemberId:', familyMemberId);
-    const residents = await this.residentModel
-      .find({ familyMemberId: familyMemberId })
+    // Đảm bảo so sánh đúng kiểu ObjectId với trường family_member_id
+    return this.residentModel
+      .find({ family_member_id: new Types.ObjectId(familyMemberId) })
       .exec();
-    console.log('Found residents:', residents);
-    return residents;
   }
 
   async update(
@@ -89,11 +89,11 @@ export class ResidentsService {
     return { deleted: true, _id: id };
   }
 
-  async assignBed(residentId: string, bedId: string): Promise<Bed> {
-    const resident = await this.residentModel.findById(residentId);
+  async assignBed(resident_id: string, bed_id: string): Promise<Bed> {
+    const resident = await this.residentModel.findById(resident_id);
     if (!resident) throw new NotFoundException('Resident not found');
 
-    const bed = await this.bedModel.findById(bedId);
+    const bed = await this.bedModel.findById(bed_id);
     if (!bed) throw new NotFoundException('Bed not found');
     if (bed.status === 'occupied') {
       throw new BadRequestException(
@@ -102,42 +102,42 @@ export class ResidentsService {
     }
 
     // Unassign the bed from its current resident if any, just in case
-    // if(bed.residentId) {
-    //     await this.unassignBed(bedId)
+    // if(bed.resident_id) {
+    //     await this.unassignBed(bed_id)
     // }
 
     // Unassign the resident from their current bed if any
-    await this.unassignBedFromResident(residentId);
+    await this.unassignBedFromResident(resident_id);
 
     // Assign new bed
     bed.status = 'occupied';
     await bed.save();
 
     // Sau khi gán bed, kiểm tra tất cả bed trong room
-    const roomId = bed.room_id;
-    const allBeds = await this.bedModel.find({ room_id: roomId });
+    const room_id = bed.room_id;
+    const allBeds = await this.bedModel.find({ room_id: room_id });
     const allOccupied = allBeds.every(b => b.status === 'occupied');
     // Cập nhật status room
-    await this.roomsService.update(roomId.toString(), { status: allOccupied ? 'occupied' : 'available' });
+    await this.roomsService.update(room_id.toString(), { status: allOccupied ? 'occupied' : 'available' });
 
     return bed;
   }
 
-  async unassignBed(bedId: string): Promise<Bed> {
-    const bed = await this.bedModel.findById(bedId);
+  async unassignBed(bed_id: string): Promise<Bed> {
+    const bed = await this.bedModel.findById(bed_id);
     if (!bed) throw new NotFoundException('Bed not found');
 
     bed.status = 'available';
-    // bed.residentId = null;
+    // bed.resident_id = null;
     return bed.save();
   }
 
-  private async unassignBedFromResident(residentId: string): Promise<void> {
-    // Không còn residentId trong bed, bỏ qua toàn bộ logic này
-    // const currentBed = await this.bedModel.findOne({ residentId: new Types.ObjectId(residentId) });
+  private async unassignBedFromResident(resident_id: string): Promise<void> {
+    // Không còn resident_id trong bed, bỏ qua toàn bộ logic này
+    // const currentBed = await this.bedModel.findOne({ resident_id: new Types.ObjectId(resident_id) });
     // if (currentBed) {
     //   currentBed.status = 'available';
-    //   currentBed.residentId = null;
+    //   currentBed.resident_id = null;
     //   await currentBed.save();
     // }
   }

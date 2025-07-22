@@ -20,6 +20,11 @@ import { RoomsModule } from '../rooms/rooms.module';
   ],
   controllers: [ResidentsController],
   providers: [ResidentsService],
-  exports: [ResidentsService],
+  exports: [
+    ResidentsService,
+    MongooseModule.forFeature([
+      { name: Resident.name, schema: ResidentSchema },
+    ]),
+  ],
 })
 export class ResidentsModule {}

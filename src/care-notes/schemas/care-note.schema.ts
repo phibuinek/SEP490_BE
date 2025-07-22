@@ -3,7 +3,10 @@ import { Document, Types } from 'mongoose';
 
 export type AssessmentDocument = Assessment & Document;
 
-@Schema({ timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } })
+@Schema({ 
+  collection: 'assessments',
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+})
 export class Assessment {
   @Prop({ type: String, required: false, default: null })
   assessment_type: string | null;

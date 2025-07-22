@@ -11,6 +11,8 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { VisitsService } from './visits.service';
 import { CreateVisitDto } from './dto/create-visit.dto';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 
 @ApiTags('Visits')
 @ApiBearerAuth()
@@ -27,6 +29,12 @@ export class VisitsController {
   }
 
   @Get()
+  @Roles(Role.ADMIN, Role.STAFF)
+  async getAllVisits() {
+    return this.visitsService.getAll();
+  }
+
+  @Get('family')
   async getByFamily(
     @Req() req,
     @Query('family_member_id') family_member_id?: string,

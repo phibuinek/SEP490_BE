@@ -29,22 +29,22 @@ export class ActivityParticipationsService {
     createDto: CreateActivityParticipationDto,
   ): Promise<ActivityParticipation> {
     // Validate ObjectId format for all referenced IDs
-    if (!Types.ObjectId.isValid(createDto.staffId)) {
-      throw new BadRequestException('Invalid staffId format');
+    if (!Types.ObjectId.isValid(createDto.staff_id)) {
+      throw new BadRequestException('Invalid staff_id format');
     }
-    if (!Types.ObjectId.isValid(createDto.activityId)) {
-      throw new BadRequestException('Invalid activityId format');
+    if (!Types.ObjectId.isValid(createDto.activity_id)) {
+      throw new BadRequestException('Invalid activity_id format');
     }
-    if (!Types.ObjectId.isValid(createDto.residentId)) {
-      throw new BadRequestException('Invalid residentId format');
+    if (!Types.ObjectId.isValid(createDto.resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
     }
 
     // Convert string IDs to ObjectIds
     const participationData = {
       ...createDto,
-      staffId: new Types.ObjectId(createDto.staffId),
-      activityId: new Types.ObjectId(createDto.activityId),
-      residentId: new Types.ObjectId(createDto.residentId),
+      staff_id: new Types.ObjectId(createDto.staff_id),
+      activity_id: new Types.ObjectId(createDto.activity_id),
+      resident_id: new Types.ObjectId(createDto.resident_id),
     };
 
     const createdParticipation = new this.participationModel(participationData);
@@ -55,9 +55,9 @@ export class ActivityParticipationsService {
     try {
       return await this.participationModel
         .find()
-        .populate('staffId', 'fullName')
-        .populate('activityId', 'activityName')
-        .populate('residentId', 'fullName')
+        .populate('staff_id', 'full_name')
+        .populate('activity_id', 'activity_name')
+        .populate('resident_id', 'full_name')
         .exec();
     } catch (error) {
       // If there are invalid ObjectIds in the database, try without populate first
@@ -87,9 +87,9 @@ export class ActivityParticipationsService {
     try {
       const participation = await this.participationModel
         .findById(id)
-        .populate('staffId', 'fullName')
-        .populate('activityId', 'activityName')
-        .populate('residentId', 'fullName')
+        .populate('staff_id', 'full_name')
+        .populate('activity_id', 'activity_name')
+        .populate('resident_id', 'full_name')
         .exec();
       if (!participation) {
         throw new NotFoundException(`Participation with ID "${id}" not found`);
@@ -119,26 +119,26 @@ export class ActivityParticipationsService {
     }
 
     // Validate ObjectId format for any referenced IDs in the update
-    if (updateDto.staffId && !Types.ObjectId.isValid(updateDto.staffId)) {
-      throw new BadRequestException('Invalid staffId format');
+    if (updateDto.staff_id && !Types.ObjectId.isValid(updateDto.staff_id)) {
+      throw new BadRequestException('Invalid staff_id format');
     }
-    if (updateDto.activityId && !Types.ObjectId.isValid(updateDto.activityId)) {
-      throw new BadRequestException('Invalid activityId format');
+    if (updateDto.activity_id && !Types.ObjectId.isValid(updateDto.activity_id)) {
+      throw new BadRequestException('Invalid activity_id format');
     }
-    if (updateDto.residentId && !Types.ObjectId.isValid(updateDto.residentId)) {
-      throw new BadRequestException('Invalid residentId format');
+    if (updateDto.resident_id && !Types.ObjectId.isValid(updateDto.resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
     }
 
     // Convert string IDs to ObjectIds if they exist
     const updateData: any = { ...updateDto };
-    if (updateDto.staffId) {
-      updateData.staffId = new Types.ObjectId(updateDto.staffId);
+    if (updateDto.staff_id) {
+      updateData.staff_id = new Types.ObjectId(updateDto.staff_id);
     }
-    if (updateDto.activityId) {
-      updateData.activityId = new Types.ObjectId(updateDto.activityId);
+    if (updateDto.activity_id) {
+      updateData.activity_id = new Types.ObjectId(updateDto.activity_id);
     }
-    if (updateDto.residentId) {
-      updateData.residentId = new Types.ObjectId(updateDto.residentId);
+    if (updateDto.resident_id) {
+      updateData.resident_id = new Types.ObjectId(updateDto.resident_id);
     }
 
     const existingParticipation = await this.participationModel
@@ -190,8 +190,8 @@ export class ActivityParticipationsService {
     return participation;
   }
 
-  async getTodayForFamily(familyId: string, residentId: string, date?: string) {
-    if (!Types.ObjectId.isValid(residentId)) {
+  async getTodayForFamily(family_id: string, resident_id: string, date?: string) {
+    if (!Types.ObjectId.isValid(resident_id)) {
       throw new BadRequestException('Invalid resident ID format');
     }
 
@@ -205,29 +205,49 @@ export class ActivityParticipationsService {
     // Lấy các participation của resident trong ngày
     const participations = await this.participationModel
       .find({
-        residentId: new Types.ObjectId(residentId),
+        resident_id: new Types.ObjectId(resident_id),
         date: { $gte: start, $lte: end },
       })
-      .populate('activityId')
+      .populate('activity_id')
       .exec();
     // Map kết quả trả về thông tin cần thiết
     return participations.map((p) => {
       let activity: any = undefined;
       if (
-        p.activityId &&
-        typeof p.activityId === 'object' &&
-        !('equals' in p.activityId)
+        p.activity_id &&
+        typeof p.activity_id === 'object' &&
+        !('equals' in p.activity_id)
       ) {
-        activity = p.activityId;
+        activity = p.activity_id;
       }
       return {
-        activityName: activity?.activityName,
-        scheduleTime: activity?.scheduleTime,
+        activity_name: activity?.activity_name,
+        schedule_time: activity?.schedule_time,
         location: activity?.location,
         description: activity?.description,
-        attendanceStatus: p.attendanceStatus,
-        performanceNotes: p.performanceNotes,
+        attendance_status: p.attendance_status,
+        performance_notes: p.performance_notes,
       };
     });
+  }
+
+  async findByResidentId(resident_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    return this.participationModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate('staff_id', 'full_name')
+      .populate('activity_id', 'activity_name')
+      .populate('resident_id', 'full_name')
+      .exec();
+  }
+
+  // API đơn giản: trả về document gốc không populate
+  async findByResidentIdRaw(resident_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    return this.participationModel.find({ resident_id: new Types.ObjectId(resident_id) }).exec();
   }
 }

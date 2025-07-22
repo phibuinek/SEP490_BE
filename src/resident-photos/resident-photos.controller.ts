@@ -11,6 +11,7 @@ import {
   Req,
   Param,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -20,6 +21,7 @@ import {
   ApiBody,
   ApiQuery,
   ApiParam,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
@@ -53,62 +55,118 @@ export class ResidentPhotosController {
           cb(null, uniqueSuffix + extname(file.originalname));
         },
       }),
+      fileFilter: (req, file, cb) => {
+        // Chỉ cho phép upload ảnh
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
     }),
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
+    description: 'Upload photo with metadata',
     schema: {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
-        familyId: { type: 'string' },
-        caption: { type: 'string' },
-        activityType: { type: 'string' },
-        tags: { type: 'array', items: { type: 'string' } },
-        takenDate: { type: 'string', format: 'date-time' },
-        staffNotes: { type: 'string' },
-        relatedActivityId: { type: 'string' },
-        serviceStartDate: { type: 'string', format: 'date-time' },
-        residentId: { type: 'string' }, // <-- Thêm dòng này
+        resident_id: { type: 'string', description: 'ID của người cao tuổi' },
+        caption: { type: 'string', description: 'Mô tả về ảnh' },
+        activity_type: { 
+          type: 'string', 
+          description: 'Loại hoạt động trong ảnh'
+        },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Các tag cho ảnh' },
+        taken_date: { type: 'string', format: 'date-time', description: 'Ngày chụp ảnh' },
+        staff_notes: { type: 'string', description: 'Ghi chú của nhân viên' },
+        related_activity_id: { type: 'string', description: 'ID của hoạt động liên quan (nếu có)' },
       },
-      required: ['file', 'familyId'],
+      required: ['file', 'resident_id'],
     },
   })
+  @ApiResponse({ status: 201, description: 'Photo uploaded successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid file or data.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
   async uploadPhoto(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CreateResidentPhotoDto,
     @Req() req,
   ) {
-    // Giả sử req.user._id là id người upload
-    const uploadedBy = req.user?.userId || 'unknown';
-    console.log('Uploaded file:', file);
-    const filePath = file.path || `uploads/${file.filename}`;
-    return this.service.uploadPhoto({
-      ...body,
-      fileName: file.originalname,
-      filePath,
-      fileType: file.mimetype,
-      fileSize: file.size,
-      uploadedBy,
-    });
+    try {
+      console.log('Upload photo request - File:', file);
+      console.log('Upload photo request - Body:', body);
+      console.log('Upload photo request - User:', req.user);
+
+      // Validate file
+      if (!file) {
+        throw new Error('File is required');
+      }
+
+      // Validate resident_id
+      if (!body.resident_id) {
+        throw new Error('resident_id is required');
+      }
+
+      // Validate user
+      if (!req.user?.userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const uploaded_by = req.user.userId;
+      console.log('Uploaded by user ID:', uploaded_by);
+      
+      const file_path = file.path || `uploads/${file.filename}`;
+      console.log('File path:', file_path);
+
+      const uploadData = {
+        ...body,
+        file_name: file.originalname,
+        file_path,
+        file_type: file.mimetype,
+        file_size: file.size,
+        uploaded_by,
+      };
+
+      console.log('Upload data to service:', uploadData);
+      
+      const result = await this.service.uploadPhoto(uploadData);
+      console.log('Upload result:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error in uploadPhoto controller:', error);
+      throw error;
+    }
   }
 
   @Get()
   @ApiQuery({
-    name: 'familyId',
+    name: 'family_member_id',
     required: false,
-    description:
-      'Filter by family ID. If not provided, returns all photos (staff only)',
+    description: 'Filter by family member ID. If not provided, returns all photos (staff/admin only)',
   })
-  async getPhotos(@Query('familyId') familyId: string, @Req() req) {
-    // If familyId is provided, return photos for that family
-    if (familyId) {
-      return this.service.getPhotos(familyId);
-    }
-    // Nếu không có familyId, kiểm tra role dạng string
+  async getPhotos(@Query('family_member_id') family_member_id: string, @Req() req) {
     const userRole = req.user?.role;
+    const userId = req.user?.userId;
+
+    if (family_member_id) {
+      // Nếu là FAMILY thì chỉ cho xem đúng family_member_id của mình
+      if (userRole === Role.FAMILY && family_member_id !== userId) {
+        throw new ForbiddenException('Bạn chỉ được xem ảnh của gia đình mình!');
+      }
+      return this.service.getPhotos(family_member_id);
+    }
+
+    // Nếu không truyền family_member_id, chỉ staff/admin được xem tất cả
     if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
-      throw new Error('Access denied. Only staff can view all photos.');
+      throw new ForbiddenException('Only staff and admin can view all photos');
     }
     return this.service.getAllPhotos();
   }

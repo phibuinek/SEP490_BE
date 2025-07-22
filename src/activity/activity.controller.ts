@@ -11,8 +11,9 @@ import {
 import { ActivityService } from './activity.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ActivityRecommendationDto } from './dto/activity-recommendation.dto';
 
 @ApiTags('Activities')
 @ApiBearerAuth()
@@ -51,5 +52,11 @@ export class ActivityController {
   @ApiOperation({ summary: 'Delete an activity template' })
   remove(@Param('id') id: string) {
     return this.service.remove(id);
+  }
+
+  @Post('recommendation/ai')
+  @ApiBody({ type: ActivityRecommendationDto })
+  async recommendActivityAI(@Body() body: ActivityRecommendationDto) {
+    return this.service.recommendActivityAI(body.resident_id);
   }
 }

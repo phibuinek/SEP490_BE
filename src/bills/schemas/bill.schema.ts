@@ -2,18 +2,20 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
 export enum PaymentMethod {
-  BANK_TRANSFER = 'bank_transfer',
-  CASH = 'cash',
-  CREDIT_CARD = 'credit_card',
+  QR_PAYMENT = 'qr_payment',
 }
 
 export enum BillStatus {
+  PENDING = 'pending',
   PAID = 'paid',
-  UNPAID = 'unpaid',
   OVERDUE = 'overdue',
+  CANCELLED = 'cancelled',
 }
 
-@Schema({ timestamps: true })
+@Schema({ 
+  collection: 'billings',
+  timestamps: true 
+})
 export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   family_member_id: MongooseSchema.Types.ObjectId;
@@ -27,17 +29,14 @@ export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   staff_id: MongooseSchema.Types.ObjectId;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlan' })
-  care_plan_id: MongooseSchema.Types.ObjectId;
-
   @Prop({ type: Object })
   care_plan_snapshot: {
-    planName: string;
+    plan_name: string;
     description: string;
-    monthlyPrice: number;
-    planType: string;
+    monthly_price: number;
+    plan_type: string;
     category: string;
-    staffRatio: string;
+    staff_ratio: string;
   };
 
   @Prop({ required: true })
@@ -51,20 +50,23 @@ export class Bill extends Document {
 
   @Prop({
     required: true,
-    enum: Object.values(PaymentMethod),
-    default: PaymentMethod.BANK_TRANSFER,
+    enum: [PaymentMethod.QR_PAYMENT],
+    default: PaymentMethod.QR_PAYMENT,
   })
   payment_method: PaymentMethod;
 
   @Prop({
     required: true,
-    enum: Object.values(BillStatus),
-    default: BillStatus.UNPAID,
+    enum: [BillStatus.PENDING, BillStatus.PAID, BillStatus.OVERDUE, BillStatus.CANCELLED],
+    default: BillStatus.PENDING,
   })
   status: BillStatus;
 
   @Prop()
   notes: string;
+
+  @Prop({ required: true })
+  title: string;
 }
 
 export const BillSchema = SchemaFactory.createForClass(Bill);

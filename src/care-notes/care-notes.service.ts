@@ -15,7 +15,7 @@ export class CareNotesService {
   async create(createAssessmentDto: CreateAssessmentDto) {
     const assessment = new this.careNoteModel({
       assessment_type: createAssessmentDto.assessment_type ?? null,
-      date: new Date(createAssessmentDto.date),
+      date: new Date(Date.now() + 7 * 60 * 60 * 1000),
       notes: createAssessmentDto.notes,
       recommendations: createAssessmentDto.recommendations ?? null,
       resident_id: new Types.ObjectId(createAssessmentDto.resident_id),
@@ -33,15 +33,13 @@ export class CareNotesService {
       .exec();
   }
 
-  async update(id: string, updateAssessmentDto: Partial<CreateAssessmentDto>) {
+  async update(id: string, updateAssessmentDto: UpdateCareNoteDto) {
     const assessment = await this.careNoteModel.findById(id).exec();
     if (!assessment) {
       throw new NotFoundException('Assessment not found');
     }
     if (updateAssessmentDto.assessment_type !== undefined)
       assessment.assessment_type = updateAssessmentDto.assessment_type;
-    if (updateAssessmentDto.date !== undefined)
-      assessment.date = new Date(updateAssessmentDto.date);
     if (updateAssessmentDto.notes !== undefined)
       assessment.notes = updateAssessmentDto.notes;
     if (updateAssessmentDto.recommendations !== undefined)

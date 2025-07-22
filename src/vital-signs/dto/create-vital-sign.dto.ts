@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsDateString,
   IsNumber,
+  IsMongoId,
 } from 'class-validator';
 
 export class CreateVitalSignDto {
@@ -12,17 +13,9 @@ export class CreateVitalSignDto {
     example: '664f1b2c2f8b2c0012a4e750',
     description: 'Resident ID',
   })
-  @IsString()
+  @IsMongoId()
   @IsNotEmpty()
-  residentId: string;
-
-  @ApiProperty({
-    example: '2024-03-01T08:00:00Z',
-    description: 'Date and time of measurement',
-  })
-  @IsDateString()
-  @IsNotEmpty()
-  dateTime: Date;
+  resident_id: string;
 
   @ApiProperty({ example: 36.5, required: false })
   @IsNumber()
@@ -32,22 +25,22 @@ export class CreateVitalSignDto {
   @ApiProperty({ example: 75, required: false })
   @IsNumber()
   @IsOptional()
-  heartRate?: number;
+  heart_rate?: number;
 
   @ApiProperty({ example: '130/80', required: false })
   @IsString()
   @IsOptional()
-  bloodPressure?: string;
+  blood_pressure?: string;
 
   @ApiProperty({ example: 18, required: false })
   @IsNumber()
   @IsOptional()
-  respiratoryRate?: number;
+  respiratory_rate?: number;
 
   @ApiProperty({ example: 98.5, required: false })
   @IsNumber()
   @IsOptional()
-  oxygenLevel?: number;
+  oxygen_level?: number;
 
   @ApiProperty({ example: 65.5, required: false })
   @IsNumber()

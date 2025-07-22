@@ -1,3 +1,37 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load .env file manually
+try {
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    console.log('📄 .env file content:');
+    console.log('---START---');
+    console.log(envContent);
+    console.log('---END---');
+    console.log('📏 File length:', envContent.length);
+    
+    envContent.split('\n').forEach(line => {
+      console.log('🔍 Processing line:', JSON.stringify(line));
+      const [key, ...valueParts] = line.trim().split('=');
+      if (key && valueParts.length > 0) {
+        console.log(`✅ Setting ${key}=${valueParts.join('=')}`);
+        process.env[key] = valueParts.join('=');
+      }
+    });
+    console.log('✅ .env file loaded successfully');
+    console.log('📌 MONGODB_URI exists:', process.env.MONGODB_URI ? 'YES' : 'NO');
+    if (process.env.MONGODB_URI) {
+      console.log('🔗 MONGODB_URI value:', process.env.MONGODB_URI.substring(0, 50) + '...');
+    }
+  } else {
+    console.log('❌ .env file not found at:', envPath);
+  }
+} catch (error) {
+  console.log('❌ Error loading .env file:', error.message);
+}
+
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
@@ -27,10 +61,13 @@ import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb+srv://baotranlechi05:Gdebju5xwSxFII2I@nursinghomemanagementsy.v48raye.mongodb.net/nhms_db?retryWrites=true&w=majority&appName=NursingHomeManagementSystem'
-    ),
-    DatabaseModule, // Bật seeder tự động
+    (() => {
+      if (!process.env.MONGODB_URI) {
+        throw new Error('MONGODB_URI environment variable is required for MongoDB Atlas connection!');
+      }
+      return MongooseModule.forRoot(process.env.MONGODB_URI);
+    })(),
+    // DatabaseModule, // Tắt seeder tự động vì dữ liệu Atlas đã có
     UsersModule,
     AuthModule,
     ResidentsModule,
