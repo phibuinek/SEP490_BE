@@ -6,11 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { BedsService } from './beds.service';
 import { CreateBedDto } from './dto/create-bed.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('Beds')
 @ApiBearerAuth()
@@ -29,8 +30,14 @@ export class BedsController {
   }
 
   @Get('by-room/:room_id')
-  async getBedsByRoom(@Param('room_id') room_id: string) {
-    return this.bedsService.findByRoomIdWithStatus(room_id);
+  @ApiQuery({ name: 'status', required: false, description: 'Trạng thái bed: available hoặc occupied' })
+  async getBedsByRoom(@Param('room_id') room_id: string, @Query('status') status?: string) {
+    return this.bedsService.findByRoomIdWithStatus(room_id, status);
+  }
+
+  @Get('available/by-room/:room_id')
+  async getAvailableBedsByRoom(@Param('room_id') room_id: string) {
+    return this.bedsService.findByRoomIdWithStatus(room_id, 'available');
   }
 
   @Get(':id')

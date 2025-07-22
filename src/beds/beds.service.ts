@@ -51,7 +51,7 @@ export class BedsService {
     return this.bedModel.findByIdAndDelete(id).exec();
   }
 
-  async findByRoomIdWithStatus(room_id: string): Promise<any[]> {
+  async findByRoomIdWithStatus(room_id: string, status?: string): Promise<any[]> {
     if (!Types.ObjectId.isValid(room_id)) return [];
     const beds = await this.bedModel.find({ room_id: new Types.ObjectId(room_id) }).lean();
     const result: any[] = [];
@@ -59,7 +59,10 @@ export class BedsService {
       const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null });
       let dynamicStatus = bed.status;
       if (assignment) dynamicStatus = 'occupied';
-      result.push({ ...bed, status: dynamicStatus });
+      // Nếu có filter status thì chỉ trả về bed phù hợp
+      if (!status || dynamicStatus === status) {
+        result.push({ ...bed, status: dynamicStatus });
+      }
     }
     return result;
   }
