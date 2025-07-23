@@ -7,6 +7,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Bill } from '../bills/schemas/bill.schema';
+import { Payment } from './schemas/payment.schema';
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +19,7 @@ export class PaymentService {
     'https://api-merchant.payos.vn/v2/payment-requests';
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
+    @InjectModel(Payment.name) private paymentModel: Model<Payment>,
     private readonly careplanService: CarePlansService,
   ) {}
 
@@ -69,9 +71,31 @@ export class PaymentService {
     return crypto.HmacSHA256(data, this.checksumKey).toString(crypto.enc.Hex);
   }
 
-  handlePaymentWebhook(data: any) {
-    // Implement webhook handling logic here
-    console.log('Webhook received:', data);
-    return { message: 'Webhook received' };
+  async handlePaymentWebhook(data: any) {
+    // Xác định trạng thái mới
+    let newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled' = 'pending';
+    if (data.status === 'SUCCEEDED' || data.status === 'succeeded' || data.status === 'paid') newStatus = 'paid';
+    else if (data.status === 'CANCELLED' || data.status === 'cancelled') newStatus = 'cancelled';
+    else if (data.status === 'OVERDUE' || data.status === 'overdue') newStatus = 'overdue';
+
+    // Cập nhật trạng thái bill
+    await this.billModel.findByIdAndUpdate(
+      data.bill_id,
+      { status: newStatus },
+      { new: true }
+    );
+
+    // Lưu thông tin payment nếu chưa có
+    const existing = await this.paymentModel.findOne({ transaction_id: data.transaction_id });
+    if (!existing) {
+      await this.paymentModel.create({
+        bill_id: data.bill_id,
+        amount: data.amount,
+        payment_method: data.payment_method,
+        transaction_id: data.transaction_id,
+        status: newStatus,
+      });
+    }
+    return { message: 'Webhook processed', status: newStatus };
   }
 }
