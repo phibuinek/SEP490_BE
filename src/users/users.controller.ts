@@ -272,7 +272,7 @@ export class UsersController {
   }
 
   @Patch(':id/avatar')
-  @Roles('admin', 'staff')
+  @Roles('admin', 'staff', 'family')
   @UseInterceptors(FileInterceptor('avatar', {
     storage: diskStorage({
       destination: './uploads',
