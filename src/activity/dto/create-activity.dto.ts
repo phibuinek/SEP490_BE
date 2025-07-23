@@ -37,4 +37,9 @@ export class CreateActivityDto {
   @IsNumber()
   @IsPositive()
   capacity: number;
+
+  @ApiProperty({ example: 'Thể dục', description: 'Loại hoạt động' })
+  @IsString()
+  @IsNotEmpty()
+  activity_type: string;
 }
