@@ -34,8 +34,8 @@ export class PaymentService {
       orderCode,
       amount,
       description,
-      returnUrl: 'http://localhost:8000/payment/success',
-      cancelUrl: 'http://localhost:8000/payment/cancel',
+      returnUrl: 'http://localhost:3000/payment/success',
+      cancelUrl: 'http://localhost:3000/payment/cancel',
       expiredAt: moment().add(15, 'minutes').unix(),
       signature: this.generateSignature(amount, orderCode, description),
     };
@@ -65,7 +65,7 @@ export class PaymentService {
     orderCode: number,
     description: string,
   ): string {
-    const data = `amount=${amount}&cancelUrl=http://localhost:8000/payment/cancel&description=${description}&orderCode=${orderCode}&returnUrl=http://localhost:8000/payment/success`;
+    const data = `amount=${amount}&cancelUrl=http://localhost:3000/payment/cancel&description=${description}&orderCode=${orderCode}&returnUrl=http://localhost:8000/payment/success`;
     return crypto.HmacSHA256(data, this.checksumKey).toString(crypto.enc.Hex);
   }
 

@@ -31,7 +31,7 @@ export class PaymentController {
   handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
     // Handle successful payment logic, e.g., update order status
     console.log('Payment successful:', query);
-    res.redirect('http://localhost:3001/payment/success'); // Redirect to frontend
+    res.redirect('http://localhost:3000/payment/success'); // Redirect to frontend
   }
 
   @Get('cancel')
@@ -40,7 +40,7 @@ export class PaymentController {
   handlePaymentCancel(@Query() query: any, @Res() res: Response) {
     // Handle cancelled payment logic
     console.log('Payment cancelled:', query);
-    res.redirect('http://localhost:3001/payment/cancel'); // Redirect to frontend
+    res.redirect('http://localhost:3000/payment/cancel'); // Redirect to frontend
   }
 
   @Post('webhook')
