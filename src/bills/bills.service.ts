@@ -50,7 +50,31 @@ export class BillsService {
   }
 
   async findOne(id: string): Promise<Bill> {
-    const bill = await this.billModel.findById(id).exec();
+    const bill = await this.billModel.findById(id)
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .exec();
     if (!bill) {
       throw new NotFoundException(`Bill #${id} not found`);
     }
@@ -82,6 +106,39 @@ export class BillsService {
     
     return this.billModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .sort({ due_date: -1 })
+      .exec();
+  }
+
+  async findByFamilyMemberId(family_member_id: string): Promise<Bill[]> {
+    if (!Types.ObjectId.isValid(family_member_id)) {
+      throw new BadRequestException('Invalid family member ID format');
+    }
+    return this.billModel
+      .find({ family_member_id: new Types.ObjectId(family_member_id) })
       .populate('family_member_id', 'full_name email')
       .populate('resident_id', 'full_name')
       .populate('staff_id', 'full_name')
