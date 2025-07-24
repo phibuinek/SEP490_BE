@@ -60,7 +60,8 @@ export class BedAssignmentsController {
         throw new ForbiddenException('Bạn không có quyền xem bed assignment này');
       }
     }
-    return this.service.findAll(undefined, resident_id);
+    // Gọi đúng hàm populate đủ thông tin
+    return this.service.findByResidentId(resident_id);
   }
 
   @Patch(':id/unassign')
