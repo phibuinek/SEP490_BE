@@ -65,6 +65,12 @@ export class Bill extends Document {
   @Prop()
   notes: string;
 
+  @Prop()
+  order_code: string;
+
+  @Prop()
+  payment_link_id: string;
+
   @Prop({ required: true })
   title: string;
 }
