@@ -41,7 +41,12 @@ export class VitalSignsService {
     // Convert string to ObjectId and use correct field name from DB
     return this.vitalSignModel.find({ 
       resident_id: new Types.ObjectId(resident_id) 
-    }).exec();
+    })
+    .populate({
+      path: 'recorded_by',
+      select: 'full_name position',
+    })
+    .exec();
   }
 
   async findOne(id: string): Promise<VitalSign> {

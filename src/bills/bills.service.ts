@@ -85,6 +85,26 @@ export class BillsService {
       .populate('family_member_id', 'full_name email')
       .populate('resident_id', 'full_name')
       .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
       .sort({ due_date: -1 })
       .exec();
   }

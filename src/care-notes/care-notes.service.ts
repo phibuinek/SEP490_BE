@@ -30,6 +30,10 @@ export class CareNotesService {
     return this.careNoteModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
       .sort({ date: -1 })
+      .populate({
+        path: 'conducted_by',
+        select: 'full_name position',
+      })
       .exec();
   }
 
