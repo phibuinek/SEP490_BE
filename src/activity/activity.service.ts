@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
@@ -20,6 +20,17 @@ export class ActivityService {
   }
 
   async create(createDto: CreateActivityDto): Promise<Activity> {
+    // Kiểm tra trùng lặp tên hoạt động + ngày (bất kể giờ nào)
+    const inputDate = new Date(createDto.schedule_time);
+    const startOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 23, 59, 59, 999);
+    const exists = await this.activityModel.findOne({
+      activity_name: createDto.activity_name,
+      schedule_time: { $gte: startOfDay, $lte: endOfDay },
+    });
+    if (exists) {
+      throw new BadRequestException('Đã có hoạt động này trong ngày này!');
+    }
     const createdActivity = new this.activityModel(createDto);
     return createdActivity.save();
   }
@@ -50,19 +61,16 @@ export class ActivityService {
     return { deleted: true };
   }
 
-  async recommendActivityAI(resident_ids: string[], timesOfDay: string[]) {
+  async recommendActivityAI(resident_ids: string[], schedule_time?: string) {
     // Thêm logging để debug
     console.log('Received resident_ids:', resident_ids);
     console.log('Type of resident_ids:', typeof resident_ids);
     console.log('Is Array?', Array.isArray(resident_ids));
+    console.log('Received schedule_time:', schedule_time);
     
     // Validation để đảm bảo resident_ids là array
     if (!Array.isArray(resident_ids)) {
       throw new Error(`resident_ids must be an array, received: ${typeof resident_ids}`);
-    }
-    
-    if (!Array.isArray(timesOfDay)) {
-      throw new Error(`timesOfDay must be an array, received: ${typeof timesOfDay}`);
     }
     
     const results: any[] = [];
@@ -72,8 +80,18 @@ export class ActivityService {
         results.push({ resident_id, feedback: 'Resident not found' });
         continue;
       }
+      
+      // Tạo prompt với thông tin thời gian cụ thể nếu có
+      let timeInfo = 'vào thời gian phù hợp';
+      if (schedule_time) {
+        const scheduleDate = new Date(schedule_time);
+        const formattedDate = scheduleDate.toLocaleDateString('vi-VN');
+        const formattedTime = scheduleDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        timeInfo = `vào thời gian cụ thể: ${formattedTime} ngày ${formattedDate}`;
+      }
+      
       const prompt = `
-        Tôi cần tạo một hoạt động cho người cao tuổi ${resident.full_name} vào các buổi: ${timesOfDay.join(', ')} với các thông tin sau:
+        Tôi cần tạo một hoạt động cho người cao tuổi ${resident.full_name} ${timeInfo} với các thông tin sau:
         - Tên hoạt động:
         - Thời gian:
         - Độ khó:

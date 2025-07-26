@@ -59,30 +59,16 @@ export class ActivityController {
   async recommendActivityAI(@Body() body: ActivityRecommendationDto) {
     console.log('Controller received body:', body);
     console.log('Controller received resident_ids:', body.resident_ids);
-    console.log('Controller received timesOfDay:', body.timesOfDay);
+    console.log('Controller received schedule_time:', body.schedule_time);
     
     try {
-      return await this.service.recommendActivityAI(body.resident_ids, body.timesOfDay);
+      return await this.service.recommendActivityAI(
+        body.resident_ids, 
+        body.schedule_time
+      );
     } catch (error) {
       console.error('Error in recommendActivityAI controller:', error);
       throw error;
     }
-  }
-
-  @Post('test-recommendation')
-  @ApiOperation({ summary: 'Test endpoint for recommendation' })
-  async testRecommendation(@Body() body: any) {
-    console.log('Test endpoint received body:', body);
-    console.log('Test endpoint received resident_ids:', body.resident_ids);
-    console.log('Test endpoint received timesOfDay:', body.timesOfDay);
-    console.log('Type of resident_ids:', typeof body.resident_ids);
-    console.log('Is Array?', Array.isArray(body.resident_ids));
-    
-    return {
-      message: 'Test successful',
-      receivedData: body,
-      resident_ids_type: typeof body.resident_ids,
-      is_array: Array.isArray(body.resident_ids)
-    };
   }
 }
