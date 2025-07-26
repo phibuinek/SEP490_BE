@@ -165,12 +165,15 @@ export class CarePlanAssignmentsService {
 
       return await this.carePlanAssignmentModel
         .find({ family_member_id: new Types.ObjectId(familyMemberId) })
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
+        .populate('staff_id', 'full_name email')
+        .populate('resident_id', 'full_name date_of_birth gender')
+        .populate('family_member_id', 'full_name email')
+        .populate({
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
+        })
+        .populate('assigned_room_id', 'room_number floor room_type')
+        .populate('assigned_bed_id', 'bed_number bed_type')
         .sort({ created_at: -1 })
         .exec();
     } catch (error: any) {

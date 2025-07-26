@@ -46,7 +46,7 @@ export class ResidentPhotosService {
       }
 
       const photo = new this.photoModel({
-        family_id: new Types.ObjectId(data.uploaded_by), // Use uploaded_by as family_id
+        family_id: resident.family_member_id, // Đúng là family_member_id của resident
         uploaded_by: new Types.ObjectId(data.uploaded_by),
         file_name: data.file_name,
         file_path: data.file_path,
@@ -89,7 +89,12 @@ export class ResidentPhotosService {
     // Step 3: Find all photos where resident_id is in the list of resident IDs
     return this.photoModel.find({
       resident_id: { $in: residentIds }
-    }).sort({ upload_date: -1 }).exec();
+    })
+      .populate('resident_id')
+      .populate('related_activity_id')
+      .populate('uploaded_by')
+      .sort({ upload_date: -1 })
+      .exec();
   }
 
   async getAllPhotos() {
