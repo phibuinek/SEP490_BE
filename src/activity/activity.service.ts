@@ -51,6 +51,20 @@ export class ActivityService {
   }
 
   async recommendActivityAI(resident_ids: string[], timesOfDay: string[]) {
+    // Thêm logging để debug
+    console.log('Received resident_ids:', resident_ids);
+    console.log('Type of resident_ids:', typeof resident_ids);
+    console.log('Is Array?', Array.isArray(resident_ids));
+    
+    // Validation để đảm bảo resident_ids là array
+    if (!Array.isArray(resident_ids)) {
+      throw new Error(`resident_ids must be an array, received: ${typeof resident_ids}`);
+    }
+    
+    if (!Array.isArray(timesOfDay)) {
+      throw new Error(`timesOfDay must be an array, received: ${typeof timesOfDay}`);
+    }
+    
     const results: any[] = [];
     for (const resident_id of resident_ids) {
       const resident = await this.residentModel.findById(resident_id);
