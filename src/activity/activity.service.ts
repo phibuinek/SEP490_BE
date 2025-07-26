@@ -31,7 +31,14 @@ export class ActivityService {
     if (exists) {
       throw new BadRequestException('Đã có hoạt động này trong ngày này!');
     }
-    const createdActivity = new this.activityModel(createDto);
+    
+    // Tạo activity với schedule_time là Date object từ string
+    const activityData = {
+      ...createDto,
+      schedule_time: new Date(createDto.schedule_time)
+    };
+    
+    const createdActivity = new this.activityModel(activityData);
     return createdActivity.save();
   }
 
@@ -48,6 +55,11 @@ export class ActivityService {
   }
 
   async update(id: string, updateActivityDto: any) {
+    // Nếu có schedule_time, chuyển đổi từ string sang Date
+    if (updateActivityDto.schedule_time) {
+      updateActivityDto.schedule_time = new Date(updateActivityDto.schedule_time);
+    }
+    
     return this.activityModel.findByIdAndUpdate(id, updateActivityDto, {
       new: true,
     });
