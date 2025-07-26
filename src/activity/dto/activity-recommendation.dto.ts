@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString, ArrayMinSize } from 'class-validator';
+import { IsArray, IsString, ArrayMinSize, IsOptional, IsDateString } from 'class-validator';
 
 export class ActivityRecommendationDto {
   @ApiProperty({ 
@@ -13,12 +13,11 @@ export class ActivityRecommendationDto {
   resident_ids: string[];
 
   @ApiProperty({ 
-    example: ['sáng', 'chiều'], 
-    description: 'Các buổi muốn đề xuất hoạt động (sáng, trưa, chiều, tối)',
-    type: [String]
+    example: '2024-03-02T07:00:00.000Z', 
+    description: 'Thời gian cụ thể cho hoạt động (ISO 8601 format)',
+    required: false
   })
-  @IsArray()
-  @ArrayMinSize(1)
-  @IsString({ each: true })
-  timesOfDay: string[];
+  @IsDateString()
+  @IsOptional()
+  schedule_time?: string;
 } 
