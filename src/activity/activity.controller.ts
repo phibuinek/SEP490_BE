@@ -57,6 +57,6 @@ export class ActivityController {
   @Post('recommendation/ai')
   @ApiBody({ type: ActivityRecommendationDto })
   async recommendActivityAI(@Body() body: ActivityRecommendationDto) {
-    return this.service.recommendActivityAI(body.resident_id);
+    return this.service.recommendActivityAI(body.resident_ids, body.timesOfDay);
   }
 }
