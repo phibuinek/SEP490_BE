@@ -250,4 +250,34 @@ export class ActivityParticipationsService {
     }
     return this.participationModel.find({ resident_id: new Types.ObjectId(resident_id) }).exec();
   }
+
+  async findByActivityId(activity_id: string, date?: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(activity_id)) {
+      throw new BadRequestException('Invalid activity_id format');
+    }
+
+    try {
+      let query: any = { activity_id: new Types.ObjectId(activity_id) };
+      
+      // Nếu có date, thêm filter theo ngày
+      if (date) {
+        const targetDate = new Date(date);
+        const start = new Date(targetDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(targetDate);
+        end.setHours(23, 59, 59, 999);
+        query.date = { $gte: start, $lte: end };
+      }
+
+      return await this.participationModel
+        .find(query)
+        .populate('staff_id', 'full_name role')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name room age')
+        .exec();
+    } catch (error) {
+      console.error('Error in findByActivityId:', error);
+      throw error;
+    }
+  }
 }
