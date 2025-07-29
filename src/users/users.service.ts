@@ -6,21 +6,58 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument } from './schemas/user.schema';
+import { User, UserDocument, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
-import { Role } from '../common/enums/role.enum';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    const createdUser = new this.userModel({
-      ...createUserDto,
-      password: hashedPassword,
-    });
-    return createdUser.save();
+    try {
+      console.log('[USER][CREATE] Input DTO:', JSON.stringify(createUserDto, null, 2));
+      console.log('[USER][CREATE] Role from DTO:', createUserDto.role);
+      console.log('[USER][CREATE] Role type:', typeof createUserDto.role);
+      
+      // Check if username already exists
+      const existingUsername = await this.findByUsername(createUserDto.username);
+      if (existingUsername) {
+        console.log('[USER][CREATE] Username already exists:', createUserDto.username);
+        throw new BadRequestException('Username already exists');
+      }
+      
+      // Check if email already exists
+      const existingEmail = await this.findByEmail(createUserDto.email);
+      if (existingEmail) {
+        console.log('[USER][CREATE] Email already exists:', createUserDto.email);
+        throw new BadRequestException('Email already exists');
+      }
+      
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      console.log('[USER][CREATE] Password hashed successfully');
+      
+      // Set default values for optional fields
+      const userData = {
+        ...createUserDto,
+        password: hashedPassword,
+        status: createUserDto.status || UserStatus.ACTIVE, // Default to active
+        role: createUserDto.role, // Ensure role is properly set
+      };
+      
+      console.log('[USER][CREATE] User data to save:', JSON.stringify(userData, null, 2));
+      
+      const createdUser = new this.userModel(userData);
+      
+      console.log('[USER][CREATE] User model created, saving...');
+      const savedUser = await createdUser.save();
+      
+      console.log('[USER][CREATE] Successfully created user:', savedUser._id);
+      return savedUser;
+    } catch (error) {
+      console.error('[USER][CREATE][ERROR]', error);
+      console.error('[USER][CREATE][ERROR] Stack:', error.stack);
+      throw error;
+    }
   }
 
   async findAll(department?: string, role?: string): Promise<User[]> {

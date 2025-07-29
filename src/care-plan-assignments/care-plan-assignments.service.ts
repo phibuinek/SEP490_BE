@@ -81,12 +81,15 @@ export class CarePlanAssignmentsService {
     try {
       return await this.carePlanAssignmentModel
         .find()
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
+        .populate('staff_id', 'full_name email')
+        .populate('resident_id', 'full_name date_of_birth gender care_level')
+        .populate('family_member_id', 'full_name email')
+        .populate({
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
+        })
+        .populate('assigned_room_id', 'room_number floor room_type')
+        .populate('assigned_bed_id', 'bed_number bed_type')
         .sort({ created_at: -1 })
         .exec();
     } catch (error: any) {
@@ -141,9 +144,15 @@ export class CarePlanAssignmentsService {
       return await this.carePlanAssignmentModel
         .find({ resident_id: new Types.ObjectId(resident_id) })
         .populate('staff_id', 'full_name email')
-        .populate('care_plan_ids', 'plan_name monthly_price')
-        .populate('resident_id', 'full_name')
+        .populate('resident_id', 'full_name date_of_birth gender')
         .populate('family_member_id', 'full_name email')
+        .populate({
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
+        })
+        .populate('assigned_room_id', 'room_number floor room_type')
+        .populate('assigned_bed_id', 'bed_number bed_type')
+        .sort({ created_at: -1 })
         .exec();
     } catch (error: any) {
       if (error instanceof BadRequestException) {
@@ -188,37 +197,67 @@ export class CarePlanAssignmentsService {
 
   async findByStatus(status: string): Promise<CarePlanAssignment[]> {
     try {
-      const validStatuses = [
-        'consulting',
-        'packages_selected',
-        'room_assigned',
-        'payment_completed',
-        'active',
-        'completed',
-        'cancelled',
-        'paused',
-      ];
-
-      if (!validStatuses.includes(status)) {
-        throw new BadRequestException('Invalid status value');
-      }
-
       return await this.carePlanAssignmentModel
         .find({ status })
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
+        .populate('staff_id', 'full_name email')
+        .populate('resident_id', 'full_name date_of_birth gender care_level')
+        .populate('family_member_id', 'full_name email')
+        .populate({
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
+        })
+        .populate('assigned_room_id', 'room_number floor room_type')
+        .populate('assigned_bed_id', 'bed_number bed_type')
         .sort({ created_at: -1 })
         .exec();
     } catch (error: any) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
       throw new BadRequestException(
         `Failed to fetch care plan assignments by status: ${error.message}`,
+      );
+    }
+  }
+
+  async getUnregisteredResidents(): Promise<any[]> {
+    try {
+      console.log('DEBUG - Getting unregistered residents...');
+      
+      // Get all residents
+      const allResidents = await this.residentModel.find().exec();
+      console.log('DEBUG - Total residents found:', allResidents.length);
+      
+      // Get all care plan assignments (unpopulated to get raw ObjectIds)
+      const allAssignments = await this.carePlanAssignmentModel.find().lean().exec();
+      console.log('DEBUG - Total assignments found:', allAssignments.length);
+      
+      // Get list of resident IDs that already have care plan assignments
+      // Filter out assignments with null/undefined resident_id
+      const registeredResidentIds = allAssignments
+        .filter(assignment => assignment.resident_id) // Only include assignments with valid resident_id
+        .map(assignment => assignment.resident_id.toString());
+      
+      console.log('DEBUG - Registered resident IDs:', registeredResidentIds);
+      
+      // Filter out residents who already have care plan assignments
+      const unregisteredResidents = allResidents.filter((resident: any) => {
+        if (!resident || !resident._id) {
+          console.log('DEBUG - Skipping resident with invalid _id');
+          return false;
+        }
+        
+        const residentId = resident._id.toString();
+        const isRegistered = registeredResidentIds.includes(residentId);
+        console.log(`DEBUG - Resident ${resident.full_name || 'Unknown'} (${residentId}): ${isRegistered ? 'REGISTERED' : 'UNREGISTERED'}`);
+        return !isRegistered;
+      });
+      
+      console.log('DEBUG - Unregistered residents count:', unregisteredResidents.length);
+      console.log('DEBUG - Unregistered residents:', unregisteredResidents.map((r: any) => r.full_name || 'Unknown'));
+      
+      return unregisteredResidents;
+    } catch (error: any) {
+      console.error('DEBUG - Error in getUnregisteredResidents:', error);
+      throw new BadRequestException(
+        `Failed to fetch unregistered residents: ${error.message}`,
       );
     }
   }

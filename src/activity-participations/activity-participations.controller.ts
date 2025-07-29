@@ -66,6 +66,11 @@ export class ActivityParticipationsController {
     }
   }
 
+  @Get('by-staff/:staffId')
+  async getParticipationsByStaffId(@Param('staffId') staffId: string) {
+    return this.service.findByStaffId(staffId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single participation record by ID' })
   async findOne(@Param('id') id: string) {

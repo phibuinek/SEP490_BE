@@ -29,112 +29,134 @@ export class ResidentsService {
   ) {}
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
-    // Tạo ngày hiện tại theo timezone Vietnam (GMT+7)
-    const now = new Date();
-    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
-    
-    // Khai báo residentData là any để tránh lỗi type khi thêm trường động
-    const residentData: any = {
-      ...createResidentDto,
-      created_at: vietnamTime.toISOString(),
-      updated_at: vietnamTime.toISOString(),
-    };
-
-    // Nếu không truyền status thì mặc định là 'active'
-    if (!residentData.status) {
-      residentData.status = ResidentStatus.ACTIVE;
-    }
-
-    // Nếu không truyền admission_date thì mặc định là ngày hiện tại (GMT+7)
-    if (!residentData.admission_date) {
-      residentData.admission_date = vietnamTime;
-    } else if (typeof residentData.admission_date === 'string') {
-      residentData.admission_date = new Date(residentData.admission_date);
-    }
-
-    // Fix avatar: nếu là array, lấy phần tử đầu tiên. Nếu là chuỗi rỗng, gán null.
-    if (Array.isArray(residentData.avatar)) {
-      residentData.avatar = residentData.avatar[0];
-    }
-    if (residentData.avatar === '') {
-      residentData.avatar = null;
-    }
-
-    // Fix admission_date: nếu là array, lấy phần tử đầu tiên. Nếu là string, ép về Date. Nếu không hợp lệ, gán ngày hiện tại (GMT+7)
-    if (Array.isArray(residentData.admission_date)) {
-      residentData.admission_date = residentData.admission_date[0];
-    }
-    if (residentData.admission_date && typeof residentData.admission_date === 'string') {
-      residentData.admission_date = new Date(residentData.admission_date);
-    }
-    if (!residentData.admission_date || isNaN(residentData.admission_date.getTime())) {
-      residentData.admission_date = vietnamTime;
-    }
-
-    // Ép family_member_id về ObjectId nếu là string
-    if (residentData.family_member_id && typeof residentData.family_member_id === 'string') {
-      residentData.family_member_id = new Types.ObjectId(residentData.family_member_id);
-    }
-
-    // Flatten all possible array fields
-    ['avatar', 'admission_date', 'date_of_birth', 'created_at', 'updated_at'].forEach(field => {
-      if (Array.isArray(residentData[field])) {
-        residentData[field] = residentData[field].length > 0 ? residentData[field][0] : null;
-      }
-    });
-
-    // avatar: nếu là chuỗi rỗng hoặc undefined, gán null
-    if (residentData.avatar === '' || typeof residentData.avatar === 'undefined') {
-      residentData.avatar = null;
-    }
-
-    // admission_date: ép về Date object, nếu không hợp lệ gán ngày hiện tại
-    if (residentData.admission_date && typeof residentData.admission_date === 'string') {
-      const d = new Date(residentData.admission_date);
-      residentData.admission_date = isNaN(d.getTime()) ? vietnamTime : d;
-    }
-    if (!(residentData.admission_date instanceof Date)) {
-      residentData.admission_date = vietnamTime;
-    }
-
-    // family_member_id: ép về ObjectId nếu là string
-    if (residentData.family_member_id && typeof residentData.family_member_id === 'string') {
-      residentData.family_member_id = new Types.ObjectId(residentData.family_member_id);
-    }
-
-    // Các trường date khác: ép về Date object nếu là string, nếu không hợp lệ gán ngày hiện tại
-    ['date_of_birth', 'created_at', 'updated_at'].forEach(field => {
-      if (residentData[field] && typeof residentData[field] === 'string') {
-        const d = new Date(residentData[field]);
-        residentData[field] = isNaN(d.getTime()) ? vietnamTime : d;
-      }
-      if (!(residentData[field] instanceof Date)) {
-        residentData[field] = vietnamTime;
-      }
-    });
-
-    // Log typeof từng trường để debug
-    ['family_member_id', 'date_of_birth', 'admission_date', 'created_at', 'updated_at'].forEach(field => {
-      console.log(field, typeof residentData[field], residentData[field]);
-    });
-   // Nếu không truyền emergency_contact thì tự động lấy từ family_member
-   if (!residentData.emergency_contact && residentData.family_member_id) {
-     const family = await this.userModel.findById(residentData.family_member_id);
-     if (family) {
-       residentData.emergency_contact = {
-         name: family.full_name,
-         phone: family.phone,
-         relationship: residentData.relationship || 'khác',
-       };
-     }
-   }
-    
     try {
+      console.log('[RESIDENT][CREATE] Input DTO:', JSON.stringify(createResidentDto, null, 2));
+      
+      // Tạo ngày hiện tại theo timezone Vietnam (GMT+7)
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // GMT+7
+      
+      // Khai báo residentData là any để tránh lỗi type khi thêm trường động
+      const residentData: any = {
+        ...createResidentDto,
+        created_at: vietnamTime.toISOString(),
+        updated_at: vietnamTime.toISOString(),
+      };
+
+      console.log('[RESIDENT][CREATE] Initial residentData:', JSON.stringify(residentData, null, 2));
+
+      // Nếu không truyền status thì mặc định là 'active'
+      if (!residentData.status) {
+        residentData.status = ResidentStatus.ACTIVE;
+      }
+
+      // Nếu không truyền admission_date thì mặc định là ngày hiện tại (GMT+7)
+      if (!residentData.admission_date) {
+        residentData.admission_date = vietnamTime;
+      } else if (typeof residentData.admission_date === 'string') {
+        residentData.admission_date = new Date(residentData.admission_date);
+      }
+
+      // Fix avatar: nếu là array, lấy phần tử đầu tiên. Nếu là chuỗi rỗng, gán null.
+      if (Array.isArray(residentData.avatar)) {
+        residentData.avatar = residentData.avatar[0];
+      }
+      if (residentData.avatar === '') {
+        residentData.avatar = null;
+      }
+
+      // Fix admission_date: nếu là array, lấy phần tử đầu tiên. Nếu là string, ép về Date. Nếu không hợp lệ, gán ngày hiện tại (GMT+7)
+      if (Array.isArray(residentData.admission_date)) {
+        residentData.admission_date = residentData.admission_date[0];
+      }
+      if (residentData.admission_date && typeof residentData.admission_date === 'string') {
+        residentData.admission_date = new Date(residentData.admission_date);
+      }
+      if (!residentData.admission_date || isNaN(residentData.admission_date.getTime())) {
+        residentData.admission_date = vietnamTime;
+      }
+
+      // Ép family_member_id về ObjectId nếu là string
+      if (residentData.family_member_id && typeof residentData.family_member_id === 'string') {
+        try {
+          residentData.family_member_id = new Types.ObjectId(residentData.family_member_id);
+          console.log('[RESIDENT][CREATE] Converted family_member_id to ObjectId:', residentData.family_member_id);
+        } catch (error) {
+          console.error('[RESIDENT][CREATE] Invalid family_member_id format:', residentData.family_member_id);
+          throw new BadRequestException('Invalid family_member_id format');
+        }
+      }
+
+      // Flatten all possible array fields
+      ['avatar', 'admission_date', 'date_of_birth', 'created_at', 'updated_at'].forEach(field => {
+        if (Array.isArray(residentData[field])) {
+          residentData[field] = residentData[field].length > 0 ? residentData[field][0] : null;
+        }
+      });
+
+      // avatar: nếu là chuỗi rỗng hoặc undefined, gán null
+      if (residentData.avatar === '' || typeof residentData.avatar === 'undefined') {
+        residentData.avatar = null;
+      }
+
+      // admission_date: ép về Date object, nếu không hợp lệ gán ngày hiện tại
+      if (residentData.admission_date && typeof residentData.admission_date === 'string') {
+        const d = new Date(residentData.admission_date);
+        residentData.admission_date = isNaN(d.getTime()) ? vietnamTime : d;
+      }
+      if (!(residentData.admission_date instanceof Date)) {
+        residentData.admission_date = vietnamTime;
+      }
+
+      // family_member_id: ép về ObjectId nếu là string
+      if (residentData.family_member_id && typeof residentData.family_member_id === 'string') {
+        try {
+          residentData.family_member_id = new Types.ObjectId(residentData.family_member_id);
+        } catch (error) {
+          console.error('[RESIDENT][CREATE] Invalid family_member_id format:', residentData.family_member_id);
+          throw new BadRequestException('Invalid family_member_id format');
+        }
+      }
+
+      // Xử lý medical_history: nếu rỗng hoặc undefined thì gán null
+      if (!residentData.medical_history || residentData.medical_history.trim() === '') {
+        residentData.medical_history = null;
+        console.log('[RESIDENT][CREATE] Set medical_history to null');
+      }
+
+      // Xử lý current_medications: nếu không có hoặc rỗng thì gán mảng rỗng
+      if (!residentData.current_medications || !Array.isArray(residentData.current_medications)) {
+        residentData.current_medications = [];
+        console.log('[RESIDENT][CREATE] Set current_medications to empty array');
+      }
+
+      // Xử lý allergies: nếu không có hoặc rỗng thì gán mảng rỗng
+      if (!residentData.allergies || !Array.isArray(residentData.allergies)) {
+        residentData.allergies = [];
+        console.log('[RESIDENT][CREATE] Set allergies to empty array');
+      }
+
+      console.log('[RESIDENT][CREATE] Final residentData before save:', JSON.stringify(residentData, null, 2));
+
+      // Kiểm tra xem family_member_id có tồn tại trong DB không
+      if (residentData.family_member_id) {
+        const familyMember = await this.userModel.findById(residentData.family_member_id).exec();
+        if (!familyMember) {
+          console.error('[RESIDENT][CREATE] Family member not found:', residentData.family_member_id);
+          throw new BadRequestException('Family member not found');
+        }
+        console.log('[RESIDENT][CREATE] Family member found:', familyMember.full_name);
+      }
+
       const createdResident = new this.residentModel(residentData);
-      return await createdResident.save();
+      const savedResident = await createdResident.save();
+      
+      console.log('[RESIDENT][CREATE] Successfully created resident:', savedResident._id);
+      return savedResident;
+      
     } catch (error) {
-      // Log chi tiết lỗi validation
-      console.error('Resident create validation error:', JSON.stringify(error?.errInfo?.details, null, 2));
+      console.error('[RESIDENT][CREATE][ERROR]', error);
+      console.error('[RESIDENT][CREATE][ERROR] Stack:', error.stack);
       throw error;
     }
   }
@@ -148,7 +170,10 @@ export class ResidentsService {
   }
 
   async findOne(id: string): Promise<Resident> {
-    const resident = await this.residentModel.findById(id);
+    const resident = await this.residentModel
+      .findById(id)
+      .populate('family_member_id', 'full_name email phone')
+      .exec();
     if (!resident)
       throw new NotFoundException(`Resident with ID ${id} not found`);
     return resident;

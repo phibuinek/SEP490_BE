@@ -65,13 +65,17 @@ export class BedAssignmentsService {
     
     return this.model
       .find(filter)
-      .populate('resident_id', 'full_name')
+      .populate('resident_id', 'full_name date_of_birth gender')
       .populate({
         path: 'bed_id',
-        select: 'bed_number room_id',
+        select: 'bed_number bed_type room_id',
         populate: {
           path: 'room_id',
-          select: 'room_number',
+          select: 'room_number room_type',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
         },
       })
       .populate('assigned_by', 'full_name')

@@ -114,9 +114,14 @@ export class ResidentsController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   create(@UploadedFile() file: Express.Multer.File, @Body() createResidentDto: CreateResidentDto) {
+    console.log('[RESIDENT][CONTROLLER][CREATE] Received request with file:', file?.filename);
+    console.log('[RESIDENT][CONTROLLER][CREATE] Request body:', JSON.stringify(createResidentDto, null, 2));
+    
     if (file) {
       createResidentDto.avatar = file.path || `uploads/${file.filename}`;
+      console.log('[RESIDENT][CONTROLLER][CREATE] Avatar path set:', createResidentDto.avatar);
     }
+    
     return this.residentsService.create(createResidentDto);
   }
 
@@ -156,16 +161,88 @@ export class ResidentsController {
   async findOne(@Param('id') id: string, @Req() req) {
     const resident = await this.residentsService.findOne(id);
     const user = req.user;
+    
+    console.log('=== RESIDENT ACCESS DEBUG ===');
+    console.log('Resident ID:', id);
+    console.log('User role:', user.role);
+    console.log('User ID:', user.userId);
+    console.log('Resident family_member_id:', resident.family_member_id);
+    console.log('Resident family_member_id.toString():', resident.family_member_id?.toString());
+    console.log('Comparison result:', resident.family_member_id?.toString() === user.userId);
+    
     if (user.role === Role.ADMIN || user.role === Role.STAFF) {
+      console.log('=== ACCESS GRANTED (ADMIN/STAFF) ===');
       return resident;
     }
-    if (
-      user.role === Role.FAMILY &&
-      resident.family_member_id?.toString() === user.userId
-    ) {
-      return resident;
+    
+    if (user.role === Role.FAMILY) {
+      // So sánh an toàn với nhiều cách khác nhau
+      let familyMemberIdStr;
+      if (typeof resident.family_member_id === 'object' && resident.family_member_id?._id) {
+        familyMemberIdStr = resident.family_member_id._id.toString();
+      } else {
+        familyMemberIdStr = resident.family_member_id?.toString();
+      }
+      const userIdStr = user.userId?.toString();
+      
+      console.log('=== FAMILY ACCESS CHECK ===');
+      console.log('Family member ID (string):', familyMemberIdStr);
+      console.log('User ID (string):', userIdStr);
+      console.log('Final comparison:', familyMemberIdStr === userIdStr);
+      
+      if (familyMemberIdStr === userIdStr) {
+        console.log('=== ACCESS GRANTED (FAMILY) ===');
+        return resident;
+      } else {
+        console.log('=== ACCESS DENIED (FAMILY) ===');
+        throw new ForbiddenException('Bạn không có quyền xem resident này!');
+      }
     }
+    
+    console.log('=== ACCESS DENIED (UNKNOWN ROLE) ===');
     throw new ForbiddenException('Bạn không có quyền xem resident này!');
+  }
+
+  // Debug endpoint để kiểm tra resident access
+  @Get('debug/access/:residentId')
+  async debugResidentAccess(@Param('residentId') residentId: string, @Req() req) {
+    const userRole = req.user?.role;
+    const userId = req.user?.userId;
+    
+    console.log('=== DEBUG RESIDENT ACCESS ===');
+    console.log('User role:', userRole);
+    console.log('User ID:', userId);
+    console.log('Resident ID:', residentId);
+    
+    try {
+      const resident = await this.residentsService.findOne(residentId);
+      if (!resident) {
+        return { error: 'Resident not found' };
+      }
+      
+      return {
+        userRole,
+        userId,
+        resident: {
+          id: (resident as any)._id?.toString(),
+          full_name: resident.full_name,
+          family_member_id: resident.family_member_id,
+          family_member_id_type: typeof resident.family_member_id,
+          family_member_id_str: typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
+            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString()
+        },
+        comparison: {
+          userId: userId,
+          familyMemberId: typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
+            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString(),
+          isMatch: userId === (typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
+            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString())
+        }
+      };
+    } catch (error) {
+      console.error('Error in debug resident access endpoint:', error);
+      return { error: error.message };
+    }
   }
 
   @Patch(':id')

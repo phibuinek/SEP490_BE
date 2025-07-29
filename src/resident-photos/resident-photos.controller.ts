@@ -147,32 +147,47 @@ export class ResidentPhotosController {
   }
 
   @Get()
-  @ApiQuery({
-    name: 'family_member_id',
-    required: false,
-    description: 'Filter by family member ID. If not provided, returns all photos (staff/admin only)',
-  })
+  @ApiQuery({ name: 'family_member_id', required: false })
   async getPhotos(@Query('family_member_id') family_member_id: string, @Req() req) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-
-    if (family_member_id) {
-      // Nếu là FAMILY thì chỉ cho xem đúng family_member_id của mình
-      if (userRole === Role.FAMILY && family_member_id !== userId) {
-        throw new ForbiddenException('Bạn chỉ được xem ảnh của gia đình mình!');
+    
+    if (userRole === Role.FAMILY) {
+      // Family chỉ có thể xem photos của residents thuộc về họ
+      if (!family_member_id || family_member_id !== userId) {
+        throw new ForbiddenException('Bạn chỉ có thể xem photos của người thân của mình');
       }
-      return this.service.getPhotos(family_member_id);
     }
+    
+    // STAFF/ADMIN: xem tất cả hoặc lọc theo family_member_id nếu có
+    return this.service.findAll(family_member_id);
+  }
 
-    // Nếu không truyền family_member_id, chỉ staff/admin được xem tất cả
-    if (userRole !== Role.STAFF && userRole !== Role.ADMIN) {
-      throw new ForbiddenException('Only staff and admin can view all photos');
+  @Get('by-resident/:id')
+  async getPhotosByResidentId(@Param('id') resident_id: string, @Req() req) {
+    try {
+      const userRole = req.user?.role;
+      const userId = req.user?.userId;
+      
+      if (userRole === Role.FAMILY) {
+        // Kiểm tra resident này có thuộc về family không
+        const resident = await this.residentsService.findOne(resident_id);
+        if (!resident || resident.family_member_id.toString() !== userId) {
+          throw new ForbiddenException('Bạn không có quyền xem photos của resident này');
+        }
+      }
+      
+      return this.service.findByResidentId(resident_id);
+    } catch (error) {
+      console.error('Error in getPhotosByResidentId:', error);
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new Error('Internal server error');
     }
-    return this.service.getAllPhotos();
   }
 
   @Get(':id')
-  @ApiParam({ name: 'id', description: 'Photo ID' })
   async getPhotoById(@Param('id') id: string) {
     return this.service.getPhotoById(id);
   }

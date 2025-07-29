@@ -55,9 +55,9 @@ export class ActivityParticipationsService {
     try {
       return await this.participationModel
         .find()
-        .populate('staff_id', 'full_name')
-        .populate('activity_id', 'activity_name')
-        .populate('resident_id', 'full_name')
+        .populate('staff_id', 'full_name position email phone')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name date_of_birth gender')
         .exec();
     } catch (error) {
       // If there are invalid ObjectIds in the database, try without populate first
@@ -87,9 +87,9 @@ export class ActivityParticipationsService {
     try {
       const participation = await this.participationModel
         .findById(id)
-        .populate('staff_id', 'full_name')
-        .populate('activity_id', 'activity_name')
-        .populate('resident_id', 'full_name')
+        .populate('staff_id', 'full_name position email phone')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name date_of_birth gender')
         .exec();
       if (!participation) {
         throw new NotFoundException(`Participation with ID "${id}" not found`);
@@ -238,6 +238,17 @@ export class ActivityParticipationsService {
     return this.participationModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
       .populate('staff_id', 'full_name position')
+      .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+      .populate('resident_id', 'full_name')
+      .exec();
+  }
+
+  async findByStaffId(staff_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(staff_id)) {
+      throw new BadRequestException('Invalid staff_id format');
+    }
+    return this.participationModel
+      .find({ staff_id: new Types.ObjectId(staff_id) })
       .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
       .populate('resident_id', 'full_name')
       .exec();
