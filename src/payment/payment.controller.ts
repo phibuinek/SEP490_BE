@@ -9,6 +9,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('payment')
 @ApiBearerAuth()
@@ -26,24 +27,27 @@ export class PaymentController {
   }
 
   @Get('success')
+  @Public()
   @ApiOperation({ summary: 'Handle payment success callback (redirect)' })
   @ApiResponse({ status: 302, description: 'Redirect to frontend on success.' })
   handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
     // Handle successful payment logic, e.g., update order status
     console.log('Payment successful:', query);
-    res.redirect('http://localhost:3000/finance/payment-success'); // Redirect to frontend
+    res.redirect('http://localhost:3000/payment/success'); // Redirect to frontend
   }
 
   @Get('cancel')
+  @Public()
   @ApiOperation({ summary: 'Handle payment cancel callback (redirect)' })
   @ApiResponse({ status: 302, description: 'Redirect to frontend on cancel.' })
   handlePaymentCancel(@Query() query: any, @Res() res: Response) {
     // Handle cancelled payment logic
     console.log('Payment cancelled:', query);
-    res.redirect('http://localhost:3000/finance/payment-fail'); // Redirect to frontend
+    res.redirect('http://localhost:3000/payment/cancel'); // Redirect to frontend
   }
 
   @Post('webhook')
+  @Public()
   @ApiOperation({ summary: 'Handle payment webhook from PayOS' })
   @ApiBody({ description: 'Webhook payload', type: Object })
   @ApiResponse({ status: 200, description: 'Webhook received.' })

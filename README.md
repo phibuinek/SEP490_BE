@@ -165,3 +165,4 @@ GET /rooms
 **Lưu ý:**
 - Có thể test trực tiếp trên Swagger UI (`/api`) với các endpoint rooms, beds, residents, bed-assignments.
 - Đảm bảo dữ liệu liên kết đúng giữa các bảng.
+`

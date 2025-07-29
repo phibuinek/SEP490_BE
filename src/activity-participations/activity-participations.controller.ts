@@ -67,8 +67,32 @@ export class ActivityParticipationsController {
   }
 
   @Get('by-staff/:staffId')
+  @ApiOperation({ summary: 'Get all activity participations by staffId' })
   async getParticipationsByStaffId(@Param('staffId') staffId: string) {
     return this.service.findByStaffId(staffId);
+  }
+
+  @Get('by-activity')
+  @ApiOperation({ summary: 'Get all activity participations by activityId and date' })
+  async getByActivity(
+    @Query('activity_id') activity_id: string,
+    @Query('date') date?: string
+  ) {
+    console.log('[by-activity] activity_id:', activity_id, 'date:', date);
+    try {
+      // Chuyển đổi activity_id sang ObjectId nếu hợp lệ
+      if (!Types.ObjectId.isValid(activity_id)) {
+        console.error('[by-activity] Invalid activity_id format:', activity_id);
+        throw new BadRequestException('Invalid activity_id format');
+      }
+      const result = await this.service.findByActivityId(activity_id, date);
+      console.log('[by-activity] result count:', result.length);
+      return result;
+    } catch (err) {
+      console.error('[by-activity] Error:', err.message);
+      console.error(err.stack);
+      throw err;
+    }
   }
 
   @Get(':id')

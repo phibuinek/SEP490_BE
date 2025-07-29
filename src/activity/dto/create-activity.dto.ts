@@ -23,10 +23,10 @@ export class CreateActivityDto {
   @IsPositive()
   duration: number;
 
-  @ApiProperty({ example: '2024-03-02T07:00:00.000Z' })
-  @IsDateString()
+  @ApiProperty({ example: '2024-03-02T07:00:00' })
+  @IsString()
   @IsNotEmpty()
-  schedule_time: Date;
+  schedule_time: string;
 
   @ApiProperty({ example: 'Sân vườn' })
   @IsString()

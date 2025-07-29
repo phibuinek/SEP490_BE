@@ -14,5 +14,6 @@ import { ResidentsModule } from '../residents/residents.module';
   ],
   controllers: [BillsController],
   providers: [BillsService],
+  exports: [BillsService],
 })
 export class BillsModule {}
