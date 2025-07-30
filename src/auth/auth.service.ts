@@ -22,40 +22,56 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    if (
-      user &&
-      user.status === 'active' &&
-      (await bcrypt.compare(password, user.password))
-    ) {
-      const { password, ...result } = user.toObject();
-      return result;
+    
+    // Kiểm tra email có tồn tại không
+    if (!user) {
+      throw new UnauthorizedException('Mật khẩu và email không chính xác!');
     }
-    return null;
+    
+    // Kiểm tra trạng thái tài khoản
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
+    }
+    
+    // Kiểm tra mật khẩu
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu không chính xác');
+    }
+    
+    const { password: _, ...result } = user.toObject();
+    return result;
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const payload = {
-      email: user.email,
-      sub: user._id.toString(),
-      role: user.role,
-      username: user.username,
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user._id.toString(),
+    try {
+      const user = await this.validateUser(loginDto.email, loginDto.password);
+      
+      const payload = {
         email: user.email,
-        username: user.username,
-        full_name: user.full_name,
+        sub: user._id.toString(),
         role: user.role,
-      },
-    };
+        username: user.username,
+      };
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          username: user.username,
+          full_name: user.full_name,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      // Re-throw UnauthorizedException với thông báo chi tiết
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Xử lý các lỗi khác
+      throw new UnauthorizedException('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.');
+    }
   }
 
   // Loại bỏ register vì người nhà không tự đăng ký

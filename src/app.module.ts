@@ -58,6 +58,7 @@ import { RoomTypesModule } from './room_types/room-types.module';
 import { CareNotesModule } from './care-notes/care-notes.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
+import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
     CareNotesModule,
     RoomsModule,
     BedAssignmentsModule,
+    StaffAssignmentsModule,
   ],
   controllers: [AppController],
   providers: [
