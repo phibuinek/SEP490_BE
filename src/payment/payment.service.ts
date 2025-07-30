@@ -12,12 +12,10 @@ import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class PaymentService {
-  private readonly clientId = 'd89d5297-4ff5-4f10-9d44-c8dd3f68f71b';
-  private readonly apiKey = '79bc8e19-0dc0-4111-95ff-69bf4687858e';
-  private readonly checksumKey =
-    '0ecbdbfa3f52b73dacdd2790501563fccca43d92e039e37aef14ffca2850d147';
-  private readonly payosUrl =
-    'https://api-merchant.payos.vn/v2/payment-requests';
+  private readonly payosUrl = "https://api-merchant.payos.vn/v2/payment-requests";
+  private readonly clientId = "124afbcf-c357-45a6-b20b-a40bc5c25238";
+  private readonly apiKey = "9fe0e043-ad7d-4c8f-86f7-ce5a34512c84";
+  private readonly checksumKey = "ce6ee075d1921c664a43d8eccdca84582f418a23ece423738753b3ee808aa04f";
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
@@ -35,8 +33,8 @@ export class PaymentService {
       orderCode,
       amount,
       description,
-      returnUrl: 'http://localhost:8000/payment/success',
-      cancelUrl: 'http://localhost:8000/payment/cancel',
+      returnUrl: 'http://localhost:3000/payment/success',
+      cancelUrl: 'http://localhost:3000/payment/cancel',
       expiredAt: moment().add(15, 'minutes').unix(),
       signature: this.generateSignature(amount, orderCode, description),
     };
@@ -71,7 +69,7 @@ export class PaymentService {
     orderCode: number,
     description: string,
   ): string {
-    const data = `amount=${amount}&cancelUrl=http://localhost:8000/payment/cancel&description=${description}&orderCode=${orderCode}&returnUrl=http://localhost:8000/payment/success`;
+    const data = `amount=${amount}&cancelUrl=http://localhost:3000/payment/cancel&description=${description}&orderCode=${orderCode}&returnUrl=http://localhost:3000/payment/success`;
     return crypto.HmacSHA256(data, this.checksumKey).toString(crypto.enc.Hex);
   }
 

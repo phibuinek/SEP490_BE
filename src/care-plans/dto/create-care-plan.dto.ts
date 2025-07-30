@@ -45,10 +45,10 @@ export class CreateCarePlanDto {
   @IsOptional()
   readonly services_included: string[];
 
-  @ApiProperty({ example: '1:3' })
+  @ApiProperty({ example: '1:3', required: false })
   @IsString()
-  @IsNotEmpty()
-  readonly staff_ratio: string;
+  @IsOptional()
+  readonly staff_ratio?: string;
 
   @ApiProperty({ example: 'monthly' })
   @IsString()

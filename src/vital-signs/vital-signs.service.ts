@@ -4,12 +4,15 @@ import { Model, Types } from 'mongoose';
 import { VitalSign, VitalSignDocument } from './schemas/vital-sign.schema';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
+import { StaffAssignment, StaffAssignmentDocument } from '../staff-assignments/schemas/staff-assignment.schema';
 
 @Injectable()
 export class VitalSignsService {
   constructor(
     @InjectModel(VitalSign.name)
     private vitalSignModel: Model<VitalSignDocument>,
+    @InjectModel(StaffAssignment.name)
+    private staffAssignmentModel: Model<StaffAssignmentDocument>,
   ) {}
 
   async create(
@@ -35,6 +38,34 @@ export class VitalSignsService {
 
   async findAll(): Promise<VitalSign[]> {
     return this.vitalSignModel.find();
+  }
+
+  async findAllByStaffId(staff_id: string): Promise<VitalSign[]> {
+    // Get all residents assigned to this staff
+    const assignments = await this.staffAssignmentModel.find({
+      staff_id: new Types.ObjectId(staff_id),
+      status: 'active',
+    });
+    
+    const residentIds = assignments.map(assignment => assignment.resident_id);
+    
+    if (residentIds.length === 0) {
+      return [];
+    }
+    
+    // Get vital signs for all assigned residents
+    return this.vitalSignModel.find({
+      resident_id: { $in: residentIds }
+    })
+    .populate({
+      path: 'recorded_by',
+      select: 'full_name position',
+    })
+    .populate({
+      path: 'resident_id',
+      select: 'full_name date_of_birth gender',
+    })
+    .exec();
   }
 
   async findAllByResidentId(resident_id: string): Promise<VitalSign[]> {

@@ -41,7 +41,15 @@ export class VitalSignsController {
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get all vital sign records' })
-  findAll() {
+  async findAll(@Req() req) {
+    const user = req.user;
+    
+    // If staff, only return vital signs for assigned residents
+    if (user?.role === Role.STAFF) {
+      return this.service.findAllByStaffId(user.userId);
+    }
+    
+    // If admin, return all vital signs
     return this.service.findAll();
   }
 

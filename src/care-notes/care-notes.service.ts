@@ -4,12 +4,15 @@ import { Model, Types } from 'mongoose';
 import { Assessment, AssessmentDocument } from './schemas/care-note.schema';
 import { CreateAssessmentDto } from './dto/create-care-note.dto';
 import { UpdateCareNoteDto } from './dto/update-care-note.dto';
+import { StaffAssignment, StaffAssignmentDocument } from '../staff-assignments/schemas/staff-assignment.schema';
 
 @Injectable()
 export class CareNotesService {
   constructor(
     @InjectModel(Assessment.name)
     private careNoteModel: Model<AssessmentDocument>,
+    @InjectModel(StaffAssignment.name)
+    private staffAssignmentModel: Model<StaffAssignmentDocument>,
   ) {}
 
   async create(createAssessmentDto: CreateAssessmentDto) {
@@ -33,6 +36,36 @@ export class CareNotesService {
       .populate({
         path: 'conducted_by',
         select: 'full_name position',
+      })
+      .exec();
+  }
+
+  async findAllByStaffId(staff_id: string) {
+    // Get all residents assigned to this staff
+    const assignments = await this.staffAssignmentModel.find({
+      staff_id: new Types.ObjectId(staff_id),
+      status: 'active',
+    });
+    
+    const residentIds = assignments.map(assignment => assignment.resident_id);
+    
+    if (residentIds.length === 0) {
+      return [];
+    }
+    
+    // Get care notes for all assigned residents
+    return this.careNoteModel
+      .find({
+        resident_id: { $in: residentIds }
+      })
+      .sort({ date: -1 })
+      .populate({
+        path: 'conducted_by',
+        select: 'full_name position',
+      })
+      .populate({
+        path: 'resident_id',
+        select: 'full_name date_of_birth gender',
       })
       .exec();
   }

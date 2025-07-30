@@ -35,7 +35,20 @@ export class AssessmentsController {
   }
 
   @Get()
-  async findAll(@Query('resident_id') resident_id: string) {
+  async findAll(@Query('resident_id') resident_id: string, @Req() req) {
+    const user = req.user;
+    
+    // If staff, only return care notes for assigned residents
+    if (user?.role === Role.STAFF) {
+      return this.service.findAllByStaffId(user.userId);
+    }
+    
+    // If specific resident_id is provided, return care notes for that resident
+    if (resident_id) {
+      return this.service.findAll(resident_id);
+    }
+    
+    // For admin, return all care notes (you might want to add a separate endpoint for this)
     return this.service.findAll(resident_id);
   }
 
