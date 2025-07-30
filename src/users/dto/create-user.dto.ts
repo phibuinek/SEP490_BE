@@ -45,9 +45,10 @@ export class CreateUserDto {
   @IsEnum(UserRole)
   role: UserRole;
 
-  @ApiProperty({ enum: UserStatus, example: UserStatus.ACTIVE })
+  @ApiPropertyOptional({ enum: UserStatus, example: UserStatus.ACTIVE })
+  @IsOptional()
   @IsEnum(UserStatus)
-  status: UserStatus;
+  status?: UserStatus;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
@@ -79,11 +80,13 @@ export class CreateUserDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @ApiPropertyOptional({ example: '2024-01-10T10:00:00.000Z' })
+  @IsOptional()
   @IsDateString()
-  created_at: string;
+  created_at?: string;
 
-  @ApiProperty({ example: '2024-01-10T10:00:00.000Z' })
+  @ApiPropertyOptional({ example: '2024-01-10T10:00:00.000Z' })
+  @IsOptional()
   @IsDateString()
-  updated_at: string;
+  updated_at?: string;
 }

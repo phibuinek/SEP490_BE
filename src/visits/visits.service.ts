@@ -76,4 +76,15 @@ export class VisitsService {
     );
     return visitsWithResidents;
   }
+
+  async deleteById(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid visit id format');
+    }
+    const result = await this.visitModel.findByIdAndDelete(id);
+    if (!result) {
+      throw new Error('Visit not found');
+    }
+    return { success: true, message: 'Visit deleted successfully' };
+  }
 }

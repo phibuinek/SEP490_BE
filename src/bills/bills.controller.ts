@@ -50,6 +50,13 @@ export class BillsController {
     return this.billsService.findByResidentId(resident_id);
   }
 
+  @Get('by-family-member')
+  @ApiOperation({ summary: 'Get bills by family_member_id' })
+  @ApiResponse({ status: 200, description: 'List of bills for the family member.' })
+  async getBillsByFamilyMember(@Query('family_member_id') family_member_id: string) {
+    return this.billsService.findByFamilyMemberId(family_member_id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get bill by ID' })
   @ApiResponse({ status: 200, description: 'Get bill by ID.' })

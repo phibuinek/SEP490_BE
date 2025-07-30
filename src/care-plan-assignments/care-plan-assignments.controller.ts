@@ -100,13 +100,25 @@ export class CarePlanAssignmentsController {
   @ApiParam({ name: 'familyMemberId', description: 'Family member ID' })
   @ApiResponse({
     status: 200,
-    description: 'Return care plan assignments for family member',
+    description: 'Care plan assignments for the family member.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'No assignments found.' })
   findByFamilyMember(@Param('familyMemberId') familyMemberId: string) {
     return this.carePlanAssignmentsService.findByFamilyMember(familyMemberId);
+  }
+
+  @Get('unregistered-residents')
+  @Roles(Role.STAFF, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get residents without care plan assignments' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of residents who have not been assigned any care plans.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  getUnregisteredResidents() {
+    return this.carePlanAssignmentsService.getUnregisteredResidents();
   }
 
   @Get('by-status/:status')

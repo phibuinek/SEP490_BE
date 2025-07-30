@@ -1,10 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional , IsMongoId} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsMongoId, IsNotIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAssessmentDto {
   @ApiProperty({ example: 'Đánh giá tổng quát', required: false })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return null;
+    return value?.trim();
+  })
   assessment_type?: string | null;
 
   @ApiProperty({
@@ -13,7 +18,11 @@ export class CreateAssessmentDto {
   })
   @IsOptional()
   @IsString()
-  notes?: string;
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return null;
+    return value?.trim();
+  })
+  notes?: string | null;
 
   @ApiProperty({
     example: 'Duy trì chế độ ăn kiêng, tập thể dục nhẹ, uống thuốc đúng giờ',
@@ -21,6 +30,10 @@ export class CreateAssessmentDto {
   })
   @IsOptional()
   @IsString()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return null;
+    return value?.trim();
+  })
   recommendations?: string | null;
 
   @ApiProperty({

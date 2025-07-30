@@ -55,9 +55,9 @@ export class ActivityParticipationsService {
     try {
       return await this.participationModel
         .find()
-        .populate('staff_id', 'full_name')
-        .populate('activity_id', 'activity_name')
-        .populate('resident_id', 'full_name')
+        .populate('staff_id', 'full_name position email phone')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name date_of_birth gender')
         .exec();
     } catch (error) {
       // If there are invalid ObjectIds in the database, try without populate first
@@ -87,9 +87,9 @@ export class ActivityParticipationsService {
     try {
       const participation = await this.participationModel
         .findById(id)
-        .populate('staff_id', 'full_name')
-        .populate('activity_id', 'activity_name')
-        .populate('resident_id', 'full_name')
+        .populate('staff_id', 'full_name position email phone')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name date_of_birth gender')
         .exec();
       if (!participation) {
         throw new NotFoundException(`Participation with ID "${id}" not found`);
@@ -243,6 +243,17 @@ export class ActivityParticipationsService {
       .exec();
   }
 
+  async findByStaffId(staff_id: string): Promise<ActivityParticipation[]> {
+    if (!Types.ObjectId.isValid(staff_id)) {
+      throw new BadRequestException('Invalid staff_id format');
+    }
+    return this.participationModel
+      .find({ staff_id: new Types.ObjectId(staff_id) })
+      .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+      .populate('resident_id', 'full_name')
+      .exec();
+  }
+
   // API đơn giản: trả về document gốc không populate
   async findByResidentIdRaw(resident_id: string): Promise<ActivityParticipation[]> {
     if (!Types.ObjectId.isValid(resident_id)) {
@@ -277,6 +288,36 @@ export class ActivityParticipationsService {
         .exec();
     } catch (error) {
       console.error('Error in findByActivityId:', error);
+      throw error;
+    }
+  }
+
+  async findByResidentAndActivity(resident_id: string, activity_id: string): Promise<ActivityParticipation> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    if (!Types.ObjectId.isValid(activity_id)) {
+      throw new BadRequestException('Invalid activity_id format');
+    }
+
+    try {
+      const participation = await this.participationModel
+        .findOne({
+          resident_id: new Types.ObjectId(resident_id),
+          activity_id: new Types.ObjectId(activity_id),
+        })
+        .populate('staff_id', 'full_name role')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name room age')
+        .exec();
+
+      if (!participation) {
+        throw new NotFoundException(`Participation not found for resident ${resident_id} and activity ${activity_id}`);
+      }
+
+      return participation;
+    } catch (error) {
+      console.error('Error in findByResidentAndActivity:', error);
       throw error;
     }
   }

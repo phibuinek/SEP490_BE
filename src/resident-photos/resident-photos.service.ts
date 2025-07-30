@@ -46,7 +46,7 @@ export class ResidentPhotosService {
       }
 
       const photo = new this.photoModel({
-        family_id: new Types.ObjectId(data.uploaded_by), // Use uploaded_by as family_id
+        family_id: resident.family_member_id, // Đúng là family_member_id của resident
         uploaded_by: new Types.ObjectId(data.uploaded_by),
         file_name: data.file_name,
         file_path: data.file_path,
@@ -89,18 +89,67 @@ export class ResidentPhotosService {
     // Step 3: Find all photos where resident_id is in the list of resident IDs
     return this.photoModel.find({
       resident_id: { $in: residentIds }
-    }).sort({ upload_date: -1 }).exec();
+    })
+      .populate('resident_id')
+      .populate('related_activity_id')
+      .populate('uploaded_by')
+      .sort({ upload_date: -1 })
+      .exec();
   }
 
   async getAllPhotos() {
-    return this.photoModel.find().sort({ upload_date: -1 }).exec();
+    return this.photoModel.find()
+      .populate('resident_id')
+      .populate('related_activity_id')
+      .populate('uploaded_by')
+      .sort({ upload_date: -1 })
+      .exec();
+  }
+
+  async findAll(family_member_id?: string) {
+    if (family_member_id) {
+      return this.getPhotos(family_member_id);
+    }
+    return this.getAllPhotos();
+  }
+
+  async findByResidentId(resident_id: string) {
+    try {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new Error('Invalid resident_id format');
+      }
+
+      const photos = await this.photoModel.find({
+        resident_id: new Types.ObjectId(resident_id)
+      })
+        .populate('resident_id', 'full_name date_of_birth gender')
+        .populate('related_activity_id', 'activity_name description activity_type')
+        .populate('uploaded_by', 'full_name position')
+        .sort({ upload_date: -1 })
+        .exec();
+
+      return photos;
+    } catch (error) {
+      console.error('Error in findByResidentId:', error);
+      throw error;
+    }
   }
 
   async getPhotoById(id: string) {
-    const photo = await this.photoModel.findById(id).exec();
+    if (!Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid photo ID format');
+    }
+    
+    const photo = await this.photoModel.findById(id)
+      .populate('resident_id')
+      .populate('related_activity_id')
+      .populate('uploaded_by')
+      .exec();
+      
     if (!photo) {
       throw new NotFoundException('Photo not found');
     }
+    
     return photo;
   }
 

@@ -65,16 +65,43 @@ export class BedAssignmentsService {
     
     return this.model
       .find(filter)
-      .populate('resident_id', 'full_name')
+      .populate('resident_id', 'full_name date_of_birth gender')
       .populate({
         path: 'bed_id',
-        select: 'bed_number room_id',
+        select: 'bed_number bed_type room_id',
         populate: {
           path: 'room_id',
-          select: 'room_number',
+          select: 'room_number room_type',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
         },
       })
       .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 })
+      .exec();
+  }
+
+  async findByResidentId(resident_id: string) {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident ID format');
+    }
+    return this.model
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
+        },
+      })
+      .populate('resident_id', 'full_name')
       .sort({ assigned_date: -1 })
       .exec();
   }

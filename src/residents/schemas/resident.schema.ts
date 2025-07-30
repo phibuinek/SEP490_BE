@@ -91,14 +91,14 @@ export class Resident {
   ] })
   relationship: string;
 
-  @Prop({ required: true })
-  medical_history: string;
+  @Prop({ type: String, required: false, default: null })
+  medical_history?: string | null;
 
-  @Prop({ type: [MedicationSchema], required: true })
-  current_medications: Medication[];
+  @Prop({ type: [MedicationSchema], required: false, default: [] })
+  current_medications?: Medication[];
 
-  @Prop({ type: [String], required: true })
-  allergies: string[];
+  @Prop({ type: [String], required: false, default: [] })
+  allergies?: string[];
 
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;

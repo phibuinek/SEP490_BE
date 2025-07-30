@@ -29,4 +29,9 @@ export class CreateVisitDto {
   @IsOptional()
   @IsEnum(['completed', 'cancelled'])
   status?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

@@ -42,7 +42,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('admin')
+  @Roles('admin', 'staff')
   @UseInterceptors(FileInterceptor('avatar', {
     storage: diskStorage({
       destination: './uploads',
@@ -62,29 +62,117 @@ export class UsersController {
   }))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Tạo user mới, có thể upload avatar',
+    description: 'Tạo user mới, có thể upload avatar. Các trường sẽ thay đổi tùy theo role.',
     schema: {
       type: 'object',
       properties: {
-        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
-        username: { type: 'string' },
-        password: { type: 'string' },
-        email: { type: 'string' },
-        role: { type: 'string' },
-        // ... các trường khác của CreateUserDto ...
+        avatar: { 
+          type: 'string', 
+          format: 'binary', 
+          description: 'Ảnh đại diện (tùy chọn)' 
+        },
+        full_name: { 
+          type: 'string', 
+          description: 'Họ tên đầy đủ (bắt buộc cho tất cả roles)' 
+        },
+        email: { 
+          type: 'string', 
+          description: 'Email (bắt buộc cho tất cả roles)' 
+        },
+        phone: { 
+          type: 'string', 
+          description: 'Số điện thoại (bắt buộc cho tất cả roles)' 
+        },
+        username: { 
+          type: 'string', 
+          description: 'Tên đăng nhập (bắt buộc cho tất cả roles)' 
+        },
+        password: { 
+          type: 'string', 
+          description: 'Mật khẩu (bắt buộc cho tất cả roles, tối thiểu 6 ký tự)' 
+        },
+        role: { 
+          type: 'string', 
+          enum: ['admin', 'staff', 'family'],
+          description: 'Vai trò người dùng (bắt buộc)' 
+        },
+        status: { 
+          type: 'string', 
+          enum: ['active', 'inactive', 'suspended', 'deleted'],
+          description: 'Trạng thái tài khoản (mặc định: active)' 
+        },
+        is_super_admin: { 
+          type: 'boolean', 
+          description: 'Có phải super admin không (chỉ dành cho admin)' 
+        },
+        position: { 
+          type: 'string', 
+          description: 'Chức vụ (chủ yếu dành cho staff)' 
+        },
+        qualification: { 
+          type: 'string', 
+          description: 'Bằng cấp/chuyên môn (chủ yếu dành cho staff)' 
+        },
+        join_date: { 
+          type: 'string', 
+          format: 'date-time',
+          description: 'Ngày vào làm (chủ yếu dành cho staff)' 
+        },
+        address: { 
+          type: 'string', 
+          description: 'Địa chỉ (dành cho tất cả roles)' 
+        },
+        notes: { 
+          type: 'string', 
+          description: 'Ghi chú (dành cho tất cả roles)' 
+        },
+        created_at: { 
+          type: 'string', 
+          format: 'date-time',
+          description: 'Ngày tạo (tự động)' 
+        },
+        updated_at: { 
+          type: 'string', 
+          format: 'date-time',
+          description: 'Ngày cập nhật (tự động)' 
+        },
       },
-      required: ['username', 'password', 'email', 'role'],
+      required: ['full_name', 'email', 'phone', 'username', 'password', 'role'],
     },
   })
-  @ApiOperation({ summary: 'Create a new user (Admin only)' })
+  @ApiOperation({ 
+    summary: 'Create a new user (Admin, Staff only)',
+    description: 'Tạo user mới với các trường khác nhau tùy theo role:\n' +
+                 '- admin: Tất cả trường\n' +
+                 '- staff: full_name, email, phone, username, password, role, position, qualification, join_date, address, notes\n' +
+                 '- family: full_name, email, phone, username, password, role, address, notes'
+  })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@UploadedFile() file: Express.Multer.File, @Body() createUserDto: CreateUserDto) {
-    if (file) {
-      createUserDto.avatar = file.path || `uploads/${file.filename}`;
+  @ApiResponse({ status: 400, description: 'Bad request - validation error.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden - admin or staff role required.' })
+  @ApiResponse({ status: 409, description: 'Conflict - username or email already exists.' })
+  create(@UploadedFile() file: Express.Multer.File, @Body() createUserDto: CreateUserDto, @Req() req: any) {
+    try {
+      console.log('[USER][CONTROLLER][CREATE] Received request with file:', file?.filename);
+      console.log('[USER][CONTROLLER][CREATE] Current user role:', req.user?.role);
+      console.log('[USER][CONTROLLER][CREATE] Request body:', JSON.stringify(createUserDto, null, 2));
+      
+      // Staff chỉ có thể tạo family members
+      if (req.user?.role === 'staff' && createUserDto.role !== 'family') {
+        throw new BadRequestException('Staff can only create family members');
+      }
+      
+      if (file) {
+        createUserDto.avatar = file.path || `uploads/${file.filename}`;
+      }
+      return this.usersService.create(createUserDto);
+    } catch (error) {
+      console.error('[USER][CONTROLLER][CREATE][ERROR]', error);
+      console.error('[USER][CONTROLLER][CREATE][ERROR] Message:', error.message);
+      console.error('[USER][CONTROLLER][CREATE][ERROR] Response:', error.response);
+      throw error;
     }
-    return this.usersService.create(createUserDto);
   }
 
   @Get()
