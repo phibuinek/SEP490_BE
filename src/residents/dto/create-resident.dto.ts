@@ -136,28 +136,44 @@ export class CreateResidentDto {
     example: 'Cao huyết áp, tiểu đường type 2',
     description: 'Medical history of the resident'
   })
+  @ApiPropertyOptional({ 
+    example: 'Cao huyết áp, tiểu đường type 2',
+    description: 'Medical history of the resident (optional)'
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  medical_history: string;
+  medical_history?: string;
 
   @ApiProperty({ 
     type: [MedicationDto], 
     example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }],
     description: 'Current medications list'
   })
+  @ApiPropertyOptional({ 
+    type: [MedicationDto], 
+    example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }],
+    description: 'Current medications list (optional)'
+  })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MedicationDto)
-  current_medications: MedicationDto[];
+  current_medications?: MedicationDto[];
 
   @ApiProperty({ 
     type: [String], 
     example: ['Dị ứng hải sản'],
     description: 'List of allergies'
   })
+  @ApiPropertyOptional({ 
+    type: [String], 
+    example: ['Dị ứng hải sản'],
+    description: 'List of allergies (optional)'
+  })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  allergies: string[];
+  allergies?: string[];
 
   @ApiProperty({ 
     type: EmergencyContactDto,

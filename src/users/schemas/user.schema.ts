@@ -63,11 +63,9 @@ export class User {
   @Prop()
   notes?: string;
 
-  @Prop({ required: true })
-  created_at: Date;
-
-  @Prop({ required: true })
-  updated_at: Date;
+  // created_at and updated_at are automatically managed by timestamps
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

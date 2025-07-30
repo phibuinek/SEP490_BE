@@ -6,6 +6,8 @@ import {
   Query,
   Req,
   UseGuards,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -42,5 +44,10 @@ export class VisitsController {
     // Nếu truyền family_member_id thì dùng, không thì lấy từ JWT
     const famId = family_member_id || req.user.userId;
     return this.visitsService.getByFamily(famId);
+  }
+
+  @Delete(':id')
+  async deleteVisit(@Param('id') id: string) {
+    return this.visitsService.deleteById(id);
   }
 }

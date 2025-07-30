@@ -28,22 +28,71 @@ export class PaymentController {
 
   @Get('success')
   @Public()
-  @ApiOperation({ summary: 'Handle payment success callback (redirect)' })
+  @ApiOperation({ summary: 'Handle payment success callback (web and mobile)' })
+  @ApiResponse({ status: 200, description: 'Payment success response.' })
   @ApiResponse({ status: 302, description: 'Redirect to frontend on success.' })
-  handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
-    // Handle successful payment logic, e.g., update order status
+  handlePaymentSuccess(@Query() query: any, @Res() res?: Response) {
+    // Handle successful payment logic
     console.log('Payment successful:', query);
-    res.redirect('http://localhost:3000/payment/success'); // Redirect to frontend
+    
+    // Kiểm tra nếu có billId để xác định platform
+    const billId = query.billId;
+    
+    // Nếu có billId, có thể là mobile callback
+    if (billId) {
+      // Return JSON response for mobile app
+      return {
+        success: true,
+        status: 'success',
+        message: 'Thanh toán thành công',
+        data: {
+          orderCode: query.orderCode,
+          transactionId: query.transactionId,
+          amount: query.amount,
+          paymentMethod: query.paymentMethod,
+          timestamp: new Date().toISOString()
+        }
+      };
+    } else {
+      // Redirect for web frontend
+      if (res) {
+        res.redirect('http://localhost:3000/payment/success');
+      }
+      return { message: 'Redirecting to web frontend' };
+    }
   }
 
   @Get('cancel')
   @Public()
-  @ApiOperation({ summary: 'Handle payment cancel callback (redirect)' })
+  @ApiOperation({ summary: 'Handle payment cancel callback (web and mobile)' })
+  @ApiResponse({ status: 200, description: 'Payment cancel response.' })
   @ApiResponse({ status: 302, description: 'Redirect to frontend on cancel.' })
-  handlePaymentCancel(@Query() query: any, @Res() res: Response) {
+  handlePaymentCancel(@Query() query: any, @Res() res?: Response) {
     // Handle cancelled payment logic
     console.log('Payment cancelled:', query);
-    res.redirect('http://localhost:3000/payment/cancel'); // Redirect to frontend
+    
+    // Kiểm tra nếu có billId để xác định platform
+    const billId = query.billId;
+    
+    // Nếu có billId, có thể là mobile callback
+    if (billId) {
+      // Return JSON response for mobile app
+      return {
+        success: false,
+        status: 'cancelled',
+        message: 'Thanh toán đã hủy',
+        data: {
+          orderCode: query.orderCode,
+          timestamp: new Date().toISOString()
+        }
+      };
+    } else {
+      // Redirect for web frontend
+      if (res) {
+        res.redirect('http://localhost:3000/payment/cancel');
+      }
+      return { message: 'Redirecting to web frontend' };
+    }
   }
 
   @Post('webhook')
@@ -52,6 +101,26 @@ export class PaymentController {
   @ApiBody({ description: 'Webhook payload', type: Object })
   @ApiResponse({ status: 200, description: 'Webhook received.' })
   handleWebhook(@Body() data: any) {
-    return this.paymentService.handlePaymentWebhook(data);
+    console.log('=== PAYOS WEBHOOK RECEIVED ===');
+    console.log('Headers:', JSON.stringify(data, null, 2));
+    console.log('Data type:', typeof data);
+    console.log('Data keys:', Object.keys(data));
+    console.log('==============================');
+    
+    try {
+      const result = this.paymentService.handlePaymentWebhook(data);
+      console.log('Webhook processed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Webhook processing error:', error);
+      throw error;
+    }
+  }
+
+  @Get('status/:billId')
+  @ApiOperation({ summary: 'Check payment status for a bill' })
+  @ApiResponse({ status: 200, description: 'Payment status retrieved.' })
+  async checkPaymentStatus(@Query('billId') billId: string) {
+    return this.paymentService.checkPaymentStatus(billId);
   }
 }

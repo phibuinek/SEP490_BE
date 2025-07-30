@@ -18,17 +18,46 @@ export class VitalSignsService {
   ): Promise<VitalSign> {
     console.log('Creating vital sign with:', { createDto, user_id });
     try {
+      // Validate that at least one vital sign value is provided
+      const hasVitalSignValues = createDto.temperature || createDto.heart_rate || createDto.blood_pressure || 
+                                createDto.respiratory_rate || createDto.oxygen_level || createDto.weight;
+      
+      if (!hasVitalSignValues) {
+        throw new Error('Phải có ít nhất một chỉ số sinh hiệu');
+      }
+
+      // Clean up the data - remove undefined values
+      const cleanData = Object.fromEntries(
+        Object.entries(createDto).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+      );
+
       const createdVitalSign = new this.vitalSignModel({
-        ...createDto,
+        ...cleanData,
         resident_id: new Types.ObjectId(createDto.resident_id),
         recorded_by: new Types.ObjectId(user_id),
-        date_time: new Date(Date.now() + 7 * 60 * 60 * 1000),
+        date_time: new Date(Date.now() + 7 * 60 * 60 * 1000), // GMT+7
       });
+      
       const result = await createdVitalSign.save();
       console.log('Created vital sign result:', result);
       return result;
     } catch (err) {
       console.error('Error saving vital sign:', err);
+      
+      // Handle specific MongoDB errors
+      if (err.code === 11000) {
+        throw new Error('Chỉ số sinh hiệu đã tồn tại');
+      }
+      
+      if (err.name === 'ValidationError') {
+        const validationErrors = Object.values(err.errors).map((e: any) => e.message);
+        throw new Error(`Lỗi validation: ${validationErrors.join(', ')}`);
+      }
+      
+      if (err.name === 'CastError') {
+        throw new Error('Dữ liệu không đúng định dạng');
+      }
+      
       throw err;
     }
   }

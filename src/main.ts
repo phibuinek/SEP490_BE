@@ -23,6 +23,8 @@ async function bootstrap() {
       whitelist: true,
       // forbidNonWhitelisted: true, // Tạm thời tắt để cho phép confirmPassword
       transform: true,
+      // Tạm thời tắt để debug
+      skipMissingProperties: true,
     }),
   );
 
