@@ -291,4 +291,34 @@ export class ActivityParticipationsService {
       throw error;
     }
   }
+
+  async findByResidentAndActivity(resident_id: string, activity_id: string): Promise<ActivityParticipation> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident_id format');
+    }
+    if (!Types.ObjectId.isValid(activity_id)) {
+      throw new BadRequestException('Invalid activity_id format');
+    }
+
+    try {
+      const participation = await this.participationModel
+        .findOne({
+          resident_id: new Types.ObjectId(resident_id),
+          activity_id: new Types.ObjectId(activity_id),
+        })
+        .populate('staff_id', 'full_name role')
+        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
+        .populate('resident_id', 'full_name room age')
+        .exec();
+
+      if (!participation) {
+        throw new NotFoundException(`Participation not found for resident ${resident_id} and activity ${activity_id}`);
+      }
+
+      return participation;
+    } catch (error) {
+      console.error('Error in findByResidentAndActivity:', error);
+      throw error;
+    }
+  }
 }

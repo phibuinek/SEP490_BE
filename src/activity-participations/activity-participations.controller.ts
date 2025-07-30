@@ -95,6 +95,33 @@ export class ActivityParticipationsController {
     }
   }
 
+  @Get('by-resident-activity')
+  @ApiOperation({ summary: 'Get activity participation by residentId and activityId' })
+  async getByResidentAndActivity(
+    @Query('resident_id') resident_id: string,
+    @Query('activity_id') activity_id: string
+  ) {
+    console.log('[by-resident-activity] resident_id:', resident_id, 'activity_id:', activity_id);
+    try {
+      // Chuyển đổi IDs sang ObjectId nếu hợp lệ
+      if (!Types.ObjectId.isValid(resident_id)) {
+        console.error('[by-resident-activity] Invalid resident_id format:', resident_id);
+        throw new BadRequestException('Invalid resident_id format');
+      }
+      if (!Types.ObjectId.isValid(activity_id)) {
+        console.error('[by-resident-activity] Invalid activity_id format:', activity_id);
+        throw new BadRequestException('Invalid activity_id format');
+      }
+      const result = await this.service.findByResidentAndActivity(resident_id, activity_id);
+      console.log('[by-resident-activity] result:', result);
+      return result;
+    } catch (err) {
+      console.error('[by-resident-activity] Error:', err.message);
+      console.error(err.stack);
+      throw err;
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single participation record by ID' })
   async findOne(@Param('id') id: string) {

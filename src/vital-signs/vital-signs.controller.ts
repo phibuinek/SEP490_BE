@@ -10,6 +10,8 @@ import {
   Request,
   Req,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { VitalSignsService } from './vital-signs.service';
 import { ResidentsService } from '../residents/residents.service';
@@ -140,10 +142,28 @@ export class VitalSignsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Delete a vital sign record' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  async remove(@Param('id') id: string, @Req() req) {
+    try {
+      console.log('=== DELETING VITAL SIGN ===');
+      console.log('Vital Sign ID:', id);
+      console.log('User role:', req.user?.role);
+      console.log('User ID:', req.user?.userId);
+      
+      const result = await this.service.remove(id);
+      console.log('Vital sign deleted successfully:', id);
+      return result;
+    } catch (error) {
+      console.error('Error deleting vital sign:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        error.message || 'Lỗi xóa chỉ số sinh hiệu',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   // Debug endpoint để kiểm tra vital signs access
