@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { StaffAssignmentsService } from './staff-assignments.service';
@@ -77,14 +78,26 @@ export class StaffAssignmentsController {
   }
 
   @Get('by-resident/:residentId')
-  @Roles(Role.ADMIN, Role.STAFF)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get staff assignments by resident ID' })
   @ApiResponse({
     status: 200,
     description: 'Staff assignments retrieved successfully.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  findByResident(@Param('residentId') residentId: string) {
+  @ApiResponse({ status: 403, description: 'Forbidden - Family members can only access their own residents.' })
+  async findByResident(@Param('residentId') residentId: string, @Req() req: any) {
+    const userRole = req.user?.role;
+    const userId = req.user?.userId;
+    
+    if (userRole === Role.FAMILY) {
+      // Verify that the family member has access to this resident
+      const resident = await this.staffAssignmentsService.findResidentById(residentId);
+      if (!resident || resident.family_member_id?.toString() !== userId) {
+        throw new ForbiddenException('Bạn không có quyền xem thông tin nhân viên phụ trách cho cư dân này');
+      }
+    }
+    
     return this.staffAssignmentsService.findByResident(residentId);
   }
 
