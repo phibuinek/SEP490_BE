@@ -246,6 +246,23 @@ export class StaffAssignmentsService {
     }
   }
 
+  async findResidentById(resident_id: string): Promise<any> {
+    try {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Invalid resident ID format');
+      }
+
+      return await this.residentModel.findById(resident_id).exec();
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to fetch resident: ${error.message}`,
+      );
+    }
+  }
+
   async update(
     id: string,
     updateStaffAssignmentDto: UpdateStaffAssignmentDto,
