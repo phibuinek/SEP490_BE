@@ -56,4 +56,11 @@ export class RoomsController {
   remove(@Param('id') id: string) {
     return this.roomsService.remove(id);
   }
+
+  @Post('update-all-statuses')
+  @Public()
+  async updateAllRoomStatuses() {
+    await this.roomsService.updateAllRoomStatuses();
+    return { message: 'All room statuses updated successfully' };
+  }
 }

@@ -6,12 +6,14 @@ import { CreateBedDto } from './dto/create-bed.dto';
 import { UpdateBedDto } from './dto/update-bed.dto';
 import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 import { BadRequestException } from '@nestjs/common';
+import { RoomsService } from '../rooms/rooms.service';
 
 @Injectable()
 export class BedsService {
   constructor(
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
     @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignmentDocument>,
+    private roomsService: RoomsService,
   ) {}
 
   async create(createBedDto: CreateBedDto): Promise<Bed> {
@@ -22,17 +24,41 @@ export class BedsService {
       ...createBedDto,
       room_id: new Types.ObjectId(createBedDto.room_id),
     };
-    return this.bedModel.create(data);
+    
+    // Tạo giường mới
+    const bed = await this.bedModel.create(data);
+    
+    // Kiểm tra và cập nhật trạng thái phòng
+    await this.roomsService.checkAndUpdateRoomStatus(createBedDto.room_id);
+    
+    return bed;
   }
 
   async findAll(): Promise<any[]> {
-    const beds = await this.bedModel.find().lean();
+    return this.findAllByStatus();
+  }
+
+  async findAllByStatus(status?: string): Promise<any[]> {
+    const beds = await this.bedModel.find().populate('room_id').lean();
     const result: any[] = [];
     for (const bed of beds) {
-      const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null });
+      const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null })
+        .populate('resident_id')
+        .lean();
       let dynamicStatus = bed.status;
       if (assignment) dynamicStatus = 'occupied';
-      result.push({ ...bed, status: dynamicStatus });
+      
+      // Nếu có filter status thì chỉ trả về bed phù hợp
+      if (!status || dynamicStatus === status) {
+        result.push({ 
+          ...bed, 
+          status: dynamicStatus,
+          is_assigned: !!assignment,
+          assignment_id: assignment?._id || null,
+          resident_id: assignment?.resident_id || null,
+          assigned_date: assignment?.assigned_date || null
+        });
+      }
     }
     return result;
   }
@@ -48,7 +74,21 @@ export class BedsService {
   }
 
   async remove(id: string): Promise<any> {
-    return this.bedModel.findByIdAndDelete(id).exec();
+    // Lấy thông tin giường trước khi xóa để biết room_id
+    const bed = await this.bedModel.findById(id);
+    if (!bed) {
+      throw new BadRequestException('Bed not found');
+    }
+    
+    const roomId = bed.room_id.toString();
+    
+    // Xóa giường
+    const result = await this.bedModel.findByIdAndDelete(id).exec();
+    
+    // Kiểm tra và reset trạng thái phòng
+    await this.roomsService.checkAndResetRoomStatus(roomId);
+    
+    return result;
   }
 
   async findByRoomIdWithStatus(room_id: string, status?: string): Promise<any[]> {

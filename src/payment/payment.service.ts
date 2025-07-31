@@ -35,12 +35,12 @@ export class PaymentService {
     // Xác định platform từ request (web hoặc mobile)
     const platform = createPaymentDto.platform || 'web'; // default là web
     
-    // URL cho từng platform
-    const returnUrl = platform === 'mobile' 
-      ? `nhms://payment/success?billId=${bill._id}&orderCode=${orderCode}` 
+    // URL cho từng platform - Sử dụng URL thực tế thay vì deep link
+    const returnUrl = platform === 'mobile' || platform === 'webview'
+      ? `https://payos.vn/payment/success?billId=${bill._id}&orderCode=${orderCode}` 
       : 'http://localhost:3000/payment/success';
-    const cancelUrl = platform === 'mobile' 
-      ? `nhms://payment/cancel?billId=${bill._id}&orderCode=${orderCode}` 
+    const cancelUrl = platform === 'mobile' || platform === 'webview'
+      ? `https://payos.vn/payment/cancel?billId=${bill._id}&orderCode=${orderCode}` 
       : 'http://localhost:3000/payment/cancel';
     
     const data = {
@@ -91,8 +91,11 @@ export class PaymentService {
   }
 
   async handlePaymentWebhook(data: any) {
-    console.log('Webhook data:', JSON.stringify(data, null, 2));
+    console.log('=== WEBHOOK RECEIVED ===');
+    console.log('Raw webhook data:', JSON.stringify(data, null, 2));
+    
     const payload = data.data || data;
+    console.log('Processed payload:', JSON.stringify(payload, null, 2));
 
     // Xử lý test data từ PayOS
     if (payload.test || data.test) {
@@ -100,48 +103,145 @@ export class PaymentService {
       return { message: 'Test webhook received successfully', status: 'test' };
     }
 
+    // Tìm bill theo nhiều cách
     let bill = null;
+    let searchMethod = '';
+
+    console.log('🔍 Searching for bill with:');
+    console.log('- paymentLinkId:', payload.paymentLinkId);
+    console.log('- orderCode:', payload.orderCode);
+    console.log('- data.orderCode:', data.orderCode);
+
+    // 1. Tìm theo paymentLinkId
     if (payload.paymentLinkId) {
       bill = await this.billModel.findOne({ payment_link_id: payload.paymentLinkId });
+      searchMethod = 'paymentLinkId';
+      console.log('🔍 Search by paymentLinkId:', payload.paymentLinkId, bill ? 'Found' : 'Not found');
     }
+    
+    // 2. Tìm theo orderCode
     if (!bill && payload.orderCode) {
       bill = await this.billModel.findOne({ order_code: payload.orderCode });
+      searchMethod = 'orderCode';
+      console.log('🔍 Search by orderCode:', payload.orderCode, bill ? 'Found' : 'Not found');
     }
+    
+    // 3. Tìm theo orderCode trong data gốc
+    if (!bill && data.orderCode) {
+      bill = await this.billModel.findOne({ order_code: data.orderCode });
+      searchMethod = 'data.orderCode';
+      console.log('🔍 Search by data.orderCode:', data.orderCode, bill ? 'Found' : 'Not found');
+    }
+
     if (!bill) {
-      console.error('Cannot find bill by paymentLinkId or orderCode');
-      console.error('Available data:', { paymentLinkId: payload.paymentLinkId, orderCode: payload.orderCode });
+      console.error('❌ Cannot find bill!');
+      console.error('Search methods tried:', searchMethod);
+      console.error('Available data:', { 
+        paymentLinkId: payload.paymentLinkId, 
+        orderCode: payload.orderCode,
+        dataOrderCode: data.orderCode 
+      });
       
-      // Thay vì throw error, return success để PayOS không retry
+      // Log tất cả bills để debug
+      const allBills = await this.billModel.find({}, 'order_code payment_link_id _id').limit(10);
+      console.error('Recent bills in DB:', allBills);
+      
       return { 
         message: 'Bill not found, but webhook received successfully', 
         status: 'bill_not_found',
         data: { paymentLinkId: payload.paymentLinkId, orderCode: payload.orderCode }
       };
     }
+
+    console.log('✅ Bill found:', {
+      billId: (bill as any)._id,
+      orderCode: (bill as any).order_code,
+      paymentLinkId: (bill as any).payment_link_id,
+      currentStatus: (bill as any).status
+    });
+
     const billId = String((bill as any)._id);
 
+    // Xác định trạng thái mới
     let newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled' = 'pending';
-    if (data.status === 'PAID' || payload.status === 'PAID' || data.code === '00') newStatus = 'paid';
+    const statusIndicators = [
+      data.status, payload.status, data.code, payload.code,
+      data.paymentStatus, payload.paymentStatus
+    ];
+    
+    console.log('Status indicators:', statusIndicators);
+    
+    if (statusIndicators.some(status => 
+      status === 'PAID' || status === 'paid' || status === '00' || status === 0
+    )) {
+      newStatus = 'paid';
+    }
 
-    await this.billModel.findByIdAndUpdate(
-      billId,
-      { status: newStatus, paid_date: new Date() },
-      { new: true }
-    );
+    console.log('🔄 Updating bill status:', { from: (bill as any).status, to: newStatus });
 
-    if (payload.amount && payload.payment_method && payload.reference) {
-      const existing = await this.paymentModel.findOne({ transaction_id: payload.reference });
+    // Cập nhật bill sử dụng method riêng
+    const updatedBill = await this.updateBillStatus(billId, newStatus);
+
+    // Tạo payment record nếu có thông tin
+    if (payload.amount || data.amount) {
+      const paymentData = {
+        bill_id: billId,
+        amount: payload.amount || data.amount,
+        payment_method: 'qr_payment', // Luôn sử dụng qr_payment cho PayOS
+        transaction_id: payload.reference || payload.transaction_id || data.reference || data.transaction_id || `PAY_${Date.now()}`,
+        status: newStatus,
+      };
+
+      const existing = await this.paymentModel.findOne({ transaction_id: paymentData.transaction_id });
       if (!existing) {
-        await this.paymentModel.create({
-          bill_id: billId,
-          amount: payload.amount,
-          payment_method: payload.payment_method,
-          transaction_id: payload.reference,
-          status: newStatus,
-        });
+        const payment = await this.paymentModel.create(paymentData);
+        console.log('✅ Payment record created:', payment._id);
+      } else {
+        console.log('ℹ️ Payment record already exists');
       }
     }
-    return { message: 'Webhook processed', status: newStatus };
+
+    console.log('=== WEBHOOK PROCESSED SUCCESSFULLY ===');
+    return { 
+      message: 'Webhook processed successfully', 
+      status: newStatus,
+      billId: billId
+    };
+  }
+
+  // Method riêng để update bill status
+  async updateBillStatus(billId: string, status: 'pending' | 'paid' | 'overdue' | 'cancelled', paidDate?: Date) {
+    try {
+      const updateData: any = { status };
+      
+      // Chỉ update paid_date khi status = 'paid'
+      if (status === 'paid') {
+        updateData.paid_date = paidDate || new Date();
+      } else if (status === 'pending') {
+        updateData.paid_date = null; // Reset paid_date khi chuyển về pending
+      }
+
+      const updatedBill = await this.billModel.findByIdAndUpdate(
+        billId,
+        updateData,
+        { new: true }
+      );
+
+      if (!updatedBill) {
+        throw new Error(`Bill with ID ${billId} not found`);
+      }
+
+      console.log('✅ Bill status updated successfully:', {
+        billId: updatedBill._id,
+        newStatus: updatedBill.status,
+        paidDate: updatedBill.paid_date
+      });
+
+      return updatedBill;
+    } catch (error) {
+      console.error('❌ Error updating bill status:', error);
+      throw error;
+    }
   }
 
   async checkPaymentStatus(billId: string) {

@@ -32,17 +32,25 @@ export class BedAssignmentsController {
   @Get()
   @ApiQuery({ name: 'bed_id', required: false })
   @ApiQuery({ name: 'resident_id', required: false })
+  @ApiQuery({ name: 'include_inactive', required: false, description: 'Include inactive assignments (admin/staff only)' })
   async findAll(
     @Req() req,
     @Query('bed_id') bed_id?: string,
     @Query('resident_id') resident_id?: string,
+    @Query('include_inactive') include_inactive?: string,
   ) {
     const userRole = req.user?.role;
     if (userRole === Role.FAMILY) {
       throw new ForbiddenException('Family cannot view all bed assignments');
     }
+    
     // STAFF/ADMIN: xem toàn bộ hoặc lọc theo bed_id/resident_id nếu có
-    return this.service.findAll(bed_id, resident_id);
+    const includeInactive = include_inactive === 'true';
+    if (includeInactive) {
+      return this.service.findAllIncludingInactive(bed_id, resident_id);
+    } else {
+      return this.service.findAll(bed_id, resident_id, true); // activeOnly = true
+    }
   }
 
   @Get('by-resident')

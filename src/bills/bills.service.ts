@@ -46,7 +46,32 @@ export class BillsService {
   }
 
   async findAll(): Promise<Bill[]> {
-    return this.billModel.find().exec();
+    return this.billModel.find()
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .sort({ created_at: -1 })
+      .exec();
   }
 
   async findOne(id: string): Promise<Bill> {
@@ -163,6 +188,39 @@ export class BillsService {
         ],
       })
       .sort({ due_date: -1 })
+      .exec();
+  }
+
+  async findByStaffId(staffId: string): Promise<Bill[]> {
+    if (!Types.ObjectId.isValid(staffId)) {
+      throw new BadRequestException('Invalid staff ID format');
+    }
+    return this.billModel
+      .find({ staff_id: new Types.ObjectId(staffId) })
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .sort({ created_at: -1 })
       .exec();
   }
 }

@@ -57,6 +57,13 @@ export class BillsController {
     return this.billsService.findByFamilyMemberId(family_member_id);
   }
 
+  @Get('staff/:staffId')
+  @ApiOperation({ summary: 'Get bills by staff_id' })
+  @ApiResponse({ status: 200, description: 'List of bills created by the staff.' })
+  async getBillsByStaff(@Param('staffId') staffId: string) {
+    return this.billsService.findByStaffId(staffId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get bill by ID' })
   @ApiResponse({ status: 200, description: 'Get bill by ID.' })
@@ -70,7 +77,23 @@ export class BillsController {
   @ApiResponse({ status: 200, description: 'Bill updated.' })
   @ApiResponse({ status: 404, description: 'Bill not found.' })
   update(@Param('id') id: string, @Body() updateBillDto: UpdateBillDto) {
-    return this.billsService.update(id, updateBillDto);
+    console.log('=== BILL UPDATE REQUEST ===');
+    console.log('Bill ID:', id);
+    console.log('Update data:', JSON.stringify(updateBillDto, null, 2));
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('==========================');
+    
+    return this.billsService.update(id, updateBillDto).then(result => {
+      console.log('✅ Bill updated successfully:', {
+        billId: result._id,
+        newStatus: result.status,
+        paidDate: result.paid_date
+      });
+      return result;
+    }).catch(error => {
+      console.error('❌ Bill update failed:', error);
+      throw error;
+    });
   }
 
   @Delete(':id')
