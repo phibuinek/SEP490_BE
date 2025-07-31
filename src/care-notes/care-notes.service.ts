@@ -185,7 +185,8 @@ export class CareNotesService {
         select: 'full_name date_of_birth gender',
       })
       .exec();
-=======
+  }
+
   async findOne(id: string) {
     try {
       console.log('=== FINDING ASSESSMENT BY ID ===');
