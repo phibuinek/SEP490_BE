@@ -50,15 +50,57 @@ export class StaffAssignmentsService {
         throw new NotFoundException('Resident not found');
       }
 
-      // Check if assignment already exists
-      const existingAssignment = await this.staffAssignmentModel.findOne({
+      // Check if active assignment already exists
+      const existingActiveAssignment = await this.staffAssignmentModel.findOne({
         staff_id: new Types.ObjectId(staff_id),
         resident_id: new Types.ObjectId(resident_id),
         status: AssignmentStatus.ACTIVE,
       });
 
-      if (existingAssignment) {
-        throw new ConflictException('Staff is already assigned to this resident');
+      if (existingActiveAssignment) {
+        throw new ConflictException('Staff is already actively assigned to this resident');
+      }
+
+      // If there's an expired assignment, update it instead of creating a new one
+      const existingExpiredAssignment = await this.staffAssignmentModel.findOne({
+        staff_id: new Types.ObjectId(staff_id),
+        resident_id: new Types.ObjectId(resident_id),
+        status: AssignmentStatus.EXPIRED,
+      });
+
+      if (existingExpiredAssignment) {
+        // Update the expired assignment to active
+        const updatedAssignment = await this.staffAssignmentModel
+          .findByIdAndUpdate(
+            existingExpiredAssignment._id,
+            {
+              assigned_by: new Types.ObjectId(admin_id),
+              assigned_date: new Date(),
+              end_date: createStaffAssignmentDto.end_date
+                ? new Date(createStaffAssignmentDto.end_date)
+                : null,
+              status: AssignmentStatus.ACTIVE,
+              responsibilities: createStaffAssignmentDto.responsibilities || [
+                'vital_signs',
+                'care_notes',
+                'activities',
+                'photos',
+              ],
+              notes: createStaffAssignmentDto.notes || null,
+              updated_at: new Date(),
+            },
+            { new: true }
+          )
+          .populate('staff_id', 'full_name email role avatar')
+          .populate('resident_id', 'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar')
+          .populate('assigned_by', 'full_name email')
+          .exec();
+
+        if (!updatedAssignment) {
+          throw new BadRequestException('Failed to update expired assignment');
+        }
+
+        return updatedAssignment;
       }
 
       const createdAssignment = new this.staffAssignmentModel({
