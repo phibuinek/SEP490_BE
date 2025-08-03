@@ -248,4 +248,15 @@ export class UsersService {
     const user = await this.userModel.findById(new Types.ObjectId(id)).exec();
     return user?.password;
   }
+
+  async deleteUser(id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid user id');
+    
+    const user = await this.userModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
 }

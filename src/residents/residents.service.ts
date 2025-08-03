@@ -318,13 +318,28 @@ export class ResidentsService {
     // First, unassign bed if any
     await this.unassignBedFromResident(id);
 
+    // Find the resident to get family_member_id before deletion
+    const resident = await this.residentModel.findById(id);
+    if (!resident) {
+      throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+
+    // Store family_member_id for reference (but don't delete the user account)
+    const familyMemberId = resident.family_member_id;
+
+    // Delete only the resident record, NOT the associated family member account
     const deletedResident = await this.residentModel
       .findByIdAndDelete(id)
       .exec();
-    if (!deletedResident) {
-      throw new NotFoundException(`Resident with ID ${id} not found`);
-    }
-    return { deleted: true, _id: id };
+
+    console.log(`[RESIDENT][DELETE] Deleted resident ${id}. Family member account ${familyMemberId} remains intact.`);
+
+    return { 
+      deleted: true, 
+      _id: id,
+      message: 'Resident deleted successfully. Family member account remains active.',
+      family_member_id: familyMemberId
+    };
   }
 
   async assignBed(resident_id: string, bed_id: string): Promise<Bed> {

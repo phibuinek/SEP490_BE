@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Delete,
   UseGuards,
   Query,
   Req,
@@ -468,5 +469,16 @@ export class UsersController {
     const updated = await this.usersService.updateUserById(id, { role: body.role as import('./schemas/user.schema').UserRole, updated_at: new Date() });
     const user: any = updated;
     return { _id: user._id, role: user.role, updated_at: user.updated_at };
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Delete user by ID (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async deleteUser(@Param('id') id: string) {
+    const deleted = await this.usersService.deleteUser(id);
+    return { message: 'User deleted successfully', _id: (deleted as any)._id };
   }
 }

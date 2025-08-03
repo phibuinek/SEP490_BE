@@ -31,11 +31,6 @@ export class VitalSignsService {
     console.log('Respiratory rate type:', typeof createDto.respiratory_rate, 'value:', createDto.respiratory_rate);
     console.log('Weight type:', typeof createDto.weight, 'value:', createDto.weight);
     
-    // Validate resident_id - temporarily disabled for testing
-    // if (!createDto.resident_id || createDto.resident_id.trim() === '') {
-    //   console.log('❌ Resident ID is missing or empty');
-    //   throw new Error('ID người cao tuổi là bắt buộc');
-    // }
 
     // Validate blood pressure format if provided
     if (createDto.blood_pressure && createDto.blood_pressure.trim() !== '') {
