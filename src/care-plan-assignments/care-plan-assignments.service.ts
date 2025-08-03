@@ -398,4 +398,72 @@ export class CarePlanAssignmentsService {
       );
     }
   }
+
+  /**
+   * Renew a paused care plan assignment by updating its end date and reactivating it
+   */
+  async renewAssignment(id: string, newEndDate: string): Promise<CarePlanAssignment> {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid ID format');
+      }
+
+      // Validate the assignment exists and is paused
+      const assignment = await this.carePlanAssignmentModel.findById(id);
+      if (!assignment) {
+        throw new NotFoundException(
+          `Care plan assignment with ID ${id} not found`,
+        );
+      }
+
+      if (assignment.status !== 'paused') {
+        throw new BadRequestException('Only paused assignments can be renewed');
+      }
+
+      // Validate the new end date
+      const newEndDateObj = new Date(newEndDate);
+      const now = new Date();
+      
+      if (newEndDateObj <= now) {
+        throw new BadRequestException('New end date must be in the future');
+      }
+
+      // Update the assignment with new end date and reactivate it
+      const updatedAssignment = await this.carePlanAssignmentModel
+        .findByIdAndUpdate(
+          id,
+          { 
+            end_date: newEndDateObj,
+            status: 'active',
+            updated_at: new Date() 
+          },
+          { new: true, runValidators: true },
+        )
+        .populate('staff_id', 'name email')
+        .populate('resident_id', 'name date_of_birth')
+        .populate('family_member_id', 'name email')
+        .populate('care_plan_ids', 'name description price')
+        .populate('assigned_room_id', 'room_number floor')
+        .populate('assigned_bed_id', 'bed_number')
+        .exec();
+
+      if (!updatedAssignment) {
+        throw new NotFoundException(
+          `Care plan assignment with ID ${id} not found`,
+        );
+      }
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to renew assignment: ${error.message}`,
+      );
+    }
+  }
 }
