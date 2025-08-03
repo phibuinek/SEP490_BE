@@ -401,9 +401,9 @@ export class CarePlanAssignmentsService {
 
   /**
    * Renew a paused care plan assignment by updating its start date, end date and reactivating it
-   * This creates a new service cycle starting from the current date
+   * This creates a new service cycle starting from the specified start date or current date
    */
-  async renewAssignment(id: string, newEndDate: string): Promise<CarePlanAssignment> {
+  async renewAssignment(id: string, newEndDate: string, newStartDate?: string): Promise<CarePlanAssignment> {
     try {
       if (!Types.ObjectId.isValid(id)) {
         throw new BadRequestException('Invalid ID format');
@@ -429,12 +429,26 @@ export class CarePlanAssignmentsService {
         throw new BadRequestException('New end date must be in the future');
       }
 
+      // Validate and set the new start date
+      let newStartDateObj: Date;
+      if (newStartDate) {
+        newStartDateObj = new Date(newStartDate);
+        if (newStartDateObj >= newEndDateObj) {
+          throw new BadRequestException('Start date must be before end date');
+        }
+        if (newStartDateObj < now) {
+          throw new BadRequestException('Start date cannot be in the past');
+        }
+      } else {
+        newStartDateObj = now; // Default to current date
+      }
+
       // Update the assignment with new start date, end date and reactivate it
       const updatedAssignment = await this.carePlanAssignmentModel
         .findByIdAndUpdate(
           id,
           { 
-            start_date: new Date(), // Set new start date to current date
+            start_date: newStartDateObj,
             end_date: newEndDateObj,
             status: 'active',
             updated_at: new Date() 

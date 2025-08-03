@@ -218,7 +218,11 @@ export class CarePlanAssignmentsController {
     @Param('id') id: string,
     @Body() renewAssignmentDto: RenewAssignmentDto,
   ) {
-    return this.carePlanAssignmentsService.renewAssignment(id, renewAssignmentDto.newEndDate);
+    return this.carePlanAssignmentsService.renewAssignment(
+      id, 
+      renewAssignmentDto.newEndDate,
+      renewAssignmentDto.newStartDate
+    );
   }
 
   @Post('check-expired')
