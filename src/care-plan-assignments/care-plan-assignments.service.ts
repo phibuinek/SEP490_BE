@@ -400,7 +400,8 @@ export class CarePlanAssignmentsService {
   }
 
   /**
-   * Renew a paused care plan assignment by updating its end date and reactivating it
+   * Renew a paused care plan assignment by updating its start date, end date and reactivating it
+   * This creates a new service cycle starting from the current date
    */
   async renewAssignment(id: string, newEndDate: string): Promise<CarePlanAssignment> {
     try {
@@ -428,11 +429,12 @@ export class CarePlanAssignmentsService {
         throw new BadRequestException('New end date must be in the future');
       }
 
-      // Update the assignment with new end date and reactivate it
+      // Update the assignment with new start date, end date and reactivate it
       const updatedAssignment = await this.carePlanAssignmentModel
         .findByIdAndUpdate(
           id,
           { 
+            start_date: new Date(), // Set new start date to current date
             end_date: newEndDateObj,
             status: 'active',
             updated_at: new Date() 
