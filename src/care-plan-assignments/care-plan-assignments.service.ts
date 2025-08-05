@@ -404,6 +404,68 @@ export class CarePlanAssignmentsService {
    * This creates a new service cycle starting from the specified start date or current date
    * @param selectedCarePlanIds Optional array of care plan IDs to renew. If not provided, all care plans will be renewed.
    */
+  async removePackage(id: string, packageId: string): Promise<CarePlanAssignment> {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid assignment ID format');
+      }
+      if (!Types.ObjectId.isValid(packageId)) {
+        throw new BadRequestException('Invalid package ID format');
+      }
+
+      // Find the assignment
+      const assignment = await this.carePlanAssignmentModel.findById(id);
+      if (!assignment) {
+        throw new NotFoundException(`Care plan assignment with ID ${id} not found`);
+      }
+
+      // Check if package exists in the assignment
+      const packageObjectId = new Types.ObjectId(packageId);
+      const packageIndex = assignment.care_plan_ids.findIndex(
+        (cp: Types.ObjectId) => cp.equals(packageObjectId)
+      );
+
+      if (packageIndex === -1) {
+        throw new BadRequestException(`Package with ID ${packageId} not found in this assignment`);
+      }
+
+      // Remove the package
+      assignment.care_plan_ids.splice(packageIndex, 1);
+      assignment.updated_at = new Date();
+
+      // If no packages left, delete the assignment
+      if (assignment.care_plan_ids.length === 0) {
+        await this.carePlanAssignmentModel.findByIdAndDelete(id);
+        return assignment;
+      }
+
+      // Save the updated assignment
+      const updatedAssignment = await assignment.save();
+      
+      // Populate the response
+      const populatedAssignment = await this.carePlanAssignmentModel
+        .findById(updatedAssignment._id)
+        .populate('staff_id', 'name email')
+        .populate('resident_id', 'name date_of_birth')
+        .populate('family_member_id', 'name email')
+        .populate('care_plan_ids', 'name description price')
+        .populate('assigned_room_id', 'room_number floor')
+        .populate('assigned_bed_id', 'bed_number')
+        .exec();
+
+      if (!populatedAssignment) {
+        throw new NotFoundException(`Failed to populate updated assignment with ID ${updatedAssignment._id}`);
+      }
+
+      return populatedAssignment;
+    } catch (error: any) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to remove package: ${error.message}`);
+    }
+  }
+
   async renewAssignment(id: string, newEndDate: string, newStartDate?: string, selectedCarePlanIds?: string[]): Promise<CarePlanAssignment> {
     try {
       if (!Types.ObjectId.isValid(id)) {

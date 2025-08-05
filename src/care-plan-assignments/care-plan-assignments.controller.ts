@@ -226,6 +226,23 @@ export class CarePlanAssignmentsController {
     );
   }
 
+  @Patch(':id/remove-package')
+  @Roles(Role.STAFF, Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove a specific care plan from assignment' })
+  @ApiParam({ name: 'id', description: 'Care plan assignment ID' })
+  @ApiResponse({ status: 200, description: 'Package removed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Care plan assignment not found' })
+  removePackage(
+    @Param('id') id: string,
+    @Body() body: { packageId: string },
+  ) {
+    return this.carePlanAssignmentsService.removePackage(id, body.packageId);
+  }
+
   @Post('check-expired')
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
