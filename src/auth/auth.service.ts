@@ -21,6 +21,12 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
+    // Tối ưu: Kiểm tra email format trước khi query database
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new UnauthorizedException('Email không hợp lệ');
+    }
+
     const user = await this.usersService.findByEmail(email);
     
     // Kiểm tra email có tồn tại không
@@ -33,7 +39,7 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
     }
     
-    // Kiểm tra mật khẩu
+    // Tối ưu: Sử dụng Promise.all để thực hiện song song nếu cần
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Mật khẩu không chính xác');

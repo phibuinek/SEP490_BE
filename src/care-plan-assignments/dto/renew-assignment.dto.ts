@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsDateString, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsOptional, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RenewAssignmentDto {
@@ -20,4 +20,15 @@ export class RenewAssignmentDto {
   @IsNotEmpty()
   @IsDateString()
   newEndDate: string;
+
+  @ApiProperty({
+    description: 'Array of care plan IDs to renew (optional, if not provided, all care plans will be renewed)',
+    example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+    required: false,
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  selectedCarePlanIds?: string[];
 } 

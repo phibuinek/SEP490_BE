@@ -221,7 +221,8 @@ export class CarePlanAssignmentsController {
     return this.carePlanAssignmentsService.renewAssignment(
       id, 
       renewAssignmentDto.newEndDate,
-      renewAssignmentDto.newStartDate
+      renewAssignmentDto.newStartDate,
+      renewAssignmentDto.selectedCarePlanIds
     );
   }
 
