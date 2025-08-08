@@ -69,20 +69,15 @@ export class VitalSignsController {
     console.log('User role:', user?.role);
     console.log('User ID:', user?.userId);
     
-    // Temporarily allow staff to see all vital signs for testing
-    console.log('Calling findAll for all users (temporarily)');
-    return this.service.findAll();
+    // If staff, only return vital signs for assigned residents
+    if (user?.role === Role.STAFF) {
+      console.log('Calling findAllByStaffId for staff user');
+      return this.service.findAllByStaffId(user.userId);
+    }
     
-    // Original code (commented out for testing):
-    // // If staff, only return vital signs for assigned residents
-    // if (user?.role === Role.STAFF) {
-    //   console.log('Calling findAllByStaffId for staff user');
-    //   return this.service.findAllByStaffId(user.userId);
-    // }
-    // 
-    // // If admin, return all vital signs
-    // console.log('Calling findAll for admin user');
-    // return this.service.findAll();
+    // If admin, return all vital signs
+    console.log('Calling findAll for admin user');
+    return this.service.findAll();
   }
 
   @Get('resident/:resident_id')

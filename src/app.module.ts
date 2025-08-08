@@ -61,6 +61,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
 
+
 @Module({
   imports: [
     (() => {
@@ -91,6 +92,7 @@ import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.mo
     RoomsModule,
     BedAssignmentsModule,
     StaffAssignmentsModule,
+    
   ],
   controllers: [AppController],
   providers: [

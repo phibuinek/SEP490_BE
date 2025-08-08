@@ -30,7 +30,40 @@ export class BillsService {
       paid_date: null,
     });
     try {
-      return await newBill.save();
+      const savedBill = await newBill.save();
+      // Populate thông tin đầy đủ trước khi trả về
+      const populatedBill = await this.billModel
+        .findById(savedBill._id)
+        .populate('family_member_id', 'full_name email')
+        .populate('resident_id', 'full_name')
+        .populate('staff_id', 'full_name')
+        .populate({
+          path: 'care_plan_assignment_id',
+          populate: [
+            {
+              path: 'care_plan_ids',
+              model: 'CarePlan',
+              select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            },
+            {
+              path: 'assigned_room_id',
+              model: 'Room',
+              select: 'room_number room_type floor',
+            },
+            {
+              path: 'assigned_bed_id',
+              model: 'Bed',
+              select: 'bed_number bed_type',
+            },
+          ],
+        })
+        .exec();
+      
+      if (!populatedBill) {
+        throw new NotFoundException('Failed to populate bill after creation');
+      }
+      
+      return populatedBill;
     } catch (err) {
       // Log chi tiết lỗi MongoDB
       console.error('MongoDB Error when creating bill:', err);
@@ -46,7 +79,33 @@ export class BillsService {
   }
 
   async findAll(): Promise<Bill[]> {
-    return this.billModel.find().exec();
+    return this.billModel
+      .find()
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .sort({ due_date: -1 })
+      .exec();
   }
 
   async findOne(id: string): Promise<Bill> {
@@ -84,6 +143,29 @@ export class BillsService {
   async update(id: string, updateBillDto: UpdateBillDto): Promise<Bill> {
     const bill = await this.billModel
       .findByIdAndUpdate(id, updateBillDto, { new: true })
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
       .exec();
     if (!bill) {
       throw new NotFoundException(`Bill #${id} not found`);
