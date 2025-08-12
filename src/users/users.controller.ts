@@ -299,6 +299,71 @@ export class UsersController {
 
   @Patch(':id')
   @Roles('admin', 'staff')
+  @ApiOperation({ summary: 'Update user by ID (Admin, Staff only) - Basic info only' })
+  @ApiResponse({ status: 200, description: 'User updated successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async updateUserById(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto
+  ) {
+    try {
+      console.log('PATCH /users/:id - Input:', { id, updateUserDto });
+      
+      // Validate input
+      if (!id || id.trim() === '') {
+        throw new BadRequestException('User ID is required');
+      }
+      
+      // Chỉ cho phép cập nhật các trường hợp lệ
+      const allowedFields = ['full_name', 'email', 'phone', 'notes', 'address', 'position', 'qualification', 'join_date'];
+      const filteredDto: any = {};
+      for (const key of allowedFields) {
+        if (updateUserDto[key] !== undefined && updateUserDto[key] !== null && updateUserDto[key] !== '') {
+          filteredDto[key] = updateUserDto[key];
+        }
+      }
+      
+      // Kiểm tra xem có dữ liệu nào để cập nhật không
+      if (Object.keys(filteredDto).length === 0) {
+        throw new BadRequestException('No valid fields to update');
+      }
+      
+      filteredDto.updated_at = new Date();
+      
+      console.log('PATCH /users/:id - Filtered DTO:', filteredDto);
+      
+      const updated = await this.usersService.updateUserById(id, filteredDto);
+      if (!updated) {
+        throw new NotFoundException('User not found');
+      }
+      
+      const user: any = updated;
+      const baseFields = {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        notes: user.notes,
+        address: user.address,
+        role: user.role,
+        status: user.status,
+        updated_at: user.updated_at
+      };
+      
+      if (user.role === 'staff') {
+        return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
+      }
+      return baseFields;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  @Patch(':id/with-avatar')
+  @Roles('admin', 'staff')
   @UseInterceptors(FileInterceptor('avatar', {
     storage: diskStorage({
       destination: './uploads',
@@ -316,48 +381,58 @@ export class UsersController {
     },
     limits: { fileSize: 5 * 1024 * 1024 },
   }))
-  @ApiOperation({ summary: 'Update user by ID (Admin, Staff only)' })
+  @ApiOperation({ summary: 'Update user by ID with avatar (Admin, Staff only)' })
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async updateUserById(
+  async updateUserByIdWithAvatar(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() updateUserDto: UpdateUserDto
   ) {
-    if (file) {
-      updateUserDto.avatar = file.path || `uploads/${file.filename}`;
-    }
-    // Chỉ cho phép cập nhật các trường hợp lệ
-    const allowedFields = ['full_name', 'email', 'phone', 'avatar', 'notes', 'address', 'position', 'qualification'];
-    const filteredDto: any = {};
-    for (const key of allowedFields) {
-      if (updateUserDto[key] !== undefined) {
-        filteredDto[key] = updateUserDto[key];
+    try {
+      // Xử lý file avatar nếu có
+      if (file) {
+        updateUserDto.avatar = file.path || `uploads/${file.filename}`;
       }
+      
+      // Chỉ cho phép cập nhật các trường hợp lệ
+      const allowedFields = ['full_name', 'email', 'phone', 'avatar', 'notes', 'address', 'position', 'qualification', 'join_date'];
+      const filteredDto: any = {};
+      for (const key of allowedFields) {
+        if (updateUserDto[key] !== undefined) {
+          filteredDto[key] = updateUserDto[key];
+        }
+      }
+      filteredDto.updated_at = new Date();
+      
+      const updated = await this.usersService.updateUserById(id, filteredDto);
+      if (!updated) {
+        throw new NotFoundException('User not found');
+      }
+      
+      const user: any = updated;
+      const baseFields = {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        notes: user.notes,
+        address: user.address,
+        role: user.role,
+        status: user.status,
+        updated_at: user.updated_at
+      };
+      
+      if (user.role === 'staff') {
+        return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
+      }
+      return baseFields;
+    } catch (error) {
+      console.error('Error updating user with avatar:', error);
+      throw error;
     }
-    filteredDto.updated_at = new Date();
-    const updated = await this.usersService.updateUserById(id, filteredDto);
-    if (!updated) {
-      throw new NotFoundException('User not found');
-    }
-    const user: any = updated;
-    const baseFields = {
-      _id: user._id,
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      avatar: user.avatar,
-      notes: user.notes,
-      address: user.address,
-      role: user.role,
-      status: user.status,
-      updated_at: user.updated_at
-    };
-    if (user.role === 'staff') {
-      return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
-    }
-    return baseFields;
   }
 
   @Patch(':id/avatar')

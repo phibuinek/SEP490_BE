@@ -28,7 +28,7 @@ export class CreateActivityParticipationDto {
   @ApiProperty({ example: '2024-03-02T00:00:00Z' })
   @IsDateString()
   @IsNotEmpty()
-  date: Date;
+  date: string;
 
   @ApiProperty({ example: 'Tham gia tích cực, tinh thần tốt', required: false })
   @IsString()

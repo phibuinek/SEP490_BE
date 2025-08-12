@@ -32,22 +32,21 @@ export class StaffAssignmentsService {
     req: any,
   ): Promise<StaffAssignment> {
     try {
-      const { staff_id, resident_id } = createStaffAssignmentDto;
-      const admin_id = req.user.user_id;
+      const { staff_id, resident_id, assigned_date, assigned_by } = createStaffAssignmentDto;
 
       // Validate staff exists and is actually a staff
       const staff = await this.userModel.findById(staff_id);
       if (!staff) {
-        throw new NotFoundException('Staff not found');
+        throw new NotFoundException('Không tìm thấy thông tin nhân viên');
       }
       if (staff.role !== 'staff') {
-        throw new BadRequestException('User is not a staff member');
+        throw new BadRequestException('Người dùng này không phải là nhân viên');
       }
 
       // Validate resident exists
       const resident = await this.residentModel.findById(resident_id);
       if (!resident) {
-        throw new NotFoundException('Resident not found');
+        throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
       }
 
       // Check if active assignment already exists
@@ -58,7 +57,7 @@ export class StaffAssignmentsService {
       });
 
       if (existingActiveAssignment) {
-        throw new ConflictException('Staff is already actively assigned to this resident');
+        throw new ConflictException('Nhân viên đã được phân công cho người cao tuổi này');
       }
 
       // If there's an expired assignment, update it instead of creating a new one
@@ -70,83 +69,30 @@ export class StaffAssignmentsService {
 
       if (existingExpiredAssignment) {
         // Update the expired assignment to active
-        const updatedAssignment = await this.staffAssignmentModel
-          .findByIdAndUpdate(
-            existingExpiredAssignment._id,
-            {
-              assigned_by: new Types.ObjectId(admin_id),
-              assigned_date: new Date(),
-              end_date: createStaffAssignmentDto.end_date
-                ? new Date(createStaffAssignmentDto.end_date)
-                : null,
-              status: AssignmentStatus.ACTIVE,
-              responsibilities: createStaffAssignmentDto.responsibilities || [
-                'vital_signs',
-                'care_notes',
-                'activities',
-                'photos',
-              ],
-              notes: createStaffAssignmentDto.notes || null,
-              updated_at: new Date(),
-            },
-            { new: true }
-          )
-          .populate('staff_id', 'full_name email role avatar')
-          .populate('resident_id', 'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar')
-          .populate('assigned_by', 'full_name email')
-          .exec();
-
-        if (!updatedAssignment) {
-          throw new BadRequestException('Failed to update expired assignment');
-        }
-
-        return updatedAssignment;
+        existingExpiredAssignment.status = AssignmentStatus.ACTIVE;
+        existingExpiredAssignment.updated_at = new Date();
+        return await existingExpiredAssignment.save();
       }
 
-      const createdAssignment = new this.staffAssignmentModel({
-        ...createStaffAssignmentDto,
+      // Create new assignment
+      const assignment = new this.staffAssignmentModel({
         staff_id: new Types.ObjectId(staff_id),
         resident_id: new Types.ObjectId(resident_id),
-        assigned_by: new Types.ObjectId(admin_id),
-        assigned_date: new Date(),
-        end_date: createStaffAssignmentDto.end_date
-          ? new Date(createStaffAssignmentDto.end_date)
-          : null,
+        assigned_by: new Types.ObjectId(assigned_by),
+        assigned_date: new Date(assigned_date),
+        end_date: createStaffAssignmentDto.end_date ? new Date(createStaffAssignmentDto.end_date) : null,
         status: createStaffAssignmentDto.status || AssignmentStatus.ACTIVE,
-        responsibilities: createStaffAssignmentDto.responsibilities || [
-          'vital_signs',
-          'care_notes',
-          'activities',
-          'photos',
-        ],
+        notes: createStaffAssignmentDto.notes || null,
+        responsibilities: createStaffAssignmentDto.responsibilities || [],
         created_at: new Date(),
         updated_at: new Date(),
       });
 
-      const savedAssignment = await createdAssignment.save();
-      
-      // Populate the saved assignment with related data
-      const populatedAssignment = await this.staffAssignmentModel
-        .findById(savedAssignment._id)
-        .populate('staff_id', 'full_name email role avatar')
-        .populate('resident_id', 'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar')
-        .populate('assigned_by', 'full_name email')
-        .exec();
-        
-      if (!populatedAssignment) {
-        throw new BadRequestException('Failed to populate created assignment');
-      }
-      
-      return populatedAssignment;
-    } catch (error: any) {
-      if (error instanceof NotFoundException || 
-          error instanceof BadRequestException || 
-          error instanceof ConflictException) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to create staff assignment: ${error.message}`,
-      );
+      const savedAssignment = await assignment.save();
+      return savedAssignment;
+    } catch (error) {
+      console.error('Error creating staff assignment:', error);
+      throw error;
     }
   }
 

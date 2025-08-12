@@ -23,11 +23,12 @@ export class CreateBillDto {
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1c',
-    description: 'ID của care plan assignment',
+    description: 'ID của care plan assignment (có thể null để tính tổng tất cả)',
+    required: false,
   })
   @IsMongoId()
-  @IsNotEmpty()
-  readonly care_plan_assignment_id: Schema.Types.ObjectId;
+  @IsOptional()
+  readonly care_plan_assignment_id?: Schema.Types.ObjectId;
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1d',
@@ -64,4 +65,11 @@ export class CreateBillDto {
   @IsString()
   @IsOptional()
   readonly notes?: string;
+
+  @ApiProperty({
+    description: 'Chi tiết hóa đơn (tự động tính từ BE)',
+    required: false,
+  })
+  @IsOptional()
+  readonly billing_details?: any;
 }

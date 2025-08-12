@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { VitalSign, VitalSignDocument } from './schemas/vital-sign.schema';
@@ -250,22 +250,48 @@ export class VitalSignsService {
   }
 
   async findOne(id: string): Promise<VitalSign> {
-    const vital = await this.vitalSignModel.findById(id);
-    if (!vital) throw new NotFoundException('Vital sign not found');
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID chỉ số sinh hiệu không hợp lệ');
+    }
+    
+    const vital = await this.vitalSignModel.findById(id).exec();
+    if (!vital) {
+      throw new NotFoundException('Không tìm thấy chỉ số sinh hiệu');
+    }
     return vital;
   }
 
-  async update(id: string, updateDto: UpdateVitalSignDto): Promise<VitalSign> {
-    const vital = await this.vitalSignModel.findByIdAndUpdate(id, updateDto, {
-      new: true,
-    });
-    if (!vital) throw new NotFoundException('Vital sign not found');
-    return vital;
+  async update(id: string, updateVitalSignDto: UpdateVitalSignDto): Promise<VitalSign> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID chỉ số sinh hiệu không hợp lệ');
+    }
+    
+    const vital = await this.vitalSignModel.findById(id).exec();
+    if (!vital) {
+      throw new NotFoundException('Không tìm thấy chỉ số sinh hiệu');
+    }
+    
+    const updatedVital = await this.vitalSignModel
+      .findByIdAndUpdate(id, updateVitalSignDto, { new: true })
+      .exec();
+      
+    if (!updatedVital) {
+      throw new NotFoundException('Không tìm thấy chỉ số sinh hiệu');
+    }
+    
+    return updatedVital;
   }
 
   async remove(id: string): Promise<VitalSign> {
-    const vital = await this.vitalSignModel.findByIdAndDelete(id);
-    if (!vital) throw new NotFoundException('Vital sign not found');
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID chỉ số sinh hiệu không hợp lệ');
+    }
+    
+    const vital = await this.vitalSignModel.findByIdAndDelete(id).exec();
+    if (!vital) {
+      throw new NotFoundException('Không tìm thấy chỉ số sinh hiệu');
+    }
+    
     return vital;
   }
 }

@@ -27,6 +27,7 @@ export class AuthService {
       throw new UnauthorizedException('Email không hợp lệ');
     }
 
+    // Tối ưu: Lấy user với các field cần thiết
     const user = await this.usersService.findByEmail(email);
     
     // Kiểm tra email có tồn tại không
@@ -39,7 +40,7 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
     }
     
-    // Tối ưu: Sử dụng Promise.all để thực hiện song song nếu cần
+    // Tối ưu: So sánh password ngay lập tức
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Mật khẩu không chính xác');
@@ -105,7 +106,7 @@ export class AuthService {
     const userProfile = await this.usersService.findOne(userId);
     if (!userProfile) {
       console.log('getProfile - User not found with ID:', userId);
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
     console.log('getProfile - User found:', userProfile.email);
@@ -122,7 +123,7 @@ export class AuthService {
     // Sử dụng findOne và save thay vì update method
     const userProfile = await this.usersService.findOne(user.userId);
     if (!userProfile) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
     // Cập nhật các field được phép
@@ -134,7 +135,7 @@ export class AuthService {
     return {
       ...profile,
       id: profile._id.toString(),
-      message: 'Profile updated successfully',
+      message: 'Cập nhật thông tin cá nhân thành công',
     };
   }
 
@@ -142,7 +143,7 @@ export class AuthService {
     const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
 
     if (newPassword !== confirmPassword) {
-      throw new BadRequestException('New passwords do not match');
+      throw new BadRequestException('Mật khẩu mới và xác nhận mật khẩu không khớp');
     }
 
     // Sử dụng method có sẵn từ UsersService

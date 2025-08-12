@@ -21,6 +21,6 @@ import { Bed, BedSchema } from '../beds/schemas/bed.schema';
   ],
   controllers: [BedAssignmentsController],
   providers: [BedAssignmentsService],
-  exports: [MongooseModule],
+  exports: [MongooseModule, BedAssignmentsService],
 })
 export class BedAssignmentsModule {}

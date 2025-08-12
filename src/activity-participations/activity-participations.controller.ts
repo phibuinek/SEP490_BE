@@ -27,8 +27,8 @@ export class ActivityParticipationsController {
 
   @Post()
   @ApiOperation({ summary: 'Record a new activity participation' })
-  create(@Body() createDto: CreateActivityParticipationDto) {
-    return this.service.create(createDto);
+  create(@Body() createDto: CreateActivityParticipationDto, @Req() req: any) {
+    return this.service.create(createDto, req);
   }
 
   @Get()

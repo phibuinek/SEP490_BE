@@ -281,6 +281,20 @@ export class ResidentsController {
     return this.residentsService.update(id, updateResidentDto);
   }
 
+  @Get(':id/avatar')
+  @ApiOperation({ summary: 'Get resident avatar' })
+  @ApiResponse({ status: 200, description: 'Resident avatar retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  async getAvatar(@Param('id') id: string, @Req() res: any) {
+    const resident = await this.residentsService.findOne(id);
+    if (!resident || !resident.avatar) {
+      throw new BadRequestException('Avatar not found');
+    }
+    
+    // Trả về đường dẫn file avatar
+    return { avatar: resident.avatar };
+  }
+
   @Patch(':id/avatar')
   @Roles(Role.ADMIN, Role.STAFF)
   @UseInterceptors(FileInterceptor('avatar', {

@@ -40,4 +40,14 @@ export class RoomTypesService {
     if (!deleted) throw new NotFoundException('Room type not found');
     return { deleted: true };
   }
+
+  async findByRoomType(roomType: string): Promise<RoomType | null> {
+    // Tìm theo room_type field trước
+    let result = await this.roomTypeModel.findOne({ room_type: roomType }).exec();
+    if (!result) {
+      // Nếu không tìm được, thử tìm theo type_name
+      result = await this.roomTypeModel.findOne({ type_name: roomType }).exec();
+    }
+    return result;
+  }
 }

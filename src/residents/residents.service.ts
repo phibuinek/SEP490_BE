@@ -267,7 +267,7 @@ export class ResidentsService {
       'updated_at',
     ];
     for (const field of requiredFields) {
-      if (typeof updateData[field] === 'undefined' || updateData[field] === null) {
+      if (typeof updateData[field] === 'undefined') {
         updateData[field] = oldResident[field];
       }
       // Nếu là trường date, ép lại thành Date nếu là string, nếu không hợp lệ thì lấy từ DB hoặc new Date()
@@ -288,10 +288,13 @@ export class ResidentsService {
     if (updateData.family_member_id && typeof updateData.family_member_id !== 'object') {
       updateData.family_member_id = new Types.ObjectId(updateData.family_member_id);
     }
-    // Ép các trường date về Date instance nếu cần
+    // Ép các trường date về Date instance nếu cần và xử lý timezone
     [ 'admission_date', 'created_at', 'updated_at', 'date_of_birth', 'discharge_date' ].forEach(field => {
       if (updateData[field] && !(updateData[field] instanceof Date)) {
-        updateData[field] = new Date(updateData[field]);
+        // Tạo Date object và điều chỉnh timezone về GMT+7
+        const date = new Date(updateData[field]);
+        const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+        updateData[field] = vietnamTime;
       }
     });
 

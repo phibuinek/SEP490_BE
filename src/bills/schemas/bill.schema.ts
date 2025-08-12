@@ -23,20 +23,37 @@ export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Resident' })
   resident_id: MongooseSchema.Types.ObjectId;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlanAssignment' })
-  care_plan_assignment_id: MongooseSchema.Types.ObjectId;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlanAssignment', required: false })
+  care_plan_assignment_id?: MongooseSchema.Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   staff_id: MongooseSchema.Types.ObjectId;
 
-  @Prop({ type: Object })
-  care_plan_snapshot: {
+  @Prop({ type: Object, required: false })
+  care_plan_snapshot?: {
     plan_name: string;
     description: string;
     monthly_price: number;
     plan_type: string;
     category: string;
     staff_ratio: string;
+  };
+
+  @Prop({ type: Object, required: false })
+  billing_details?: {
+    total_service_cost: number;
+    total_room_cost: number;
+    service_details: Array<{
+      plan_name: string;
+      monthly_price: number;
+      description: string;
+    }>;
+    room_details: {
+      room_number: string;
+      room_type: string;
+      floor: string;
+      monthly_price: number;
+    };
   };
 
   @Prop({ required: true })

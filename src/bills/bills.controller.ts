@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Req,
 } from '@nestjs/common';
 // import { BillsService } from './bills.service';
 import { CreateBillDto } from './dto/create-bill.dto';
@@ -18,6 +19,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { BillsService } from './bills.service';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('Bills')
 @ApiBearerAuth()
@@ -29,11 +31,29 @@ export class BillsController {
   @ApiOperation({ summary: 'Create a new bill' })
   @ApiResponse({ status: 201, description: 'Bill created.' })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  create(@Body() createBillDto: CreateBillDto) {
-    return this.billsService.create(createBillDto).then((bill) => ({
+  create(@Body() createBillDto: CreateBillDto, @Req() req: any) {
+    return this.billsService.create(createBillDto, req).then((bill) => ({
       ...bill.toObject(),
       id: bill._id,
     }));
+  }
+
+  @Get('calculate-total/:residentId')
+  @Public()
+  @ApiOperation({ summary: 'Calculate total amount for resident' })
+  @ApiResponse({ status: 200, description: 'Total calculated.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  @ApiResponse({ status: 500, description: 'Internal server error.' })
+  async calculateTotal(@Param('residentId') residentId: string) {
+    try {
+      console.log('API called: calculate-total for resident:', residentId);
+      const result = await this.billsService.calculateTotalAmountForResident(residentId);
+      console.log('API result:', result);
+      return result;
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
+    }
   }
 
   @Get()

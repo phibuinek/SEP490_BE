@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Assessment, AssessmentDocument } from './schemas/care-note.schema';
@@ -157,6 +157,20 @@ export class CareNotesService {
       .exec();
   }
 
+  async isStaffAssignedToResident(staff_id: string, resident_id: string): Promise<boolean> {
+    try {
+      const assignment = await this.staffAssignmentModel.findOne({
+        staff_id: new Types.ObjectId(staff_id),
+        resident_id: new Types.ObjectId(resident_id),
+        status: 'active',
+      });
+      return !!assignment;
+    } catch (error) {
+      console.error('Error checking staff assignment:', error);
+      return false;
+    }
+  }
+
   async findAllByStaffId(staff_id: string) {
     // Get all residents assigned to this staff
     const assignments = await this.staffAssignmentModel.find({
@@ -187,140 +201,37 @@ export class CareNotesService {
       .exec();
   }
 
-  async findOne(id: string) {
-    try {
-      console.log('=== FINDING ASSESSMENT BY ID ===');
-      console.log('Assessment ID:', id);
-
-      // Validate ID format
-      if (!Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid assessment ID format');
-      }
-
-      const assessment = await this.careNoteModel
-        .findById(id)
-        .populate({
-          path: 'conducted_by',
-          select: 'full_name position',
-        })
-        .populate({
-          path: 'resident_id',
-          select: 'full_name',
-        })
-        .exec();
-
-      if (!assessment) {
-        throw new NotFoundException('Assessment not found');
-      }
-
-      console.log('Assessment found:', assessment._id);
-      return assessment;
-    } catch (error) {
-      console.error('Error finding assessment by ID:', error);
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new Error(error.message || 'Lỗi tìm kiếm đánh giá');
+  async findOne(id: string): Promise<Assessment> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
+    
+    const assessment = await this.careNoteModel.findById(id).exec();
+    if (!assessment) {
+      throw new NotFoundException('Không tìm thấy đánh giá');
+    }
+    return assessment;
   }
 
-  async update(id: string, updateAssessmentDto: UpdateCareNoteDto) {
-    try {
-      console.log('=== UPDATING ASSESSMENT ===');
-      console.log('Assessment ID:', id);
-      console.log('Update DTO:', JSON.stringify(updateAssessmentDto, null, 2));
-
-      // Validate ID format
-      if (!Types.ObjectId.isValid(id)) {
-        throw new Error('Invalid assessment ID format');
-      }
-
-      // Find the assessment
-      const assessment = await this.careNoteModel.findById(id).exec();
-      if (!assessment) {
-        console.log('Assessment not found with ID:', id);
-        console.log('Available assessments in DB:');
-        const allAssessments = await this.careNoteModel.find({}).limit(5).exec();
-        console.log('Sample assessments:', allAssessments.map(a => ({ id: a._id, type: a.assessment_type })));
-        throw new NotFoundException('Assessment not found');
-      }
-
-      console.log('Found assessment:', assessment._id);
-      console.log('Current assessment data:', {
-        assessment_type: assessment.assessment_type,
-        notes: assessment.notes,
-        recommendations: assessment.recommendations,
-        resident_id: assessment.resident_id,
-        conducted_by: assessment.conducted_by
-      });
-
-      // Clean and validate update data
-      const updateData: any = {};
-
-      if (updateAssessmentDto.assessment_type !== undefined) {
-        updateData.assessment_type = updateAssessmentDto.assessment_type?.trim() || null;
-      }
-
-      if (updateAssessmentDto.notes !== undefined) {
-        updateData.notes = updateAssessmentDto.notes?.trim() || null;
-      }
-
-      if (updateAssessmentDto.recommendations !== undefined) {
-        updateData.recommendations = updateAssessmentDto.recommendations?.trim() || null;
-      }
-
-      if (updateAssessmentDto.resident_id !== undefined) {
-        if (!Types.ObjectId.isValid(updateAssessmentDto.resident_id)) {
-          throw new Error('Invalid resident ID format');
-        }
-        updateData.resident_id = new Types.ObjectId(updateAssessmentDto.resident_id);
-      }
-
-      if (updateAssessmentDto.conducted_by !== undefined) {
-        if (updateAssessmentDto.conducted_by && !Types.ObjectId.isValid(updateAssessmentDto.conducted_by)) {
-          throw new Error('Invalid conducted_by ID format');
-        }
-        updateData.conducted_by = updateAssessmentDto.conducted_by ? 
-          new Types.ObjectId(updateAssessmentDto.conducted_by) : null;
-      }
-
-      console.log('Update data:', updateData);
-
-      // Use findByIdAndUpdate for better performance and atomicity
-      const updatedAssessment = await this.careNoteModel.findByIdAndUpdate(
-        id,
-        updateData,
-        { 
-          new: true, // Return updated document
-          runValidators: false // Disable validation to avoid schema issues
-        }
-      ).exec();
-
-      if (!updatedAssessment) {
-        throw new NotFoundException('Failed to update assessment');
-      }
-
-      console.log('Assessment updated successfully:', updatedAssessment._id);
-      return updatedAssessment;
-
-    } catch (error) {
-      console.error('Error updating assessment:', error);
-      
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      
-      if (error.name === 'CastError') {
-        throw new Error('Dữ liệu không đúng định dạng');
-      }
-      
-      if (error.name === 'ValidationError') {
-        const validationErrors = Object.values(error.errors).map((e: any) => e.message);
-        throw new Error(`Lỗi validation: ${validationErrors.join(', ')}`);
-      }
-      
-      throw new Error(error.message || 'Lỗi cập nhật đánh giá');
+  async update(id: string, updateCareNoteDto: UpdateCareNoteDto): Promise<Assessment> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
+    
+    const assessment = await this.careNoteModel.findById(id).exec();
+    if (!assessment) {
+      throw new NotFoundException('Không tìm thấy đánh giá');
+    }
+    
+    const updatedAssessment = await this.careNoteModel
+      .findByIdAndUpdate(id, updateCareNoteDto, { new: true })
+      .exec();
+      
+    if (!updatedAssessment) {
+      throw new NotFoundException('Không thể cập nhật đánh giá');
+    }
+    
+    return updatedAssessment;
   }
 
   async patch(id: string, patchAssessmentDto: UpdateCareNoteDto) {
@@ -467,12 +378,16 @@ export class CareNotesService {
     }
   }
 
-  async remove(id: string) {
-    const assessment = await this.careNoteModel.findById(id).exec();
-    if (!assessment) {
-      throw new NotFoundException('Assessment not found');
+  async remove(id: string): Promise<Assessment> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
-    await this.careNoteModel.findByIdAndDelete(id).exec();
-    return { message: 'Assessment deleted successfully' };
+    
+    const assessment = await this.careNoteModel.findByIdAndDelete(id).exec();
+    if (!assessment) {
+      throw new NotFoundException('Không tìm thấy đánh giá');
+    }
+    
+    return assessment;
   }
 }

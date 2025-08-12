@@ -11,6 +11,14 @@ export class CreateStaffAssignmentDto {
   @IsMongoId()
   resident_id: string;
 
+  @ApiProperty({ description: 'Ngày phân công' })
+  @IsDateString()
+  assigned_date: string;
+
+  @ApiProperty({ description: 'ID của admin tạo phân công' })
+  @IsMongoId()
+  assigned_by: string;
+
   @ApiPropertyOptional({ description: 'Ngày kết thúc phân công (có thể null)' })
   @IsOptional()
   @IsDateString()
