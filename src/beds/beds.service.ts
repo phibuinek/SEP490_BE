@@ -39,14 +39,30 @@ export class BedsService {
   }
 
   async findAllByStatus(status?: string): Promise<any[]> {
-    const beds = await this.bedModel.find().populate('room_id').lean();
+    // Populate thông tin room để có đầy đủ dữ liệu
+    const beds = await this.bedModel.find().populate({
+      path: 'room_id',
+      select: 'room_number room_type floor gender main_care_plan_id bed_count'
+    }).lean();
+    
     const result: any[] = [];
     for (const bed of beds) {
-      const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null })
-        .populate('resident_id')
-        .lean();
-      let dynamicStatus = bed.status;
-      if (assignment) dynamicStatus = 'occupied';
+      // Tìm bed assignment đang active (chưa có unassigned_date)
+      const assignment = await this.bedAssignmentModel.findOne({ 
+        bed_id: bed._id, 
+        unassigned_date: null 
+      })
+      .populate({
+        path: 'resident_id',
+        select: 'full_name gender'
+      })
+      .lean();
+      
+      // Xác định trạng thái thực tế của giường
+      let dynamicStatus = 'available'; // Default là available
+      if (assignment) {
+        dynamicStatus = 'occupied'; // Có assignment thì là occupied
+      }
       
       // Nếu có filter status thì chỉ trả về bed phù hợp
       if (!status || dynamicStatus === status) {
@@ -56,7 +72,9 @@ export class BedsService {
           is_assigned: !!assignment,
           assignment_id: assignment?._id || null,
           resident_id: assignment?.resident_id || null,
-          assigned_date: assignment?.assigned_date || null
+          assigned_date: assignment?.assigned_date || null,
+          // Thêm thông tin room đầy đủ
+          room_info: bed.room_id
         });
       }
     }
