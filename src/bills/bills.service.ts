@@ -196,54 +196,54 @@ export class BillsService {
     }
   }
 
-  async create(createBillDto: CreateBillDto, req: any): Promise<Bill> {
+  async create(createBillDto: CreateBillDto, req?: any): Promise<Bill> {
     try {
-      const { resident_id, staff_id, amount, title, notes, due_date } = createBillDto;
-      const admin_id = req.user.user_id;
-
+      const toVNDate = (d: Date | string | undefined) => d ? new Date(new Date(d).getTime() + 7 * 60 * 60 * 1000) : undefined;
+      
       // Validate resident_id
-      if (!resident_id) {
+      if (!createBillDto.resident_id) {
         throw new BadRequestException('ID người cao tuổi là bắt buộc');
       }
 
-      // Validate staff_id
-      if (!staff_id) {
-        throw new BadRequestException('ID nhân viên là bắt buộc');
-      }
-
       // Validate ObjectId format
-      if (!Types.ObjectId.isValid(resident_id.toString())) {
+      if (!Types.ObjectId.isValid(createBillDto.resident_id.toString())) {
         throw new BadRequestException('Định dạng ID người cao tuổi không hợp lệ');
       }
 
-      if (!Types.ObjectId.isValid(staff_id.toString())) {
-        throw new BadRequestException('Định dạng ID nhân viên không hợp lệ');
-      }
-
-      // Check if resident exists
-      const resident = await this.residentsService.findOne(resident_id.toString());
+      // Check if resident exists and get family_member_id
+      const resident = await this.residentsService.findOne(createBillDto.resident_id.toString());
       if (!resident) {
         throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
       }
 
-      // Create bill
-      const bill = new this.billModel({
-        resident_id: new Types.ObjectId(resident_id.toString()),
-        staff_id: new Types.ObjectId(staff_id.toString()),
-        admin_id: new Types.ObjectId(admin_id),
-        amount,
-        title,
-        notes,
-        due_date: due_date ? new Date(due_date) : null,
+      // Create bill with enhanced validation
+      const billData: any = {
+        ...createBillDto,
+        family_member_id: resident.family_member_id,
+        due_date: toVNDate(createBillDto.due_date),
         status: BillStatus.PENDING,
+        payment_method: 'qr_payment',
+        paid_date: null,
         created_at: new Date(),
         updated_at: new Date(),
-      });
+      };
 
+      // Add admin_id if available from request
+      if (req?.user?.user_id) {
+        billData.admin_id = new Types.ObjectId(req.user.user_id);
+      }
+
+      const bill = new this.billModel(billData);
       const savedBill = await bill.save();
       return savedBill;
     } catch (error) {
       console.error('Error creating bill:', error);
+      if (error.name === 'MongoServerError' && error.code === 121) {
+        throw new BadRequestException({
+          message: 'MongoDB validation error',
+          details: error.errInfo?.details || error.errmsg || error.message,
+        });
+      }
       throw error;
     }
   }
@@ -274,7 +274,7 @@ export class BillsService {
           },
         ],
       })
-      .sort({ due_date: -1 })
+      .sort({ created_at: -1 })
       .exec();
   }
 
@@ -285,9 +285,29 @@ export class BillsService {
     
     const bill = await this.billModel
       .findById(id)
-      .populate('resident_id', 'full_name room_number')
-      .populate('staff_id', 'full_name')
       .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
       .exec();
       
     if (!bill) {
@@ -308,7 +328,7 @@ export class BillsService {
     }
     
     const updatedBill = await this.billModel
-      .findByIdAndUpdate(id, updateBillDto, { new: true })
+      .findByIdAndUpdate(id, { ...updateBillDto, updated_at: new Date() }, { new: true })
       .populate('resident_id', 'full_name room_number')
       .populate('staff_id', 'full_name')
       .populate('family_member_id', 'full_name email')
@@ -398,6 +418,39 @@ export class BillsService {
         ],
       })
       .sort({ due_date: -1 })
+      .exec();
+  }
+
+  async findByStaffId(staffId: string): Promise<Bill[]> {
+    if (!Types.ObjectId.isValid(staffId)) {
+      throw new BadRequestException('Invalid staff ID format');
+    }
+    return this.billModel
+      .find({ staff_id: new Types.ObjectId(staffId) })
+      .populate('family_member_id', 'full_name email')
+      .populate('resident_id', 'full_name')
+      .populate('staff_id', 'full_name')
+      .populate({
+        path: 'care_plan_assignment_id',
+        populate: [
+          {
+            path: 'care_plan_ids',
+            model: 'CarePlan',
+            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+          },
+          {
+            path: 'assigned_room_id',
+            model: 'Room',
+            select: 'room_number room_type floor',
+          },
+          {
+            path: 'assigned_bed_id',
+            model: 'Bed',
+            select: 'bed_number bed_type',
+          },
+        ],
+      })
+      .sort({ created_at: -1 })
       .exec();
   }
 }

@@ -25,8 +25,19 @@ export class BedsController {
   }
 
   @Get()
-  findAll() {
-    return this.bedsService.findAll();
+  @ApiQuery({ name: 'status', required: false, description: 'Trạng thái bed: available hoặc occupied' })
+  findAll(@Query('status') status?: string) {
+    return this.bedsService.findAllByStatus(status);
+  }
+
+  @Get('available')
+  getAvailableBeds() {
+    return this.bedsService.findAllByStatus('available');
+  }
+
+  @Get('occupied') 
+  getOccupiedBeds() {
+    return this.bedsService.findAllByStatus('occupied');
   }
 
   @Get('by-room/:room_id')

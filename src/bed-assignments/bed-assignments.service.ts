@@ -46,7 +46,7 @@ export class BedAssignmentsService {
     return result;
   }
 
-  async findAll(bed_id?: string, resident_id?: string) {
+  async findAll(bed_id?: string, resident_id?: string, activeOnly: boolean = true) {
     const filter: any = {};
     
     if (bed_id) {
@@ -61,6 +61,11 @@ export class BedAssignmentsService {
         throw new BadRequestException('Invalid resident_id format');
       }
       filter.resident_id = new Types.ObjectId(resident_id);
+    }
+    
+    // Mặc định chỉ lấy những assignment đang hoạt động (unassigned_date = null)
+    if (activeOnly) {
+      filter.unassigned_date = null;
     }
     
     return this.model
@@ -88,7 +93,10 @@ export class BedAssignmentsService {
       throw new BadRequestException('Invalid resident ID format');
     }
     return this.model
-      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .find({ 
+        resident_id: new Types.ObjectId(resident_id),
+        unassigned_date: null // Chỉ lấy những assignment đang hoạt động (chưa unassign)
+      })
       .populate({
         path: 'bed_id',
         select: 'bed_number bed_type room_id',
@@ -140,5 +148,12 @@ export class BedAssignmentsService {
       const roomStatus = allOccupied.every(Boolean) ? 'occupied' : 'available';
       await this.roomModel.findByIdAndUpdate(bed.room_id, { status: roomStatus });
     }
+  }
+
+  /**
+   * Lấy tất cả bed assignments (bao gồm cả đã unassign) cho admin/staff
+   */
+  async findAllIncludingInactive(bed_id?: string, resident_id?: string) {
+    return this.findAll(bed_id, resident_id, false); // activeOnly = false
   }
 }

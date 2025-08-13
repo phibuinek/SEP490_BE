@@ -35,7 +35,6 @@ try {
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -59,8 +58,8 @@ import { RoomTypesModule } from './room_types/room-types.module';
 import { CareNotesModule } from './care-notes/care-notes.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
+import { MessagesModule } from './messages/messages.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
-
 
 @Module({
   imports: [
@@ -70,7 +69,6 @@ import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.mo
       }
       return MongooseModule.forRoot(process.env.MONGODB_URI);
     })(),
-    ScheduleModule.forRoot(),
     // DatabaseModule, // Tắt seeder tự động vì dữ liệu Atlas đã có
     UsersModule,
     AuthModule,
@@ -91,8 +89,8 @@ import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.mo
     CareNotesModule,
     RoomsModule,
     BedAssignmentsModule,
+    MessagesModule,
     StaffAssignmentsModule,
-    
   ],
   controllers: [AppController],
   providers: [

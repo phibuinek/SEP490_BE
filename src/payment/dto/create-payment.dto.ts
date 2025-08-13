@@ -10,10 +10,10 @@ export class CreatePaymentDto {
 
   @ApiProperty({ 
     example: 'web', 
-    description: 'Platform type: web or mobile',
+    description: 'Platform type: web, mobile, or webview',
     required: false 
   })
   @IsOptional()
-  @IsIn(['web', 'mobile'])
+  @IsIn(['web', 'mobile', 'webview'])
   platform?: string;
 }

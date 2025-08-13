@@ -100,19 +100,21 @@ export class PaymentController {
   @ApiOperation({ summary: 'Handle payment webhook from PayOS' })
   @ApiBody({ description: 'Webhook payload', type: Object })
   @ApiResponse({ status: 200, description: 'Webhook received.' })
-  handleWebhook(@Body() data: any) {
+  async handleWebhook(@Body() data: any) {
     console.log('=== PAYOS WEBHOOK RECEIVED ===');
-    console.log('Headers:', JSON.stringify(data, null, 2));
+    console.log('Raw webhook data:', JSON.stringify(data, null, 2));
     console.log('Data type:', typeof data);
     console.log('Data keys:', Object.keys(data));
+    console.log('Timestamp:', new Date().toISOString());
     console.log('==============================');
     
     try {
-      const result = this.paymentService.handlePaymentWebhook(data);
-      console.log('Webhook processed successfully:', result);
+      const result = await this.paymentService.handlePaymentWebhook(data);
+      console.log('✅ Webhook processed successfully:', result);
       return result;
     } catch (error) {
-      console.error('Webhook processing error:', error);
+      console.error('❌ Webhook processing error:', error);
+      console.error('Error stack:', error.stack);
       throw error;
     }
   }
