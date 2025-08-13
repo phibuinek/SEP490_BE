@@ -267,7 +267,7 @@ export class ResidentsService {
       'updated_at',
     ];
     for (const field of requiredFields) {
-      if (typeof updateData[field] === 'undefined' || updateData[field] === null) {
+      if (typeof updateData[field] === 'undefined') {
         updateData[field] = oldResident[field];
       }
       // Nếu là trường date, ép lại thành Date nếu là string, nếu không hợp lệ thì lấy từ DB hoặc new Date()
@@ -288,10 +288,13 @@ export class ResidentsService {
     if (updateData.family_member_id && typeof updateData.family_member_id !== 'object') {
       updateData.family_member_id = new Types.ObjectId(updateData.family_member_id);
     }
-    // Ép các trường date về Date instance nếu cần
+    // Ép các trường date về Date instance nếu cần và xử lý timezone
     [ 'admission_date', 'created_at', 'updated_at', 'date_of_birth', 'discharge_date' ].forEach(field => {
       if (updateData[field] && !(updateData[field] instanceof Date)) {
-        updateData[field] = new Date(updateData[field]);
+        // Tạo Date object và điều chỉnh timezone về GMT+7
+        const date = new Date(updateData[field]);
+        const vietnamTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+        updateData[field] = vietnamTime;
       }
     });
 
@@ -318,13 +321,28 @@ export class ResidentsService {
     // First, unassign bed if any
     await this.unassignBedFromResident(id);
 
+    // Find the resident to get family_member_id before deletion
+    const resident = await this.residentModel.findById(id);
+    if (!resident) {
+      throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+
+    // Store family_member_id for reference (but don't delete the user account)
+    const familyMemberId = resident.family_member_id;
+
+    // Delete only the resident record, NOT the associated family member account
     const deletedResident = await this.residentModel
       .findByIdAndDelete(id)
       .exec();
-    if (!deletedResident) {
-      throw new NotFoundException(`Resident with ID ${id} not found`);
-    }
-    return { deleted: true, _id: id };
+
+    console.log(`[RESIDENT][DELETE] Deleted resident ${id}. Family member account ${familyMemberId} remains intact.`);
+
+    return { 
+      deleted: true, 
+      _id: id,
+      message: 'Resident deleted successfully. Family member account remains active.',
+      family_member_id: familyMemberId
+    };
   }
 
   async assignBed(resident_id: string, bed_id: string): Promise<Bed> {

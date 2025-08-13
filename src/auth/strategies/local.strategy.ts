@@ -12,10 +12,19 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(email: string, password: string): Promise<any> {
-    const user = await this.authService.validateUser(email, password);
-    if (!user) {
-      throw new UnauthorizedException();
+    try {
+      const user = await this.authService.validateUser(email, password);
+      if (!user) {
+        throw new UnauthorizedException('Thông tin đăng nhập không chính xác');
+      }
+      return user;
+    } catch (error) {
+      // Re-throw UnauthorizedException với thông báo chi tiết
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Xử lý các lỗi khác
+      throw new UnauthorizedException('Có lỗi xảy ra khi xác thực. Vui lòng thử lại sau.');
     }
-    return user;
   }
 }

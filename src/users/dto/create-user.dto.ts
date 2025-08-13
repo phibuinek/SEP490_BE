@@ -65,9 +65,9 @@ export class CreateUserDto {
   @IsString()
   qualification?: string;
 
-  @ApiPropertyOptional({ example: '2022-06-01T00:00:00.000Z' })
+  @ApiPropertyOptional({ example: '2022-06-01' })
   @IsOptional()
-  @IsDateString()
+  @IsString()
   join_date?: string;
 
   @ApiPropertyOptional({ example: '123 Main St, City, Country' })

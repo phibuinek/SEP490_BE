@@ -76,7 +76,7 @@ export class AssessmentsController {
       console.log('Assessment ID:', id);
       
       const result = await this.service.findOne(id);
-      console.log('Assessment found:', result._id);
+      console.log('Assessment found:', (result as any)._id);
       return result;
     } catch (error) {
       console.error('Error getting assessment by ID:', error);
@@ -91,7 +91,30 @@ export class AssessmentsController {
   }
 
   @Get()
-  async findAll(@Query('resident_id') resident_id: string) {
+  async findAll(@Query('resident_id') resident_id: string, @Req() req) {
+    const user = req.user;
+    
+    // If specific resident_id is provided, return care notes for that resident
+    if (resident_id) {
+      // For staff, verify they are assigned to this resident
+      if (user?.role === Role.STAFF) {
+        const isAssigned = await this.service.isStaffAssignedToResident(user.userId, resident_id);
+        if (!isAssigned) {
+          throw new HttpException(
+            'Bạn không được phân công chăm sóc người cao tuổi này',
+            HttpStatus.FORBIDDEN
+          );
+        }
+      }
+      return this.service.findAll(resident_id);
+    }
+    
+    // If no resident_id provided, return care notes for all assigned residents (staff only)
+    if (user?.role === Role.STAFF) {
+      return this.service.findAllByStaffId(user.userId);
+    }
+    
+    // For admin, return all care notes (you might want to add a separate endpoint for this)
     return this.service.findAll(resident_id);
   }
 
@@ -109,7 +132,7 @@ export class AssessmentsController {
       console.log('Update DTO:', JSON.stringify(dto, null, 2));
       
       const result = await this.service.update(id, dto);
-      console.log('Assessment updated successfully via controller:', result._id);
+      console.log('Assessment updated successfully via controller:', (result as any)._id);
       return result;
     } catch (error) {
       console.error('Error updating assessment via controller:', error);

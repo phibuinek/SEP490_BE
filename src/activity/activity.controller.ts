@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -68,6 +69,26 @@ export class ActivityController {
       );
     } catch (error) {
       console.error('Error in recommendActivityAI controller:', error);
+      throw error;
+    }
+  }
+
+  @Post('check-schedule-conflict')
+  @ApiOperation({ summary: 'Check schedule conflict for a resident' })
+  async checkScheduleConflict(
+    @Body() body: { residentId: string; scheduleTime: string; duration: number }
+  ) {
+    try {
+      await this.service.checkScheduleConflictWithResident(
+        body.residentId,
+        new Date(body.scheduleTime),
+        body.duration
+      );
+      return { hasConflict: false, message: 'Không có trùng lịch' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        return { hasConflict: true, message: error.message };
+      }
       throw error;
     }
   }

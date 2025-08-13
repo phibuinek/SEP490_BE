@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 import { Activity, ActivityDocument } from './schemas/activity.schema';
 import { CreateActivityDto } from './dto/create-activity.dto';
+import { ActivityParticipation, ActivityParticipationDocument } from '../activity-participations/schemas/activity-participation.schema';
 import axios from 'axios';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class ActivityService {
   constructor(
     @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
+    @InjectModel(ActivityParticipation.name) private participationModel: Model<ActivityParticipationDocument>,
   ) {
     this.apiKey = process.env.GEMINI_API_KEY ?? '';
     this.apiUrl =
@@ -40,6 +42,61 @@ export class ActivityService {
     
     const createdActivity = new this.activityModel(activityData);
     return createdActivity.save();
+  }
+
+  /**
+   * Kiểm tra trùng lịch với cư dân khi tạo hoạt động mới
+   */
+  async checkScheduleConflictWithResident(residentId: string, scheduleTime: Date, duration: number): Promise<void> {
+    try {
+      // Lấy tất cả participations của cư dân
+      const residentParticipations = await this.participationModel
+        .find({ resident_id: new Types.ObjectId(residentId) })
+        .populate('activity_id')
+        .exec();
+
+      const newActivityStartTime = new Date(scheduleTime);
+      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+
+      // Kiểm tra trùng lịch trong cùng ngày
+      for (const participation of residentParticipations) {
+        if (!participation.activity_id || typeof participation.activity_id === 'string') {
+          continue;
+        }
+
+        const existingActivity = participation.activity_id as any;
+        if (!existingActivity.schedule_time) {
+          continue;
+        }
+
+        const existingActivityStartTime = new Date(existingActivity.schedule_time);
+        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (existingActivity.duration || 60) * 60 * 1000);
+
+        // Kiểm tra cùng ngày
+        const newDateStr = newActivityStartTime.toISOString().split('T')[0];
+        const existingDateStr = existingActivityStartTime.toISOString().split('T')[0];
+
+        if (newDateStr === existingDateStr) {
+          // Kiểm tra overlap thời gian
+          if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
+            const activityTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            
+            throw new BadRequestException(
+              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error checking schedule conflict:', error);
+      // Nếu có lỗi khi kiểm tra, cho phép tạo hoạt động
+    }
   }
 
   async findAll(): Promise<Activity[]> {

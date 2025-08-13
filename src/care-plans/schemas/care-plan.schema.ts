@@ -80,8 +80,8 @@ export class CarePlan {
   @Prop({ type: [String], default: null })
   contraindications: (string | null)[] | null;
 
-  @Prop({ required: true })
-  staff_ratio: string;
+  @Prop({ type: String, required: false, default: null })
+  staff_ratio: string | null;
 
   @Prop({
     required: true,

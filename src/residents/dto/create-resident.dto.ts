@@ -84,6 +84,14 @@ export class CreateResidentDto {
   @IsNotEmpty()
   date_of_birth: string;
 
+  @ApiPropertyOptional({ 
+    example: '2024-01-15',
+    description: 'Admission date in YYYY-MM-DD format (optional)'
+  })
+  @IsOptional()
+  @IsDateString()
+  admission_date?: string;
+
   @ApiProperty({ 
     enum: Gender, 
     example: Gender.MALE,

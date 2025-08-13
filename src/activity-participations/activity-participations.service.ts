@@ -13,6 +13,8 @@ import { CreateActivityParticipationDto } from './dto/create-activity-participat
 import { UpdateActivityParticipationDto } from './dto/update-activity-participation.dto';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Activity } from '../activity/schemas/activity.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
+import { AttendanceStatus } from './schemas/activity-participation.schema';
 
 @Injectable()
 export class ActivityParticipationsService {
@@ -23,39 +25,177 @@ export class ActivityParticipationsService {
     private userModel: Model<User>,
     @InjectModel(Activity.name)
     private activityModel: Model<Activity>,
+    @InjectModel(Resident.name)
+    private residentModel: Model<Resident>,
   ) {}
 
   async create(
-    createDto: CreateActivityParticipationDto,
+    createActivityParticipationDto: CreateActivityParticipationDto,
+    req: any,
   ): Promise<ActivityParticipation> {
-    // Validate ObjectId format for all referenced IDs
-    if (!Types.ObjectId.isValid(createDto.staff_id)) {
-      throw new BadRequestException('Invalid staff_id format');
-    }
-    if (!Types.ObjectId.isValid(createDto.activity_id)) {
-      throw new BadRequestException('Invalid activity_id format');
-    }
-    if (!Types.ObjectId.isValid(createDto.resident_id)) {
-      throw new BadRequestException('Invalid resident_id format');
-    }
+    try {
+      const { staff_id, activity_id, resident_id, date, attendance_status, performance_notes } = createActivityParticipationDto;
+      const admin_id = req.user.user_id;
+      
+      console.log('Creating activity participation with data:', {
+        staff_id,
+        activity_id,
+        resident_id,
+        date,
+        attendance_status,
+        performance_notes
+      });
 
-    // Convert string IDs to ObjectIds
-    const participationData = {
-      ...createDto,
-      staff_id: new Types.ObjectId(createDto.staff_id),
-      activity_id: new Types.ObjectId(createDto.activity_id),
-      resident_id: new Types.ObjectId(createDto.resident_id),
-    };
+      // Validate staff_id format
+      if (!Types.ObjectId.isValid(staff_id)) {
+        throw new BadRequestException('Định dạng ID nhân viên không hợp lệ');
+      }
 
-    const createdParticipation = new this.participationModel(participationData);
-    return createdParticipation.save();
+      // Validate activity_id format
+      if (!Types.ObjectId.isValid(activity_id)) {
+        throw new BadRequestException('Định dạng ID hoạt động không hợp lệ');
+      }
+
+      // Validate resident_id format
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Định dạng ID người cao tuổi không hợp lệ');
+      }
+
+      // Validate date format
+      let participationDate: Date;
+      try {
+        participationDate = date ? new Date(date) : new Date();
+        if (isNaN(participationDate.getTime())) {
+          throw new BadRequestException('Định dạng ngày không hợp lệ');
+        }
+      } catch (error) {
+        throw new BadRequestException('Định dạng ngày không hợp lệ');
+      }
+
+      // Check if staff exists and is actually a staff
+      const staff = await this.userModel.findById(staff_id);
+      if (!staff) {
+        throw new NotFoundException('Không tìm thấy thông tin nhân viên');
+      }
+      if (staff.role !== 'staff') {
+        throw new BadRequestException('Người dùng này không phải là nhân viên');
+      }
+
+      // Check if activity exists
+      const activity = await this.activityModel.findById(activity_id);
+      if (!activity) {
+        throw new NotFoundException('Không tìm thấy hoạt động');
+      }
+
+      // Check if resident exists
+      const resident = await this.residentModel.findById(resident_id);
+      if (!resident) {
+        throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
+      }
+
+      // Check if participation already exists for the same date
+      const existingParticipation = await this.participationModel.findOne({
+        staff_id: new Types.ObjectId(staff_id),
+        activity_id: new Types.ObjectId(activity_id),
+        resident_id: new Types.ObjectId(resident_id),
+        date: {
+          $gte: new Date(participationDate.getFullYear(), participationDate.getMonth(), participationDate.getDate()),
+          $lt: new Date(participationDate.getFullYear(), participationDate.getMonth(), participationDate.getDate() + 1)
+        }
+      });
+
+      if (existingParticipation) {
+        throw new BadRequestException(
+          'Đã có bản ghi tham gia hoạt động này cho ngày đã chọn',
+        );
+      }
+
+      // Create new participation
+      const participation = new this.participationModel({
+        staff_id: new Types.ObjectId(staff_id),
+        activity_id: new Types.ObjectId(activity_id),
+        resident_id: new Types.ObjectId(resident_id),
+        date: participationDate,
+        attendance_status: attendance_status || AttendanceStatus.PENDING,
+        performance_notes: performance_notes || '',
+      });
+
+      const savedParticipation = await participation.save();
+      return savedParticipation;
+    } catch (error) {
+      console.error('Error creating activity participation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check for schedule conflicts when adding a resident to an activity
+   */
+  private async checkScheduleConflict(residentId: string, activityId: string): Promise<void> {
+    try {
+      // Get the activity details
+      const activity = await this.activityModel.findById(activityId).exec();
+      if (!activity) {
+        throw new BadRequestException('Activity not found');
+      }
+
+      // Get all participations for this resident
+      const residentParticipations = await this.participationModel
+        .find({ resident_id: new Types.ObjectId(residentId) })
+        .populate('activity_id')
+        .exec();
+
+      // Get the activity date and time
+      const newActivityDate = new Date(activity.schedule_time);
+      const newActivityEndTime = new Date(newActivityDate.getTime() + (activity.duration || 60) * 60 * 1000);
+
+      // Check for conflicts on the same day
+      for (const participation of residentParticipations) {
+        if (!participation.activity_id || typeof participation.activity_id === 'string') {
+          continue;
+        }
+
+        const existingActivity = participation.activity_id as any;
+        if (!existingActivity.schedule_time) {
+          continue;
+        }
+
+        const existingActivityDate = new Date(existingActivity.schedule_time);
+        const existingActivityEndTime = new Date(existingActivityDate.getTime() + (existingActivity.duration || 60) * 60 * 1000);
+
+        // Check if activities are on the same day
+        const newDateStr = newActivityDate.toISOString().split('T')[0];
+        const existingDateStr = existingActivityDate.toISOString().split('T')[0];
+
+        if (newDateStr === existingDateStr) {
+          // Check for time overlap
+          if (newActivityDate < existingActivityEndTime && newActivityEndTime > existingActivityDate) {
+            const activityTime = existingActivityDate.toLocaleTimeString('vi-VN', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            
+            throw new BadRequestException(
+              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+            );
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error checking schedule conflict:', error);
+      // If there's an error checking conflicts, we'll allow the creation to proceed
+      // but log the error for debugging
+    }
   }
 
   async findAll(): Promise<ActivityParticipation[]> {
     try {
       return await this.participationModel
         .find()
-        .populate('staff_id', 'full_name position email phone')
+        .populate('staff_id', 'full_name position email phone role')
         .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
         .populate('resident_id', 'full_name date_of_birth gender')
         .exec();
@@ -82,72 +222,63 @@ export class ActivityParticipationsService {
 
   async findOne(id: string): Promise<ActivityParticipation> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid participation ID format');
+      throw new BadRequestException('Định dạng ID tham gia không hợp lệ');
     }
-    try {
-      const participation = await this.participationModel
-        .findById(id)
-        .populate('staff_id', 'full_name position email phone')
-        .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
-        .populate('resident_id', 'full_name date_of_birth gender')
-        .exec();
-      if (!participation) {
-        throw new NotFoundException(`Participation with ID "${id}" not found`);
-      }
-      return participation;
-    } catch (error) {
-      // Nếu populate lỗi, trả về document gốc không populate
-      console.warn(
-        'Error during populate in findOne, returning raw document:',
-        error.message,
-      );
-      const raw = await this.participationModel.findById(id).exec();
-      if (!raw) {
-        throw new NotFoundException(`Participation with ID "${id}" not found`);
-      }
-      return raw;
+    
+    const participation = await this.participationModel
+      .findById(id)
+      .populate('staff_id', 'full_name email position role')
+      .populate('activity_id', 'name description')
+      .populate('resident_id', 'full_name room_number')
+      .exec();
+      
+    if (!participation) {
+      throw new NotFoundException(`Không tìm thấy thông tin tham gia với ID "${id}"`);
     }
+    
+    return participation;
   }
 
   async update(
     id: string,
-    updateDto: UpdateActivityParticipationDto,
+    updateActivityParticipationDto: UpdateActivityParticipationDto,
   ): Promise<ActivityParticipation> {
-    // Validate ObjectId format for the participation ID
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid participation ID format');
+      throw new BadRequestException('Định dạng ID tham gia không hợp lệ');
     }
-
-    // Validate ObjectId format for any referenced IDs in the update
-    if (updateDto.staff_id && !Types.ObjectId.isValid(updateDto.staff_id)) {
-      throw new BadRequestException('Invalid staff_id format');
+    
+    const participation = await this.participationModel.findById(id);
+    if (!participation) {
+      throw new NotFoundException(`Không tìm thấy thông tin tham gia với ID "${id}"`);
     }
-    if (updateDto.activity_id && !Types.ObjectId.isValid(updateDto.activity_id)) {
-      throw new BadRequestException('Invalid activity_id format');
+    
+    // Validate staff_id format if provided
+    if (updateActivityParticipationDto.staff_id && !Types.ObjectId.isValid(updateActivityParticipationDto.staff_id)) {
+      throw new BadRequestException('Định dạng ID nhân viên không hợp lệ');
     }
-    if (updateDto.resident_id && !Types.ObjectId.isValid(updateDto.resident_id)) {
-      throw new BadRequestException('Invalid resident_id format');
+    
+    // Validate activity_id format if provided
+    if (updateActivityParticipationDto.activity_id && !Types.ObjectId.isValid(updateActivityParticipationDto.activity_id)) {
+      throw new BadRequestException('Định dạng ID hoạt động không hợp lệ');
     }
-
-    // Convert string IDs to ObjectIds if they exist
-    const updateData: any = { ...updateDto };
-    if (updateDto.staff_id) {
-      updateData.staff_id = new Types.ObjectId(updateDto.staff_id);
+    
+    // Validate resident_id format if provided
+    if (updateActivityParticipationDto.resident_id && !Types.ObjectId.isValid(updateActivityParticipationDto.resident_id)) {
+      throw new BadRequestException('Định dạng ID người cao tuổi không hợp lệ');
     }
-    if (updateDto.activity_id) {
-      updateData.activity_id = new Types.ObjectId(updateDto.activity_id);
-    }
-    if (updateDto.resident_id) {
-      updateData.resident_id = new Types.ObjectId(updateDto.resident_id);
-    }
-
-    const existingParticipation = await this.participationModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+    
+    const updatedParticipation = await this.participationModel
+      .findByIdAndUpdate(id, updateActivityParticipationDto, { new: true })
+      .populate('staff_id', 'full_name email position role')
+      .populate('activity_id', 'name description')
+      .populate('resident_id', 'full_name room_number')
       .exec();
-    if (!existingParticipation) {
-      throw new NotFoundException(`Participation with ID "${id}" not found`);
+      
+    if (!updatedParticipation) {
+      throw new NotFoundException(`Không tìm thấy thông tin tham gia với ID "${id}"`);
     }
-    return existingParticipation;
+    
+    return updatedParticipation;
   }
 
   async remove(id: string): Promise<any> {
@@ -249,6 +380,7 @@ export class ActivityParticipationsService {
     }
     return this.participationModel
       .find({ staff_id: new Types.ObjectId(staff_id) })
+      .populate('staff_id', 'full_name role position')
       .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
       .populate('resident_id', 'full_name')
       .exec();
@@ -282,7 +414,7 @@ export class ActivityParticipationsService {
 
       return await this.participationModel
         .find(query)
-        .populate('staff_id', 'full_name role')
+        .populate('staff_id', 'full_name role position')
         .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
         .populate('resident_id', 'full_name room age')
         .exec();
@@ -306,7 +438,7 @@ export class ActivityParticipationsService {
           resident_id: new Types.ObjectId(resident_id),
           activity_id: new Types.ObjectId(activity_id),
         })
-        .populate('staff_id', 'full_name role')
+        .populate('staff_id', 'full_name role position')
         .populate('activity_id', 'activity_name description activity_type duration schedule_time location capacity')
         .populate('resident_id', 'full_name room age')
         .exec();

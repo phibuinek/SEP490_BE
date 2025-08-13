@@ -398,4 +398,206 @@ export class CarePlanAssignmentsService {
       );
     }
   }
+
+  /**
+   * Renew a paused care plan assignment by updating its start date, end date and reactivating it
+   * This creates a new service cycle starting from the specified start date or current date
+   * @param selectedCarePlanIds Optional array of care plan IDs to renew. If not provided, all care plans will be renewed.
+   */
+  async removePackage(id: string, packageId: string): Promise<CarePlanAssignment> {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid assignment ID format');
+      }
+      if (!Types.ObjectId.isValid(packageId)) {
+        throw new BadRequestException('Invalid package ID format');
+      }
+
+      // Find the assignment
+      const assignment = await this.carePlanAssignmentModel.findById(id);
+      if (!assignment) {
+        throw new NotFoundException(`Care plan assignment with ID ${id} not found`);
+      }
+
+      // Check if package exists in the assignment
+      const packageObjectId = new Types.ObjectId(packageId);
+      const packageIndex = assignment.care_plan_ids.findIndex(
+        (cp: Types.ObjectId) => cp.equals(packageObjectId)
+      );
+
+      if (packageIndex === -1) {
+        throw new BadRequestException(`Package with ID ${packageId} not found in this assignment`);
+      }
+
+      // Remove the package
+      assignment.care_plan_ids.splice(packageIndex, 1);
+      assignment.updated_at = new Date();
+
+      // If no packages left, delete the assignment
+      if (assignment.care_plan_ids.length === 0) {
+        await this.carePlanAssignmentModel.findByIdAndDelete(id);
+        return assignment;
+      }
+
+      // Save the updated assignment
+      const updatedAssignment = await assignment.save();
+      
+      // Populate the response
+      const populatedAssignment = await this.carePlanAssignmentModel
+        .findById(updatedAssignment._id)
+        .populate('staff_id', 'name email')
+        .populate('resident_id', 'name date_of_birth')
+        .populate('family_member_id', 'name email')
+        .populate('care_plan_ids', 'name description price')
+        .populate('assigned_room_id', 'room_number floor')
+        .populate('assigned_bed_id', 'bed_number')
+        .exec();
+
+      if (!populatedAssignment) {
+        throw new NotFoundException(`Failed to populate updated assignment with ID ${updatedAssignment._id}`);
+      }
+
+      return populatedAssignment;
+    } catch (error: any) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to remove package: ${error.message}`);
+    }
+  }
+
+  async renewAssignment(id: string, newEndDate: string, newStartDate?: string, selectedCarePlanIds?: string[]): Promise<CarePlanAssignment> {
+    try {
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid ID format');
+      }
+
+      // Validate the assignment exists and is paused
+      const assignment = await this.carePlanAssignmentModel.findById(id);
+      if (!assignment) {
+        throw new NotFoundException(
+          `Care plan assignment with ID ${id} not found`,
+        );
+      }
+
+      if (assignment.status !== 'paused') {
+        throw new BadRequestException('Only paused assignments can be renewed');
+      }
+
+      // Validate the new end date
+      const newEndDateObj = new Date(newEndDate);
+      const now = new Date();
+      
+      if (newEndDateObj <= now) {
+        throw new BadRequestException('New end date must be in the future');
+      }
+
+      // Validate and set the new start date
+      let newStartDateObj: Date;
+      if (newStartDate) {
+        newStartDateObj = new Date(newStartDate);
+        if (newStartDateObj >= newEndDateObj) {
+          throw new BadRequestException('Start date must be before end date');
+        }
+        if (newStartDateObj < now) {
+          throw new BadRequestException('Start date cannot be in the past');
+        }
+      } else {
+        newStartDateObj = now; // Default to current date
+      }
+
+      // If specific care plans are selected for renewal, create a new assignment for those plans
+      if (selectedCarePlanIds && selectedCarePlanIds.length > 0) {
+        // Validate that all selected care plan IDs exist in the current assignment
+        const validCarePlanIds = assignment.care_plan_ids.map(id => id.toString());
+        const invalidCarePlanIds = selectedCarePlanIds.filter(id => !validCarePlanIds.includes(id));
+        
+        if (invalidCarePlanIds.length > 0) {
+          throw new BadRequestException(
+            `Invalid care plan IDs: ${invalidCarePlanIds.join(', ')}`
+          );
+        }
+
+        // Create a new assignment for the selected care plans
+        const newAssignment = new this.carePlanAssignmentModel({
+          staff_id: assignment.staff_id,
+          resident_id: assignment.resident_id,
+          family_member_id: assignment.family_member_id,
+          registration_date: new Date(),
+          selected_room_type: assignment.selected_room_type,
+          assigned_room_id: assignment.assigned_room_id,
+          assigned_bed_id: assignment.assigned_bed_id,
+          family_preferences: assignment.family_preferences,
+          total_monthly_cost: assignment.total_monthly_cost,
+          room_monthly_cost: assignment.room_monthly_cost,
+          care_plans_monthly_cost: assignment.care_plans_monthly_cost,
+          start_date: newStartDateObj,
+          end_date: newEndDateObj,
+          additional_medications: assignment.additional_medications,
+          status: 'active',
+          notes: `Renewed from assignment ${id} - Selected care plans: ${selectedCarePlanIds.join(', ')}`,
+          care_plan_ids: selectedCarePlanIds.map(id => new Types.ObjectId(id))
+        });
+
+        const savedNewAssignment = await newAssignment.save();
+        
+        // Populate the new assignment
+        const populatedNewAssignment = await this.carePlanAssignmentModel
+          .findById(savedNewAssignment._id)
+          .populate('staff_id', 'name email')
+          .populate('resident_id', 'name date_of_birth')
+          .populate('family_member_id', 'name email')
+          .populate('care_plan_ids', 'name description price')
+          .populate('assigned_room_id', 'room_number floor')
+          .populate('assigned_bed_id', 'bed_number')
+          .exec();
+
+        if (!populatedNewAssignment) {
+          throw new NotFoundException(
+            `Failed to populate newly created assignment with ID ${savedNewAssignment._id}`,
+          );
+        }
+
+        return populatedNewAssignment;
+      } else {
+        // Renew all care plans in the existing assignment
+        const updatedAssignment = await this.carePlanAssignmentModel
+          .findByIdAndUpdate(
+            id,
+            { 
+              start_date: newStartDateObj,
+              end_date: newEndDateObj,
+              status: 'active',
+              updated_at: new Date() 
+            },
+            { new: true, runValidators: true },
+          )
+          .populate('staff_id', 'name email')
+          .populate('resident_id', 'name date_of_birth')
+          .populate('family_member_id', 'name email')
+          .populate('care_plan_ids', 'name description price')
+          .populate('assigned_room_id', 'room_number floor')
+          .populate('assigned_bed_id', 'bed_number')
+          .exec();
+
+        if (!updatedAssignment) {
+          throw new NotFoundException(
+            `Care plan assignment with ID ${id} not found`,
+          );
+        }
+
+        return updatedAssignment;
+      }
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to renew assignment: ${error.message}`,
+      );
+    }
+  }
 }

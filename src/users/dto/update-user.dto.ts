@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsDateString } from 'class-validator';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'Nguyễn Văn A', minLength: 1, maxLength: 100 })
@@ -41,4 +41,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ 
+    example: '2024-01-15',
+    description: 'Join date in YYYY-MM-DD format (optional)'
+  })
+  @IsOptional()
+  @IsDateString()
+  join_date?: string;
 } 

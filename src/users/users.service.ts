@@ -9,6 +9,10 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 
+interface UserCreateData extends Omit<CreateUserDto, 'join_date'> {
+  join_date?: Date;
+}
+
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
@@ -23,14 +27,14 @@ export class UsersService {
       const existingUsername = await this.findByUsername(createUserDto.username);
       if (existingUsername) {
         console.log('[USER][CREATE] Username already exists:', createUserDto.username);
-        throw new BadRequestException('Username already exists');
+        throw new BadRequestException('Tên đăng nhập đã được sử dụng. Vui lòng chọn tên đăng nhập khác.');
       }
       
       // Check if email already exists
       const existingEmail = await this.findByEmail(createUserDto.email);
       if (existingEmail) {
         console.log('[USER][CREATE] Email already exists:', createUserDto.email);
-        throw new BadRequestException('Email already exists');
+        throw new BadRequestException('Email đã được sử dụng. Vui lòng sử dụng email khác.');
       }
       
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -44,9 +48,34 @@ export class UsersService {
         role: createUserDto.role, // Ensure role is properly set
       };
       
-      console.log('[USER][CREATE] User data to save:', JSON.stringify(userData, null, 2));
+      // Convert join_date string to Date object if provided
+      let finalUserData: UserCreateData;
+      if (userData.join_date && typeof userData.join_date === 'string') {
+        try {
+          const joinDate = new Date(userData.join_date);
+          console.log('[USER][CREATE] Converted join_date to Date:', joinDate);
+          // Create new object with converted date, excluding original join_date
+          const { join_date, ...userDataWithoutJoinDate } = userData;
+          finalUserData = {
+            ...userDataWithoutJoinDate,
+            join_date: joinDate
+          };
+        } catch (error) {
+          console.error('[USER][CREATE] Error converting join_date:', error);
+          throw new BadRequestException('Định dạng ngày vào làm không hợp lệ. Vui lòng kiểm tra lại.');
+        }
+      } else {
+        // No join_date or already Date
+        const { join_date, ...userDataWithoutJoinDate } = userData;
+        finalUserData = {
+          ...userDataWithoutJoinDate,
+          join_date: userData.join_date as Date | undefined
+        };
+      }
       
-      const createdUser = new this.userModel(userData);
+      console.log('[USER][CREATE] User data to save:', JSON.stringify(finalUserData, null, 2));
+      
+      const createdUser = new this.userModel(finalUserData);
       
       console.log('[USER][CREATE] User model created, saving...');
       const savedUser = await createdUser.save();
@@ -211,41 +240,98 @@ export class UsersService {
   }
 
   async changePassword(userId: string, oldPassword: string, newPassword: string) {
-    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('Invalid userId');
+    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('ID người dùng không hợp lệ');
     const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) throw new BadRequestException('Old password is incorrect');
+    if (!isMatch) throw new BadRequestException('Mật khẩu cũ không chính xác');
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-    return { message: 'Password changed successfully' };
+    return { message: 'Đổi mật khẩu thành công' };
   }
 
   async resetPassword(userId: string, newPassword: string) {
-    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('Invalid userId');
+    if (!Types.ObjectId.isValid(userId)) throw new BadRequestException('ID người dùng không hợp lệ');
     const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-    return { message: 'Password reset successfully' };
+    return { message: 'Đặt lại mật khẩu thành công' };
   }
 
   async updateUserById(id: string, updateUserDto: Partial<User>): Promise<User> {
-    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid user id');
-    // Nếu có trường role, ép kiểu về UserRole
-    if (updateUserDto.role && typeof updateUserDto.role === 'string') {
-      updateUserDto.role = updateUserDto.role as any; // ép kiểu để tránh lỗi linter
+    try {
+      if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID người dùng không hợp lệ');
+      
+      // Log dữ liệu đầu vào để debug
+      console.log('updateUserById - Input:', { id, updateUserDto });
+      
+      // Validate email format nếu có
+      if (updateUserDto.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(updateUserDto.email)) {
+          throw new BadRequestException('Định dạng email không hợp lệ. Vui lòng kiểm tra lại.');
+        }
+        
+        // Check if email is already in use by another user
+        const existingUserWithEmail = await this.findByEmail(updateUserDto.email);
+        if (existingUserWithEmail && (existingUserWithEmail as any)._id.toString() !== id) {
+          throw new BadRequestException('Email đã được sử dụng bởi người dùng khác. Vui lòng sử dụng email khác.');
+        }
+      }
+      
+      // Nếu có trường role, ép kiểu về UserRole
+      if (updateUserDto.role && typeof updateUserDto.role === 'string') {
+        updateUserDto.role = updateUserDto.role as any; // ép kiểu để tránh lỗi linter
+      }
+      
+      // Xử lý join_date nếu có
+      if (updateUserDto.join_date && typeof updateUserDto.join_date === 'string') {
+        try {
+          const joinDate = new Date(updateUserDto.join_date);
+          if (isNaN(joinDate.getTime())) {
+            throw new BadRequestException('Định dạng ngày vào làm không hợp lệ. Vui lòng kiểm tra lại.');
+          }
+          updateUserDto.join_date = joinDate;
+          console.log('updateUserById - Converted join_date to Date:', joinDate);
+        } catch (error) {
+          console.error('updateUserById - Error converting join_date:', error);
+          throw new BadRequestException('Định dạng ngày vào làm không hợp lệ. Vui lòng kiểm tra lại.');
+        }
+      }
+      
+      const user = await this.userModel.findByIdAndUpdate(
+        new Types.ObjectId(id), 
+        updateUserDto, 
+        { new: true }
+      ).select('-password').exec();
+      
+      if (!user) {
+        throw new NotFoundException('Không tìm thấy người dùng với ID này');
+      }
+      
+      console.log('updateUserById - Success:', { userId: user._id, updatedFields: Object.keys(updateUserDto) });
+      return user;
+    } catch (error) {
+      console.error('updateUserById - Error:', error);
+      throw error;
     }
-    const user = await this.userModel.findByIdAndUpdate(new Types.ObjectId(id), updateUserDto, { new: true }).select('-password').exec();
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
   }
 
   async getPasswordById(id: string): Promise<string | undefined> {
     if (!Types.ObjectId.isValid(id)) return undefined;
     const user = await this.userModel.findById(new Types.ObjectId(id)).exec();
     return user?.password;
+  }
+
+  async deleteUser(id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(id)) throw new BadRequestException('ID người dùng không hợp lệ');
+    
+    const user = await this.userModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng để xóa');
+    }
+    
+    return user;
   }
 }

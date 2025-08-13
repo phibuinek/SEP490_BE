@@ -21,41 +21,64 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
-    if (
-      user &&
-      user.status === 'active' &&
-      (await bcrypt.compare(password, user.password))
-    ) {
-      const { password, ...result } = user.toObject();
-      return result;
+    // Tối ưu: Kiểm tra email format trước khi query database
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new UnauthorizedException('Email không hợp lệ');
     }
-    return null;
+
+    // Tối ưu: Lấy user với các field cần thiết
+    const user = await this.usersService.findByEmail(email);
+    
+    // Kiểm tra email có tồn tại không
+    if (!user) {
+      throw new UnauthorizedException('Mật khẩu và email không chính xác!');
+    }
+    
+    // Kiểm tra trạng thái tài khoản
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
+    }
+    
+    // Tối ưu: So sánh password ngay lập tức
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Mật khẩu không chính xác');
+    }
+    
+    const { password: _, ...result } = user.toObject();
+    return result;
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const payload = {
-      email: user.email,
-      sub: user._id.toString(),
-      role: user.role,
-      username: user.username,
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user._id.toString(),
+    try {
+      const user = await this.validateUser(loginDto.email, loginDto.password);
+      
+      const payload = {
         email: user.email,
-        username: user.username,
-        full_name: user.full_name,
+        sub: user._id.toString(),
         role: user.role,
-      },
-    };
+        username: user.username,
+      };
+
+      return {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          username: user.username,
+          full_name: user.full_name,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      // Re-throw UnauthorizedException với thông báo chi tiết
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Xử lý các lỗi khác
+      throw new UnauthorizedException('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.');
+    }
   }
 
   // Loại bỏ register vì người nhà không tự đăng ký
@@ -83,7 +106,7 @@ export class AuthService {
     const userProfile = await this.usersService.findOne(userId);
     if (!userProfile) {
       console.log('getProfile - User not found with ID:', userId);
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
     console.log('getProfile - User found:', userProfile.email);
@@ -100,7 +123,7 @@ export class AuthService {
     // Sử dụng findOne và save thay vì update method
     const userProfile = await this.usersService.findOne(user.userId);
     if (!userProfile) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
     // Cập nhật các field được phép
@@ -112,7 +135,7 @@ export class AuthService {
     return {
       ...profile,
       id: profile._id.toString(),
-      message: 'Profile updated successfully',
+      message: 'Cập nhật thông tin cá nhân thành công',
     };
   }
 
@@ -120,7 +143,7 @@ export class AuthService {
     const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
 
     if (newPassword !== confirmPassword) {
-      throw new BadRequestException('New passwords do not match');
+      throw new BadRequestException('Mật khẩu mới và xác nhận mật khẩu không khớp');
     }
 
     // Sử dụng method có sẵn từ UsersService

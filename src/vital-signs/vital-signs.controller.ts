@@ -36,14 +36,47 @@ export class VitalSignsController {
   @Post()
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Create a new vital sign record' })
-  create(@Body() dto: CreateVitalSignDto, @Request() req) {
-    return this.service.create(dto, req.user.userId);
+  async create(@Body() dto: CreateVitalSignDto, @Request() req) {
+    console.log('=== VITAL SIGNS CREATE REQUEST ===');
+    console.log('Raw DTO:', JSON.stringify(dto, null, 2));
+    console.log('DTO type:', typeof dto);
+    console.log('DTO keys:', Object.keys(dto));
+    console.log('DTO resident_id:', dto.resident_id);
+    console.log('DTO resident_id type:', typeof dto.resident_id);
+    console.log('User ID:', req.user.userId);
+    console.log('User role:', req.user.role);
+    
+    try {
+      const result = await this.service.create(dto, req.user.userId);
+      return result;
+    } catch (error) {
+      console.log('=== VITAL SIGNS CREATE ERROR ===');
+      console.log('Error type:', error.constructor.name);
+      console.log('Error message:', error.message);
+      console.log('Error stack:', error.stack);
+      throw error;
+    }
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get all vital sign records' })
-  findAll() {
+  async findAll(@Req() req) {
+    const user = req.user;
+    
+    console.log('=== VITAL SIGNS FIND ALL ===');
+    console.log('User:', user);
+    console.log('User role:', user?.role);
+    console.log('User ID:', user?.userId);
+    
+    // If staff, only return vital signs for assigned residents
+    if (user?.role === Role.STAFF) {
+      console.log('Calling findAllByStaffId for staff user');
+      return this.service.findAllByStaffId(user.userId);
+    }
+    
+    // If admin, return all vital signs
+    console.log('Calling findAll for admin user');
     return this.service.findAll();
   }
 

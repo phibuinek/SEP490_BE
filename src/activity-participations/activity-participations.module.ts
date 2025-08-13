@@ -8,6 +8,7 @@ import {
 } from './schemas/activity-participation.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Activity, ActivitySchema } from '../activity/schemas/activity.schema';
+import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { Activity, ActivitySchema } from '../activity/schemas/activity.schema';
       { name: ActivityParticipation.name, schema: ActivityParticipationSchema },
       { name: User.name, schema: UserSchema },
       { name: Activity.name, schema: ActivitySchema },
+      { name: Resident.name, schema: ResidentSchema },
     ]),
   ],
   controllers: [ActivityParticipationsController],
