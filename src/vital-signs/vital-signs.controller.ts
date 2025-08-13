@@ -170,8 +170,19 @@ export class VitalSignsController {
   @Patch(':id')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Update a vital sign record' })
-  update(@Param('id') id: string, @Body() dto: UpdateVitalSignDto) {
-    return this.service.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateVitalSignDto) {
+    console.log('=== VITAL SIGNS CONTROLLER UPDATE ===');
+    console.log('Vital Sign ID:', id);
+    console.log('Update DTO:', JSON.stringify(dto, null, 2));
+    
+    try {
+      const result = await this.service.update(id, dto);
+      console.log('Update successful:', result);
+      return result;
+    } catch (error) {
+      console.error('Update failed:', error);
+      throw error;
+    }
   }
 
   @Delete(':id')

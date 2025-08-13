@@ -15,7 +15,7 @@ export class MessagesService {
       ...createMessageDto,
       sender_id: new Types.ObjectId(senderId),
       receiver_id: new Types.ObjectId(createMessageDto.receiver_id),
-      resident_id: createMessageDto.resident_id ? new Types.ObjectId(createMessageDto.resident_id) : undefined,
+      resident_id: new Types.ObjectId(createMessageDto.resident_id),
       timestamp: new Date(),
       status: 'unread',
     });
@@ -26,9 +26,9 @@ export class MessagesService {
   async findAll(): Promise<Message[]> {
     return this.messageModel
       .find()
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .sort({ timestamp: -1 })
       .exec();
   }
@@ -47,9 +47,9 @@ export class MessagesService {
 
     return this.messageModel
       .find(query)
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .sort({ timestamp: 1 })
       .exec();
   }
@@ -63,9 +63,9 @@ export class MessagesService {
           { receiver_id: new Types.ObjectId(userId) },
         ],
       })
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .sort({ timestamp: -1 })
       .exec();
 
@@ -83,15 +83,28 @@ export class MessagesService {
       if (!conversations.has(partnerId)) {
         conversations.set(partnerId, {
           partnerId,
-          partner,
+          partner: {
+            _id: (partner as any)._id || partner,
+            full_name: (partner as any).full_name || 'Unknown',
+            email: (partner as any).email || '',
+            avatar: (partner as any).avatar || '',
+            role: (partner as any).role || 'unknown',
+            gender: (partner as any).gender || 'unknown',
+            position: (partner as any).position || '',
+          },
           lastMessage: message,
           unreadCount: 0,
-          resident: message.resident_id,
+          resident: {
+            _id: (message.resident_id as any)?._id || message.resident_id,
+            full_name: (message.resident_id as any)?.full_name || 'Unknown',
+            gender: (message.resident_id as any)?.gender || 'unknown',
+          },
         });
       }
       
       // Count unread messages
-      if (message.receiver_id._id.toString() === userId && message.status === 'unread') {
+      const receiverIdStr = (message.receiver_id as any)._id?.toString() || message.receiver_id.toString();
+      if (receiverIdStr === userId && message.status === 'unread') {
         conversations.get(partnerId).unreadCount++;
       }
     });
@@ -102,9 +115,9 @@ export class MessagesService {
   async findOne(id: string): Promise<Message> {
     const message = await this.messageModel
       .findById(id)
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .exec();
 
     if (!message) {
