@@ -34,6 +34,7 @@ try {
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -69,6 +70,7 @@ import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.mo
       }
       return MongooseModule.forRoot(process.env.MONGODB_URI);
     })(),
+    ScheduleModule.forRoot(),
     // DatabaseModule, // Tắt seeder tự động vì dữ liệu Atlas đã có
     UsersModule,
     AuthModule,
