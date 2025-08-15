@@ -151,6 +151,8 @@ export class ResidentsController {
     return this.residentsService.findAllByFamilyMemberId(familyMemberId);
   }
 
+
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })

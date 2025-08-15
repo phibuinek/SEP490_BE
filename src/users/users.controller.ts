@@ -28,6 +28,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 import { Public } from '../common/decorators/public.decorator';
 import { ResetPasswordDto } from './dto/change-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -556,4 +557,6 @@ export class UsersController {
     const deleted = await this.usersService.deleteUser(id);
     return { message: 'User deleted successfully', _id: (deleted as any)._id };
   }
+
+
 }

@@ -164,7 +164,7 @@ export class ResidentsService {
   async findAll(): Promise<Resident[]> {
     const residents = await this.residentModel
       .find()
-      .populate('family_member_id', 'full_name email')
+      .populate('family_member_id', 'full_name email phone')
       .exec();
     return residents;
   }
