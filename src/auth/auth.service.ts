@@ -24,7 +24,7 @@ export class AuthService {
     // Tối ưu: Kiểm tra email format trước khi query database
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new UnauthorizedException('Email không hợp lệ');
+      return { success: false, message: 'Email không hợp lệ' };
     }
 
     // Tối ưu: Lấy user với các field cần thiết
@@ -32,28 +32,38 @@ export class AuthService {
     
     // Kiểm tra email có tồn tại không
     if (!user) {
-      throw new UnauthorizedException('Mật khẩu và email không chính xác!');
+      return { success: false, message: 'Mật khẩu và email không chính xác!' };
     }
     
     // Kiểm tra trạng thái tài khoản
     if (user.status !== 'active') {
-      throw new UnauthorizedException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
+      return { success: false, message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt' };
     }
     
     // Tối ưu: So sánh password ngay lập tức
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Mật khẩu không chính xác');
+      return { success: false, message: 'Mật khẩu không chính xác' };
     }
     
     const { password: _, ...result } = user.toObject();
-    return result;
+    return { success: true, user: result };
   }
 
   async login(loginDto: LoginDto) {
     try {
-      const user = await this.validateUser(loginDto.email, loginDto.password);
+      const validationResult = await this.validateUser(loginDto.email, loginDto.password);
       
+      // Nếu validation thất bại
+      if (!validationResult.success) {
+        return {
+          success: false,
+          message: validationResult.message,
+          error: 'INVALID_CREDENTIALS'
+        };
+      }
+      
+      const user = validationResult.user;
       const payload = {
         email: user.email,
         sub: user._id.toString(),
@@ -62,6 +72,7 @@ export class AuthService {
       };
 
       return {
+        success: true,
         access_token: this.jwtService.sign(payload),
         user: {
           id: user._id.toString(),
@@ -72,12 +83,12 @@ export class AuthService {
         },
       };
     } catch (error) {
-      // Re-throw UnauthorizedException với thông báo chi tiết
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
       // Xử lý các lỗi khác
-      throw new UnauthorizedException('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.');
+      return {
+        success: false,
+        message: 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.',
+        error: 'LOGIN_ERROR'
+      };
     }
   }
 

@@ -125,4 +125,11 @@ export class PaymentController {
   async checkPaymentStatus(@Query('billId') billId: string) {
     return this.paymentService.checkPaymentStatus(billId);
   }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get payment statistics for admin dashboard' })
+  @ApiResponse({ status: 200, description: 'Payment statistics retrieved.' })
+  async getPaymentStats() {
+    return this.paymentService.getPaymentStats();
+  }
 }

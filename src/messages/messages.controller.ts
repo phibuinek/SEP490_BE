@@ -64,15 +64,32 @@ export class MessagesController {
     @Request() req,
     @Query('residentId') residentId?: string,
   ) {
-    const userId = req.user.userId || req.user.sub;
-    const messages = await this.messagesService.findConversation(userId, partnerId, residentId);
-    
-    // Mark messages as read when conversation is opened
-    if (messages.length > 0) {
-      await this.messagesService.markConversationAsRead(userId, partnerId);
+    try {
+      const userId = req.user.userId || req.user.sub;
+      
+      // Validate partnerId format
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdRegex.test(partnerId)) {
+        return [];
+      }
+      
+      const messages = await this.messagesService.findConversation(userId, partnerId, residentId);
+      
+      // Mark messages as read when conversation is opened
+      if (messages.length > 0) {
+        try {
+          await this.messagesService.markConversationAsRead(userId, partnerId);
+        } catch (markError) {
+          console.error('Error marking conversation as read:', markError);
+          // Don't fail the request if marking as read fails
+        }
+      }
+      
+      return messages;
+    } catch (error) {
+      console.error('Error in getConversation controller:', error);
+      return [];
     }
-    
-    return messages;
   }
 
   @Get('unread-count')
@@ -115,4 +132,3 @@ export class MessagesController {
     return { message: 'Message deleted successfully' };
   }
 }
-

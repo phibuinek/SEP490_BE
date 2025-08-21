@@ -1,38 +1,24 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Put, Patch, UseFilters } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Get, Put, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
-import { UnauthorizedException } from '@nestjs/common';
-import { AuthExceptionFilter } from './auth-exception.filter';
 
 @ApiTags('auth')
 @Controller('auth')
-@UseFilters(AuthExceptionFilter)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('login')
-  @UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'User logged in successfully.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid credentials.' })
-  async login(@Body() loginDto: LoginDto, @Request() req) {
-    try {
-      return this.authService.login(loginDto);
-    } catch (error) {
-      // Re-throw UnauthorizedException với thông báo chi tiết
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      // Xử lý các lỗi khác
-      throw new UnauthorizedException('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.');
-    }
+  @ApiResponse({ status: 200, description: 'Login failed - Invalid credentials.' })
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
   }
 
   @Post('logout')

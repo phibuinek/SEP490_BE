@@ -30,6 +30,13 @@ export class VisitsController {
     return this.visitsService.create({ ...dto, family_member_id });
   }
 
+  @Post('multiple')
+  async createMultiple(@Req() req, @Body() dto: any) {
+    // Lấy family_member_id từ JWT
+    const family_member_id = req.user.userId;
+    return this.visitsService.createMultiple({ ...dto, family_member_id });
+  }
+
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
   async getAllVisits() {

@@ -30,7 +30,7 @@ export class CreateActivityParticipationDto {
   @IsNotEmpty()
   date: string;
 
-  @ApiProperty({ example: 'Tham gia tích cực, tinh thần tốt', required: false })
+  @ApiProperty({ example: 'Lý do sức khỏe', required: false })
   @IsString()
   @IsOptional()
   performance_notes?: string;

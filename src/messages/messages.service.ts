@@ -11,47 +11,76 @@ export class MessagesService {
   ) {}
 
   async create(createMessageDto: CreateMessageDto, senderId: string): Promise<Message> {
-    const message = new this.messageModel({
+    const messageData: any = {
       ...createMessageDto,
       sender_id: new Types.ObjectId(senderId),
       receiver_id: new Types.ObjectId(createMessageDto.receiver_id),
-      resident_id: createMessageDto.resident_id ? new Types.ObjectId(createMessageDto.resident_id) : undefined,
       timestamp: new Date(),
       status: 'unread',
-    });
+    };
 
+    // Chỉ thêm resident_id nếu nó được cung cấp
+    if (createMessageDto.resident_id) {
+      messageData.resident_id = new Types.ObjectId(createMessageDto.resident_id);
+    }
+
+    const message = new this.messageModel(messageData);
     return message.save();
   }
 
   async findAll(): Promise<Message[]> {
     return this.messageModel
       .find()
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .sort({ timestamp: -1 })
       .exec();
   }
 
   async findConversation(userId1: string, userId2: string, residentId?: string): Promise<Message[]> {
-    const query: any = {
-      $or: [
-        { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
-        { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
-      ],
-    };
+    try {
+      // Validate input parameters
+      if (!userId1 || !userId2) {
+        console.error('Invalid userIds provided:', { userId1, userId2 });
+        return [];
+      }
 
-    if (residentId) {
-      query.resident_id = new Types.ObjectId(residentId);
+      // Validate ObjectId format
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdRegex.test(userId1) || !objectIdRegex.test(userId2)) {
+        console.error('Invalid ObjectId format:', { userId1, userId2 });
+        return [];
+      }
+
+      const query: any = {
+        $or: [
+          { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
+          { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
+        ],
+      };
+
+      if (residentId) {
+        // Validate residentId format
+        if (!objectIdRegex.test(residentId)) {
+          console.error('Invalid residentId format:', residentId);
+          // Continue without residentId filter
+        } else {
+          query.resident_id = new Types.ObjectId(residentId);
+        }
+      }
+
+      return this.messageModel
+        .find(query)
+        .populate('sender_id', 'full_name email avatar role gender position')
+        .populate('receiver_id', 'full_name email avatar role gender position')
+        .populate('resident_id', 'full_name gender')
+        .sort({ timestamp: 1 })
+        .exec();
+    } catch (error) {
+      console.error('Error in findConversation:', error);
+      return [];
     }
-
-    return this.messageModel
-      .find(query)
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
-      .sort({ timestamp: 1 })
-      .exec();
   }
 
   async findUserConversations(userId: string): Promise<any[]> {
@@ -63,9 +92,9 @@ export class MessagesService {
           { receiver_id: new Types.ObjectId(userId) },
         ],
       })
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .sort({ timestamp: -1 })
       .exec();
 
@@ -83,15 +112,28 @@ export class MessagesService {
       if (!conversations.has(partnerId)) {
         conversations.set(partnerId, {
           partnerId,
-          partner,
+          partner: {
+            _id: (partner as any)._id || partner,
+            full_name: (partner as any).full_name || 'Unknown',
+            email: (partner as any).email || '',
+            avatar: (partner as any).avatar || '',
+            role: (partner as any).role || 'unknown',
+            gender: (partner as any).gender || 'unknown',
+            position: (partner as any).position || '',
+          },
           lastMessage: message,
           unreadCount: 0,
-          resident: message.resident_id,
+          resident: message.resident_id ? {
+            _id: (message.resident_id as any)?._id || message.resident_id,
+            full_name: (message.resident_id as any)?.full_name || 'Unknown',
+            gender: (message.resident_id as any)?.gender || 'unknown',
+          } : null,
         });
       }
       
       // Count unread messages
-      if (message.receiver_id._id.toString() === userId && message.status === 'unread') {
+      const receiverIdStr = (message.receiver_id as any)._id?.toString() || message.receiver_id.toString();
+      if (receiverIdStr === userId && message.status === 'unread') {
         conversations.get(partnerId).unreadCount++;
       }
     });
@@ -102,9 +144,9 @@ export class MessagesService {
   async findOne(id: string): Promise<Message> {
     const message = await this.messageModel
       .findById(id)
-      .populate('sender_id', 'full_name email avatar role')
-      .populate('receiver_id', 'full_name email avatar role')
-      .populate('resident_id', 'full_name')
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
       .exec();
 
     if (!message) {
@@ -165,4 +207,3 @@ export class MessagesService {
     await this.messageModel.findByIdAndDelete(id);
   }
 }
-

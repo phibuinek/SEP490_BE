@@ -15,4 +15,3 @@ import { Message, MessageSchema } from './schemas/message.schema';
   exports: [MessagesService]
 })
 export class MessagesModule {}
-

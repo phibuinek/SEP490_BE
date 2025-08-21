@@ -80,10 +80,7 @@ export class RoomsService {
     return this.roomModel.findByIdAndDelete(id).exec();
   }
 
-  /**
-   * Kiểm tra và cập nhật trạng thái phòng khi thêm giường
-   * Chuyển từ occupied sang available khi đủ số giường
-   */
+
   async checkAndUpdateRoomStatus(roomId: string): Promise<void> {
     try {
       const room = await this.roomModel.findById(roomId);

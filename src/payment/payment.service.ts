@@ -270,4 +270,69 @@ export class PaymentService {
       throw new BadRequestException('Không thể kiểm tra trạng thái thanh toán');
     }
   }
+
+  async getPaymentStats() {
+    try {
+      // Lấy thống kê từ bills
+      const totalBills = await this.billModel.countDocuments();
+      const paidBills = await this.billModel.countDocuments({ status: 'paid' });
+      const pendingBills = await this.billModel.countDocuments({ status: 'pending' });
+      const overdueBills = await this.billModel.countDocuments({ status: 'overdue' });
+
+      // Tính tổng doanh thu
+      const paidBillsData = await this.billModel.find({ status: 'paid' });
+      const totalRevenue = paidBillsData.reduce((sum, bill) => sum + bill.amount, 0);
+
+      // Tính doanh thu tháng hiện tại
+      const currentMonth = new Date();
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      
+      const monthlyBills = await this.billModel.find({
+        status: 'paid',
+        paid_date: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      });
+      const monthlyRevenue = monthlyBills.reduce((sum, bill) => sum + bill.amount, 0);
+
+      // Tính doanh thu tháng trước để so sánh
+      const lastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
+      
+      const lastMonthBills = await this.billModel.find({
+        status: 'paid',
+        paid_date: {
+          $gte: lastMonth,
+          $lte: endOfLastMonth
+        }
+      });
+      const lastMonthRevenue = lastMonthBills.reduce((sum, bill) => sum + bill.amount, 0);
+
+      // Tính phần trăm tăng trưởng
+      const growthPercentage = lastMonthRevenue > 0 
+        ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
+        : 0;
+
+      return {
+        success: true,
+        data: {
+          totalBills,
+          paidBills,
+          pendingBills,
+          overdueBills,
+          totalRevenue,
+          monthlyRevenue,
+          lastMonthRevenue,
+          growthPercentage: Math.round(growthPercentage * 100) / 100,
+          pendingPayments: pendingBills + overdueBills
+        },
+        message: 'Thống kê thanh toán được lấy thành công'
+      };
+    } catch (error) {
+      console.error('Error getting payment stats:', error);
+      throw new BadRequestException('Không thể lấy thống kê thanh toán');
+    }
+  }
 }

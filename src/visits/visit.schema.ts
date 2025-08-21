@@ -11,6 +11,9 @@ export class Visit {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
+  resident_id: Types.ObjectId;
+
   @Prop({ required: true })
   visit_date: Date;
 
@@ -22,8 +25,8 @@ export class Visit {
 
   @Prop({ 
     required: true,
-    enum: ['completed', 'cancelled'],
-    default: 'completed' 
+    enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
+    default: 'pending' 
   })
   status: string;
 
