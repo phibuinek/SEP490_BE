@@ -147,7 +147,8 @@ export class CareNotesService {
   }
 
   async findAll(resident_id: string) {
-    return this.careNoteModel
+    console.log('🔄 Service: Finding assessments for resident:', resident_id);
+    const assessments = await this.careNoteModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
       .sort({ date: -1 })
       .populate({
@@ -155,6 +156,8 @@ export class CareNotesService {
         select: 'full_name position',
       })
       .exec();
+    console.log('✅ Service: Found assessments count:', assessments.length);
+    return assessments;
   }
 
   async isStaffAssignedToResident(staff_id: string, resident_id: string): Promise<boolean> {

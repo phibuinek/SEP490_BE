@@ -15,6 +15,7 @@ export class MessagesService {
       ...createMessageDto,
       sender_id: new Types.ObjectId(senderId),
       receiver_id: new Types.ObjectId(createMessageDto.receiver_id),
+      resident_id: new Types.ObjectId(createMessageDto.resident_id),
       timestamp: new Date(),
       status: 'unread',
     };
@@ -53,34 +54,13 @@ export class MessagesService {
         return [];
       }
 
-      const query: any = {
-        $or: [
-          { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
-          { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
-        ],
-      };
-
-      if (residentId) {
-        // Validate residentId format
-        if (!objectIdRegex.test(residentId)) {
-          console.error('Invalid residentId format:', residentId);
-          // Continue without residentId filter
-        } else {
-          query.resident_id = new Types.ObjectId(residentId);
-        }
-      }
-
-      return this.messageModel
-        .find(query)
-        .populate('sender_id', 'full_name email avatar role gender position')
-        .populate('receiver_id', 'full_name email avatar role gender position')
-        .populate('resident_id', 'full_name gender')
-        .sort({ timestamp: 1 })
-        .exec();
-    } catch (error) {
-      console.error('Error in findConversation:', error);
-      return [];
-    }
+    return this.messageModel
+      .find(query)
+      .populate('sender_id', 'full_name email avatar role gender position')
+      .populate('receiver_id', 'full_name email avatar role gender position')
+      .populate('resident_id', 'full_name gender')
+      .sort({ timestamp: 1 })
+      .exec();
   }
 
   async findUserConversations(userId: string): Promise<any[]> {
@@ -123,11 +103,11 @@ export class MessagesService {
           },
           lastMessage: message,
           unreadCount: 0,
-          resident: message.resident_id ? {
+          resident: {
             _id: (message.resident_id as any)?._id || message.resident_id,
             full_name: (message.resident_id as any)?.full_name || 'Unknown',
             gender: (message.resident_id as any)?.gender || 'unknown',
-          } : null,
+          },
         });
       }
       

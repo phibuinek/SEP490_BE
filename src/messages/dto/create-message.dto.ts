@@ -11,10 +11,13 @@ export class CreateMessageDto {
   @IsMongoId()
   receiver_id: string;
 
-  @ApiProperty({ description: 'ID cư dân liên quan (tùy chọn)' })
-  @IsOptional()
+  @ApiProperty({ 
+    description: 'ID cư dân liên quan (bắt buộc)',
+    example: '507f1f77bcf86cd799439011'
+  })
   @IsMongoId()
-  resident_id?: string;
+  @IsNotEmpty()
+  resident_id: string;
 
   @ApiProperty({ description: 'URL đính kèm (tùy chọn)' })
   @IsOptional()
