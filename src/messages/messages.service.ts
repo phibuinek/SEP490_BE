@@ -11,15 +11,21 @@ export class MessagesService {
   ) {}
 
   async create(createMessageDto: CreateMessageDto, senderId: string): Promise<Message> {
-    const message = new this.messageModel({
+    const messageData: any = {
       ...createMessageDto,
       sender_id: new Types.ObjectId(senderId),
       receiver_id: new Types.ObjectId(createMessageDto.receiver_id),
       resident_id: new Types.ObjectId(createMessageDto.resident_id),
       timestamp: new Date(),
       status: 'unread',
-    });
+    };
 
+    // Chỉ thêm resident_id nếu nó được cung cấp
+    if (createMessageDto.resident_id) {
+      messageData.resident_id = new Types.ObjectId(createMessageDto.resident_id);
+    }
+
+    const message = new this.messageModel(messageData);
     return message.save();
   }
 
@@ -34,16 +40,19 @@ export class MessagesService {
   }
 
   async findConversation(userId1: string, userId2: string, residentId?: string): Promise<Message[]> {
-    const query: any = {
-      $or: [
-        { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
-        { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
-      ],
-    };
+    try {
+      // Validate input parameters
+      if (!userId1 || !userId2) {
+        console.error('Invalid userIds provided:', { userId1, userId2 });
+        return [];
+      }
 
-    if (residentId) {
-      query.resident_id = new Types.ObjectId(residentId);
-    }
+      // Validate ObjectId format
+      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdRegex.test(userId1) || !objectIdRegex.test(userId2)) {
+        console.error('Invalid ObjectId format:', { userId1, userId2 });
+        return [];
+      }
 
     return this.messageModel
       .find(query)
@@ -178,4 +187,3 @@ export class MessagesService {
     await this.messageModel.findByIdAndDelete(id);
   }
 }
-

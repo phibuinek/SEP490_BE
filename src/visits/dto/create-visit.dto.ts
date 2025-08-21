@@ -4,6 +4,10 @@ import { IsString, IsDateString, IsNumber, IsOptional, IsEnum, Min } from 'class
 export class CreateVisitDto {
   @ApiProperty()
   @IsString()
+  resident_id: string;
+
+  @ApiProperty()
+  @IsString()
   visit_time: string;
 
   @ApiProperty()

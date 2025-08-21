@@ -8,6 +8,7 @@ import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
+import { MailService } from '../common/mail.service';
 
 interface UserCreateData extends Omit<CreateUserDto, 'join_date'> {
   join_date?: Date;
@@ -15,7 +16,10 @@ interface UserCreateData extends Omit<CreateUserDto, 'join_date'> {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
@@ -79,8 +83,22 @@ export class UsersService {
       
       console.log('[USER][CREATE] User model created, saving...');
       const savedUser = await createdUser.save();
-      
+
       console.log('[USER][CREATE] Successfully created user:', savedUser._id);
+
+      // Gửi email thông tin tài khoản nếu có email và có mật khẩu gốc trong DTO
+      // Lưu ý: savedUser.password là hash; phải dùng mật khẩu plain từ DTO
+      if (createUserDto?.email && createUserDto?.password) {
+        this.mailService
+          .sendAccountCredentials({
+            to: createUserDto.email,
+            username: createUserDto.username,
+            password: createUserDto.password,
+            role: createUserDto.role,
+          })
+          .catch(() => {});
+      }
+
       return savedUser;
     } catch (error) {
       console.error('[USER][CREATE][ERROR]', error);

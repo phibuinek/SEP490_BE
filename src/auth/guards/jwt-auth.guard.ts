@@ -16,6 +16,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (isPublic) {
       return true;
     }
+    const request = context.switchToHttp().getRequest();
+    const url: string = request?.url || '';
+    if (url.startsWith('/api') || url.startsWith('/api-json')) {
+      return true;
+    }
+    if (url.startsWith('/uploads/')) {
+      return true;
+    }
     return super.canActivate(context);
   }
 }
