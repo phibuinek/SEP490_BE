@@ -47,20 +47,40 @@ export class MessagesService {
         return [];
       }
 
-      // Validate ObjectId format
       const objectIdRegex = /^[0-9a-fA-F]{24}$/;
       if (!objectIdRegex.test(userId1) || !objectIdRegex.test(userId2)) {
         console.error('Invalid ObjectId format:', { userId1, userId2 });
         return [];
       }
 
-    return this.messageModel
-      .find(query)
-      .populate('sender_id', 'full_name email avatar role gender position')
-      .populate('receiver_id', 'full_name email avatar role gender position')
-      .populate('resident_id', 'full_name gender')
-      .sort({ timestamp: 1 })
-      .exec();
+      const query: any = {
+        $or: [
+          {
+            sender_id: new Types.ObjectId(userId1),
+            receiver_id: new Types.ObjectId(userId2),
+          },
+          {
+            sender_id: new Types.ObjectId(userId2),
+            receiver_id: new Types.ObjectId(userId1),
+          },
+        ],
+      };
+
+      if (residentId) {
+        query.resident_id = new Types.ObjectId(residentId);
+      }
+
+      return this.messageModel
+        .find(query)
+        .populate('sender_id', 'full_name email avatar role gender position')
+        .populate('receiver_id', 'full_name email avatar role gender position')
+        .populate('resident_id', 'full_name gender')
+        .sort({ timestamp: 1 })
+        .exec();
+    } catch (err) {
+      console.error('Error in findConversation:', err);
+      return [];
+    }
   }
 
   async findUserConversations(userId: string): Promise<any[]> {
