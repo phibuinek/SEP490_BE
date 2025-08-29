@@ -87,21 +87,21 @@ export class ResidentPhotosService {
     const residentIds = residents.map(resident => resident._id);
 
     // Step 3: Find all photos where resident_id is in the list of resident IDs
-    return this.photoModel.find({
-      resident_id: { $in: residentIds }
-    })
-      .populate('resident_id')
-      .populate('related_activity_id')
-      .populate('uploaded_by')
+    return this.photoModel
+      .find({ resident_id: { $in: residentIds } })
+      .populate('resident_id', 'full_name date_of_birth gender')
+      .populate('related_activity_id', 'activity_name activity_type description location')
+      .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
   }
 
   async getAllPhotos() {
-    return this.photoModel.find()
-      .populate('resident_id')
-      .populate('related_activity_id')
-      .populate('uploaded_by')
+    return this.photoModel
+      .find()
+      .populate('resident_id', 'full_name date_of_birth gender')
+      .populate('related_activity_id', 'activity_name activity_type description location')
+      .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
   }
@@ -119,12 +119,11 @@ export class ResidentPhotosService {
         throw new Error('Invalid resident_id format');
       }
 
-      const photos = await this.photoModel.find({
-        resident_id: new Types.ObjectId(resident_id)
-      })
+      const photos = await this.photoModel
+        .find({ resident_id: new Types.ObjectId(resident_id) })
         .populate('resident_id', 'full_name date_of_birth gender')
-        .populate('related_activity_id', 'activity_name description activity_type')
-        .populate('uploaded_by', 'full_name position')
+        .populate('related_activity_id', 'activity_name activity_type description location')
+        .populate('uploaded_by', 'full_name username position')
         .sort({ upload_date: -1 })
         .exec();
 

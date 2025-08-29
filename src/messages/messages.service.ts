@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Message, MessageDocument } from './schemas/message.schema';
@@ -41,16 +41,9 @@ export class MessagesService {
 
   async findConversation(userId1: string, userId2: string, residentId?: string): Promise<Message[]> {
     try {
-      // Validate input parameters
-      if (!userId1 || !userId2) {
-        console.error('Invalid userIds provided:', { userId1, userId2 });
-        return [];
-      }
-
-      const objectIdRegex = /^[0-9a-fA-F]{24}$/;
-      if (!objectIdRegex.test(userId1) || !objectIdRegex.test(userId2)) {
-        console.error('Invalid ObjectId format:', { userId1, userId2 });
-        return [];
+      // Validate ObjectId inputs to avoid CastError 500s
+      if (!Types.ObjectId.isValid(userId1) || !Types.ObjectId.isValid(userId2)) {
+        throw new BadRequestException('Invalid user id');
       }
 
       const query: any = {
@@ -67,6 +60,9 @@ export class MessagesService {
       };
 
       if (residentId) {
+        if (!Types.ObjectId.isValid(residentId)) {
+          throw new BadRequestException('Invalid resident id');
+        }
         query.resident_id = new Types.ObjectId(residentId);
       }
 
@@ -77,8 +73,12 @@ export class MessagesService {
         .populate('resident_id', 'full_name gender')
         .sort({ timestamp: 1 })
         .exec();
-    } catch (err) {
-      console.error('Error in findConversation:', err);
+    } catch (error) {
+      // Gracefully handle cast errors from legacy/malformed data
+      if (error?.name === 'CastError') {
+        throw new BadRequestException('Invalid identifier provided');
+      }
+      console.error('Error in findConversation:', error);
       return [];
     }
   }
@@ -173,14 +173,24 @@ export class MessagesService {
   }
 
   async markConversationAsRead(userId1: string, userId2: string): Promise<void> {
-    await this.messageModel.updateMany(
-      {
-        sender_id: new Types.ObjectId(userId2),
-        receiver_id: new Types.ObjectId(userId1),
-        status: 'unread',
-      },
-      { status: 'read' }
-    );
+    try {
+      if (!Types.ObjectId.isValid(userId1) || !Types.ObjectId.isValid(userId2)) {
+        // Do not throw here; silently skip marking as read for invalid ids
+        return;
+      }
+      await this.messageModel.updateMany(
+        {
+          sender_id: new Types.ObjectId(userId2),
+          receiver_id: new Types.ObjectId(userId1),
+          status: 'unread',
+        },
+        { status: 'read' }
+      );
+    } catch (error) {
+      // Log and swallow to avoid failing the conversation fetch flow
+      // eslint-disable-next-line no-console
+      console.error('[MessagesService] markConversationAsRead error:', error);
+    }
   }
 
   async getUnreadCount(userId: string): Promise<number> {
