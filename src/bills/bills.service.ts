@@ -66,28 +66,49 @@ export class BillsService {
         carePlanAssignments = [];
       }
       
-      // 2. Tính tổng tiền dịch vụ từ tất cả assignments
+      // 2. Tính tổng tiền dịch vụ từ tất cả assignments ACTIVE (chưa hết hạn)
+      const now = new Date();
       for (const assignment of carePlanAssignments) {
-        if (assignment.care_plan_ids && Array.isArray(assignment.care_plan_ids)) {
-          for (const carePlanId of assignment.care_plan_ids) {
-            try {
-              const carePlanIdStr = typeof carePlanId === 'object' && carePlanId?._id ? 
-                carePlanId._id.toString() : carePlanId.toString();
-              
-              const carePlan = await this.carePlansService.findOne(carePlanIdStr);
-              if (carePlan) {
-                totalServiceCost += carePlan.monthly_price || 0;
-                serviceDetails.push({
-                  plan_name: carePlan.plan_name,
-                  monthly_price: carePlan.monthly_price,
-                  description: carePlan.description
-                });
+        // Kiểm tra assignment có active và chưa hết hạn không
+        const notExpired = !assignment?.end_date || new Date(assignment.end_date) >= now;
+        const notCancelled = !['cancelled', 'completed', 'expired'].includes(String(assignment?.status || '').toLowerCase());
+        const isActive = assignment?.status === 'active' || !assignment?.status;
+        
+        console.log(`📅 Assignment ${assignment._id}:`, {
+          end_date: assignment?.end_date,
+          status: assignment?.status,
+          notExpired,
+          notCancelled,
+          isActive,
+          isValid: notExpired && notCancelled && isActive
+        });
+        
+        // Chỉ tính tiền nếu assignment còn active và chưa hết hạn
+        if (notExpired && notCancelled && isActive) {
+          if (assignment.care_plan_ids && Array.isArray(assignment.care_plan_ids)) {
+            for (const carePlanId of assignment.care_plan_ids) {
+              try {
+                const carePlanIdStr = typeof carePlanId === 'object' && carePlanId?._id ? 
+                  carePlanId._id.toString() : carePlanId.toString();
+                
+                const carePlan = await this.carePlansService.findOne(carePlanIdStr);
+                if (carePlan) {
+                  totalServiceCost += carePlan.monthly_price || 0;
+                  serviceDetails.push({
+                    plan_name: carePlan.plan_name,
+                    monthly_price: carePlan.monthly_price,
+                    description: carePlan.description
+                  });
+                  console.log(`✅ Added care plan ${carePlan.plan_name}: ${carePlan.monthly_price}`);
+                }
+              } catch (error) {
+                console.error('Error fetching care plan:', error);
+                // Continue with other care plans
               }
-            } catch (error) {
-              console.error('Error fetching care plan:', error);
-              // Continue with other care plans
             }
           }
+        } else {
+          console.log(`❌ Skipped expired/cancelled assignment ${assignment._id}`);
         }
       }
 

@@ -74,8 +74,8 @@ export class Resident {
   }})
   admission_date: Date;
 
-  @Prop({ type: String, default: null })
-  discharge_date?: string | null;
+  @Prop({ type: Date, default: null })
+  discharge_date?: Date | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
