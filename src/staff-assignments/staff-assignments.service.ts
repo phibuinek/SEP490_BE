@@ -115,7 +115,7 @@ export class StaffAssignmentsService {
 
       return await this.staffAssignmentModel
         .find({ status: AssignmentStatus.ACTIVE }) // Chỉ lấy những assignment còn active
-        .populate('staff_id', 'full_name email role avatar')
+        .populate('staff_id', 'full_name email role avatar position qualification')
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -145,7 +145,7 @@ export class StaffAssignmentsService {
 
       return await this.staffAssignmentModel
         .find() // Lấy tất cả assignment (bao gồm cả expired)
-        .populate('staff_id', 'full_name email role avatar')
+        .populate('staff_id', 'full_name email role avatar position qualification')
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -164,7 +164,7 @@ export class StaffAssignmentsService {
 
       const assignment = await this.staffAssignmentModel
         .findById(id)
-        .populate('staff_id', 'full_name email role avatar')
+        .populate('staff_id', 'full_name email role avatar position qualification')
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -195,7 +195,7 @@ export class StaffAssignmentsService {
           staff_id: new Types.ObjectId(staff_id)
           // Removed status filter to show all assignments
         })
-        .populate('staff_id', 'full_name email role avatar')
+        .populate('staff_id', 'full_name email role avatar position qualification')
         .populate('resident_id', 'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -215,12 +215,12 @@ export class StaffAssignmentsService {
         throw new BadRequestException('Invalid resident ID format');
       }
 
-      return await this.staffAssignmentModel
+            return await this.staffAssignmentModel
         .find({ 
           resident_id: new Types.ObjectId(resident_id),
-          status: AssignmentStatus.ACTIVE
+          status: AssignmentStatus.ACTIVE 
         })
-        .populate('staff_id', 'full_name email role avatar')
+        .populate('staff_id', 'full_name email role avatar position qualification')
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();

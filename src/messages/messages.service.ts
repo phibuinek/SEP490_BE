@@ -11,15 +11,21 @@ export class MessagesService {
   ) {}
 
   async create(createMessageDto: CreateMessageDto, senderId: string): Promise<Message> {
-    const message = new this.messageModel({
+    const messageData: any = {
       ...createMessageDto,
       sender_id: new Types.ObjectId(senderId),
       receiver_id: new Types.ObjectId(createMessageDto.receiver_id),
       resident_id: new Types.ObjectId(createMessageDto.resident_id),
       timestamp: new Date(),
       status: 'unread',
-    });
+    };
 
+    // Chỉ thêm resident_id nếu nó được cung cấp
+    if (createMessageDto.resident_id) {
+      messageData.resident_id = new Types.ObjectId(createMessageDto.resident_id);
+    }
+
+    const message = new this.messageModel(messageData);
     return message.save();
   }
 
@@ -204,4 +210,3 @@ export class MessagesService {
     await this.messageModel.findByIdAndDelete(id);
   }
 }
-
