@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Message, MessageDocument } from './schemas/message.schema';
@@ -34,24 +34,40 @@ export class MessagesService {
   }
 
   async findConversation(userId1: string, userId2: string, residentId?: string): Promise<Message[]> {
-    const query: any = {
-      $or: [
-        { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
-        { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
-      ],
-    };
+    try {
+      // Validate ObjectId inputs to avoid CastError 500s
+      if (!Types.ObjectId.isValid(userId1) || !Types.ObjectId.isValid(userId2)) {
+        throw new BadRequestException('Invalid user id');
+      }
 
-    if (residentId) {
-      query.resident_id = new Types.ObjectId(residentId);
+      const query: any = {
+        $or: [
+          { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
+          { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
+        ],
+      };
+
+      if (residentId) {
+        if (!Types.ObjectId.isValid(residentId)) {
+          throw new BadRequestException('Invalid resident id');
+        }
+        query.resident_id = new Types.ObjectId(residentId);
+      }
+
+      return await this.messageModel
+        .find(query)
+        .populate('sender_id', 'full_name email avatar role gender position')
+        .populate('receiver_id', 'full_name email avatar role gender position')
+        .populate('resident_id', 'full_name gender')
+        .sort({ timestamp: 1 })
+        .exec();
+    } catch (error) {
+      // Gracefully handle cast errors from legacy/malformed data
+      if (error?.name === 'CastError') {
+        throw new BadRequestException('Invalid identifier provided');
+      }
+      throw error;
     }
-
-    return this.messageModel
-      .find(query)
-      .populate('sender_id', 'full_name email avatar role gender position')
-      .populate('receiver_id', 'full_name email avatar role gender position')
-      .populate('resident_id', 'full_name gender')
-      .sort({ timestamp: 1 })
-      .exec();
   }
 
   async findUserConversations(userId: string): Promise<any[]> {
@@ -144,14 +160,24 @@ export class MessagesService {
   }
 
   async markConversationAsRead(userId1: string, userId2: string): Promise<void> {
-    await this.messageModel.updateMany(
-      {
-        sender_id: new Types.ObjectId(userId2),
-        receiver_id: new Types.ObjectId(userId1),
-        status: 'unread',
-      },
-      { status: 'read' }
-    );
+    try {
+      if (!Types.ObjectId.isValid(userId1) || !Types.ObjectId.isValid(userId2)) {
+        // Do not throw here; silently skip marking as read for invalid ids
+        return;
+      }
+      await this.messageModel.updateMany(
+        {
+          sender_id: new Types.ObjectId(userId2),
+          receiver_id: new Types.ObjectId(userId1),
+          status: 'unread',
+        },
+        { status: 'read' }
+      );
+    } catch (error) {
+      // Log and swallow to avoid failing the conversation fetch flow
+      // eslint-disable-next-line no-console
+      console.error('[MessagesService] markConversationAsRead error:', error);
+    }
   }
 
   async getUnreadCount(userId: string): Promise<number> {

@@ -179,6 +179,28 @@ export class ResidentsService {
     return resident;
   }
 
+  async findOneWithFamily(id: string): Promise<Resident> {
+    console.log('[RESIDENT][FIND_WITH_FAMILY] Looking up resident:', id);
+    const resident = await this.residentModel
+      .findById(id)
+      .populate('family_member_id', 'full_name email phone role _id')
+      .exec();
+    
+    if (!resident) {
+      console.error('[RESIDENT][FIND_WITH_FAMILY] Resident not found:', id);
+      throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+    
+    console.log('[RESIDENT][FIND_WITH_FAMILY] Found resident:', {
+      id: resident._id,
+      name: resident.full_name,
+      family_member_id: resident.family_member_id,
+      family_populated: resident.family_member_id ? true : false
+    });
+    
+    return resident;
+  }
+
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
     // Đảm bảo so sánh đúng kiểu ObjectId với trường family_member_id
     return this.residentModel

@@ -47,7 +47,10 @@ export class VisitsService {
     
     return this.visitModel.find({ 
       family_member_id: new Types.ObjectId(family_member_id)
-    }).exec();
+    })
+    .populate('family_member_id', 'full_name username')
+    .sort({ visit_date: -1, visit_time: -1 })
+    .exec();
   }
 
   async getAll() {

@@ -43,7 +43,10 @@ export class VisitsController {
   ) {
     // Nếu truyền family_member_id thì dùng, không thì lấy từ JWT
     const famId = family_member_id || req.user.userId;
-    return this.visitsService.getByFamily(famId);
+    console.log('Getting visits for family member ID:', famId);
+    const visits = await this.visitsService.getByFamily(famId);
+    console.log('Found visits:', visits.length);
+    return visits;
   }
 
   @Delete(':id')
