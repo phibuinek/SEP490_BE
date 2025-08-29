@@ -219,7 +219,12 @@ export class ResidentsService {
     }
 
     // Chuẩn bị dữ liệu update, tự động điền các trường required nếu không truyền lên
+    // Hỗ trợ cả camelCase và snake_case cho discharge_date
     const updateData: any = { ...updateResidentDto };
+    if (typeof (updateData as any).dischargeDate !== 'undefined' && typeof updateData.discharge_date === 'undefined') {
+      updateData.discharge_date = (updateData as any).dischargeDate;
+      delete (updateData as any).dischargeDate;
+    }
 
     // Các trường required cần giữ nguyên nếu không truyền lên (admission_date, created_at)
     if (typeof updateData.admission_date === 'undefined') {
@@ -240,8 +245,10 @@ export class ResidentsService {
     // discharge_date: nếu truyền lên thì ép kiểu, nếu không thì giữ nguyên
     if (typeof updateData.discharge_date === 'undefined') {
       updateData.discharge_date = oldResident.discharge_date;
-    } else if (updateData.discharge_date) {
+    } else if (updateData.discharge_date !== null && updateData.discharge_date !== '') {
       updateData.discharge_date = new Date(updateData.discharge_date);
+      // Nếu có ngày xuất viện được cung cấp, tự động set trạng thái đã xuất viện
+      updateData.status = ResidentStatus.DISCHARGED;
     }
 
     // family_member_id: nếu truyền lên thì ép kiểu ObjectId, nếu không thì giữ nguyên

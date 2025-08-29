@@ -48,8 +48,14 @@ export class MessagesService {
 
       const query: any = {
         $or: [
-          { sender_id: new Types.ObjectId(userId1), receiver_id: new Types.ObjectId(userId2) },
-          { sender_id: new Types.ObjectId(userId2), receiver_id: new Types.ObjectId(userId1) },
+          {
+            sender_id: new Types.ObjectId(userId1),
+            receiver_id: new Types.ObjectId(userId2),
+          },
+          {
+            sender_id: new Types.ObjectId(userId2),
+            receiver_id: new Types.ObjectId(userId1),
+          },
         ],
       };
 
@@ -60,7 +66,7 @@ export class MessagesService {
         query.resident_id = new Types.ObjectId(residentId);
       }
 
-      return await this.messageModel
+      return this.messageModel
         .find(query)
         .populate('sender_id', 'full_name email avatar role gender position')
         .populate('receiver_id', 'full_name email avatar role gender position')
@@ -72,7 +78,8 @@ export class MessagesService {
       if (error?.name === 'CastError') {
         throw new BadRequestException('Invalid identifier provided');
       }
-      throw error;
+      console.error('Error in findConversation:', error);
+      return [];
     }
   }
 

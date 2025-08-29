@@ -160,12 +160,34 @@ export class ActivityService {
       }
       
       const prompt = `
-        Tôi cần tạo một hoạt động cho người cao tuổi ${resident.full_name} ${timeInfo} với các thông tin sau:
-        - Tên hoạt động:
-        - Thời gian:
-        - Độ khó:
-        - Mô tả:
-        và người này mắc bệnh lý như sau: ${resident.medical_history}
+        Tôi cần tạo 3-5 hoạt động đa dạng cho người cao tuổi ${resident.full_name} ${timeInfo}. 
+        
+        Mỗi hoạt động cần có format như sau:
+        
+        **HOẠT ĐỘNG 1:**
+        **Tên hoạt động:** [Tên hoạt động]
+        **Thời lượng:** [Thời gian]
+        **Độ khó:** [Dễ/Trung bình/Khó]
+        **Thời điểm:** [Buổi sáng/chiều/tối]
+        **Mục tiêu:**
+        • [Mục tiêu 1]
+        • [Mục tiêu 2]
+        • [Mục tiêu 3]
+        **Mô tả:** [Mô tả chi tiết hoạt động]
+        **Lợi ích:** [Lợi ích 1, lợi ích 2, lợi ích 3]
+        **Lưu ý quan trọng:** [Lưu ý về sức khỏe]
+        
+        **HOẠT ĐỘNG 2:**
+        [Format tương tự...]
+        
+        **HOẠT ĐỘNG 3:**
+        [Format tương tự...]
+        
+        Và cứ tiếp tục cho 3-5 hoạt động khác nhau, đa dạng về loại hình (vận động, tinh thần, xã hội, sáng tạo).
+        
+        Thông tin bệnh lý của người này: ${resident.medical_history}
+        
+        Hãy tạo các hoạt động phù hợp với tình trạng sức khỏe và sở thích của người cao tuổi.
       `;
       try {
         const response = await axios.post(
