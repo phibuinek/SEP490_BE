@@ -33,6 +33,11 @@ export class ActivityService {
     if (exists) {
       throw new BadRequestException('Đã có hoạt động này trong ngày này!');
     }
+
+    // Kiểm tra trùng lịch với staff (nếu có staff_id)
+    if (createDto.staff_id) {
+      await this.checkStaffScheduleConflict(createDto.staff_id, new Date(createDto.schedule_time), createDto.duration);
+    }
     
     // Tạo activity với schedule_time là Date object từ string
     const activityData = {
@@ -42,6 +47,48 @@ export class ActivityService {
     
     const createdActivity = new this.activityModel(activityData);
     return createdActivity.save();
+  }
+
+  /**
+   * Kiểm tra trùng lịch với staff khi tạo hoạt động mới
+   */
+  async checkStaffScheduleConflict(staffId: string, scheduleTime: Date, duration: number): Promise<void> {
+    try {
+      const newActivityStartTime = new Date(scheduleTime);
+      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+
+      // Lấy tất cả activities của staff trong cùng ngày
+      const startOfDay = new Date(newActivityStartTime.getFullYear(), newActivityStartTime.getMonth(), newActivityStartTime.getDate());
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+      const existingActivities = await this.activityModel.find({
+        staff_id: new Types.ObjectId(staffId),
+        schedule_time: { $gte: startOfDay, $lte: endOfDay }
+      }).exec();
+
+      for (const activity of existingActivities) {
+        const existingActivityStartTime = new Date(activity.schedule_time);
+        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (activity.duration || 60) * 60 * 1000);
+
+        // Kiểm tra overlap thời gian
+        if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
+          const activityTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          throw new BadRequestException(
+            `Nhân viên đã có hoạt động "${activity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+          );
+        }
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error checking staff schedule conflict:', error);
+      // Nếu có lỗi khi kiểm tra, cho phép tạo hoạt động
+    }
   }
 
   /**
@@ -169,6 +216,7 @@ export class ActivityService {
         **Thời lượng:** [Thời gian]
         **Độ khó:** [Dễ/Trung bình/Khó]
         **Thời điểm:** [Buổi sáng/chiều/tối]
+        **Địa điểm:** [Chỉ chọn 1 trong các địa điểm sau: Phòng hoạt động, Khu vực chung, Phòng ăn, Vườn, Phòng trị liệu, Thư viện, Sân hiên ngoài trời, Phòng riêng]
         **Mục tiêu:**
         • [Mục tiêu 1]
         • [Mục tiêu 2]
@@ -184,6 +232,16 @@ export class ActivityService {
         [Format tương tự...]
         
         Và cứ tiếp tục cho 3-5 hoạt động khác nhau, đa dạng về loại hình (vận động, tinh thần, xã hội, sáng tạo).
+        
+        **LƯU Ý QUAN TRỌNG:** Địa điểm phải là 1 trong các địa điểm sau và không được thay đổi:
+        - Phòng hoạt động
+        - Khu vực chung  
+        - Phòng ăn
+        - Vườn
+        - Phòng trị liệu
+        - Thư viện
+        - Sân hiên ngoài trời
+        - Phòng riêng
         
         Thông tin bệnh lý của người này: ${resident.medical_history}
         

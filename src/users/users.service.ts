@@ -41,6 +41,15 @@ export class UsersService {
         throw new BadRequestException('Email đã được sử dụng. Vui lòng sử dụng email khác.');
       }
       
+      // Check if phone already exists (NEW VALIDATION)
+      if (createUserDto.phone) {
+        const existingPhone = await this.findByPhone(createUserDto.phone);
+        if (existingPhone) {
+          console.log('[USER][CREATE] Phone already exists:', createUserDto.phone);
+          throw new BadRequestException('Số điện thoại đã được sử dụng. Vui lòng sử dụng số điện thoại khác.');
+        }
+      }
+      
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       console.log('[USER][CREATE] Password hashed successfully');
       
@@ -138,6 +147,10 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email }).exec();
+  }
+
+  async findByPhone(phone: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ phone }).exec();
   }
 
   async findByUsername(username: string): Promise<UserDocument | null> {

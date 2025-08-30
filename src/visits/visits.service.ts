@@ -24,14 +24,13 @@ export class VisitsService {
       data.status = 'completed';
     }
 
-    // Kiểm tra trùng lịch - chỉ báo trùng khi cùng family member đặt lịch cho cùng resident và cùng thời gian
+    // Kiểm tra trùng lịch - chỉ check trùng khi cùng family member đặt lịch cùng thời gian (bất kể resident nào)
     const targetDate = new Date(data.visit_date);
     const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
     
     const existingVisit = await this.visitModel.findOne({
       family_member_id: data.family_member_id,
-      resident_id: data.resident_id,
       visit_date: { $gte: startOfDay, $lte: endOfDay },
       visit_time: data.visit_time,
       status: { $ne: 'cancelled' } // Không tính các lịch đã hủy
@@ -40,7 +39,7 @@ export class VisitsService {
     if (existingVisit) {
       return {
         success: false,
-        message: 'Bạn đã có lịch thăm cho người thân này vào khung giờ này. Vui lòng chọn thời gian khác.',
+        message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
         isDuplicate: true
       };
     }
@@ -65,30 +64,22 @@ export class VisitsService {
       data.status = 'completed';
     }
 
-    // Kiểm tra trùng lịch cho tất cả residents
+    // Kiểm tra trùng lịch - chỉ check trùng khi cùng family member đặt lịch cùng thời gian (bất kể resident nào)
     const targetDate = new Date(data.visit_date);
     const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
     
-    const existingVisits = await this.visitModel.find({
+    const existingVisit = await this.visitModel.findOne({
       family_member_id: data.family_member_id,
-      resident_id: { $in: data.resident_ids.map((id: string) => new Types.ObjectId(id)) },
       visit_date: { $gte: startOfDay, $lte: endOfDay },
       visit_time: data.visit_time,
       status: { $ne: 'cancelled' } // Không tính các lịch đã hủy
-    }).populate('resident_id', 'full_name').lean();
+    }).select('_id').lean();
 
-    if (existingVisits.length > 0) {
-      const residentNames = existingVisits.map(visit => {
-        if (visit.resident_id && typeof visit.resident_id === 'object' && 'full_name' in visit.resident_id) {
-          return (visit.resident_id as { full_name: string }).full_name;
-        }
-        return 'Người thân';
-      }).join(', ');
-      
+    if (existingVisit) {
       return {
         success: false,
-        message: `Bạn đã có lịch thăm cho ${residentNames} vào khung giờ này. Vui lòng chọn thời gian khác.`,
+        message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
         isDuplicate: true
       };
     }
@@ -214,6 +205,41 @@ export class VisitsService {
     });
 
     return Array.from(groupedVisits.values());
+  }
+
+  async update(id: string, updateData: any) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid visit id format');
+    }
+
+    // Kiểm tra trùng lịch khi cập nhật thời gian
+    if (updateData.visit_date || updateData.visit_time) {
+      const targetDate = new Date(updateData.visit_date);
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+      
+      const existingVisit = await this.visitModel.findOne({
+        _id: { $ne: new Types.ObjectId(id) }, // Loại trừ visit hiện tại
+        family_member_id: updateData.family_member_id,
+        visit_date: { $gte: startOfDay, $lte: endOfDay },
+        visit_time: updateData.visit_time,
+        status: { $ne: 'cancelled' }
+      }).select('_id').lean();
+
+      if (existingVisit) {
+        return {
+          success: false,
+          message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
+          isDuplicate: true
+        };
+      }
+    }
+
+    const result = await this.visitModel.findByIdAndUpdate(id, updateData, { new: true });
+    if (!result) {
+      throw new Error('Visit not found');
+    }
+    return { success: true, data: result, message: 'Visit updated successfully' };
   }
 
   async deleteById(id: string) {

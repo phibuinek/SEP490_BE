@@ -2,6 +2,7 @@ import { Controller, Post, Body, UseGuards, Request, Get, Put, Patch } from '@ne
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { OtpLoginDto, SendOtpDto } from './dto/otp-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -58,5 +59,24 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return this.authService.changePassword(req.user, changePasswordDto);
+  }
+
+  // OTP Authentication Endpoints
+  @Public()
+  @Post('send-otp')
+  @ApiOperation({ summary: 'Send OTP to phone number' })
+  @ApiResponse({ status: 200, description: 'OTP sent successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid phone number or user not found.' })
+  async sendOtp(@Body() sendOtpDto: SendOtpDto) {
+    return this.authService.sendOtp(sendOtpDto.phone);
+  }
+
+  @Public()
+  @Post('login-otp')
+  @ApiOperation({ summary: 'Login with phone number and OTP' })
+  @ApiResponse({ status: 200, description: 'Login successful.' })
+  @ApiResponse({ status: 400, description: 'Invalid OTP or phone number.' })
+  async loginWithOtp(@Body() otpLoginDto: OtpLoginDto) {
+    return this.authService.loginWithOtp(otpLoginDto);
   }
 }
