@@ -10,10 +10,12 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthExceptionFilter } from './auth-exception.filter';
 import { Otp, OtpSchema } from './schemas/otp.schema';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
     UsersModule,
+    CommonModule,
     PassportModule,
     MongooseModule.forFeature([{ name: Otp.name, schema: OtpSchema }]),
     JwtModule.register({
