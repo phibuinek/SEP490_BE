@@ -42,4 +42,9 @@ export class CreateActivityDto {
   @IsString()
   @IsNotEmpty()
   activity_type: string;
+
+  @ApiProperty({ example: '507f1f77bcf86cd799439011', description: 'Staff ID who will conduct the activity' })
+  @IsString()
+  @IsNotEmpty()
+  staff_id: string;
 }

@@ -558,5 +558,23 @@ export class UsersController {
     return { message: 'User deleted successfully', _id: (deleted as any)._id };
   }
 
+  @Get('check-phone/:phone')
+  @Public()
+  @ApiOperation({ summary: 'Check if phone number exists' })
+  @ApiResponse({ status: 200, description: 'Phone check completed.' })
+  async checkPhoneExists(@Param('phone') phone: string) {
+    const exists = await this.usersService.findByPhone(phone);
+    return { exists: !!exists };
+  }
+
+  @Get('check-email/:email')
+  @Public()
+  @ApiOperation({ summary: 'Check if email exists' })
+  @ApiResponse({ status: 200, description: 'Email check completed.' })
+  async checkEmailExists(@Param('email') email: string) {
+    const exists = await this.usersService.findByEmail(email);
+    return { exists: !!exists };
+  }
+
 
 }

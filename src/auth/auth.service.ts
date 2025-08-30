@@ -6,8 +6,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { OtpService } from './otp.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
+import { OtpLoginDto } from './dto/otp-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Role } from '../common/enums/role.enum';
@@ -18,6 +20,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private otpService: OtpService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -163,5 +166,57 @@ export class AuthService {
       currentPassword,
       newPassword
     );
+  }
+
+  // OTP Authentication Methods
+  async sendOtp(phone: string) {
+    return await this.otpService.sendOtp(phone);
+  }
+
+  async loginWithOtp(otpLoginDto: OtpLoginDto) {
+    try {
+      const { phone, otp } = otpLoginDto;
+      
+      // Xác thực OTP
+      const verificationResult = await this.otpService.verifyOtp(phone, otp);
+      
+      if (!verificationResult.success) {
+        return {
+          success: false,
+          message: verificationResult.message,
+          error: 'INVALID_OTP'
+        };
+      }
+
+      const user = verificationResult.user;
+      
+      // Tạo JWT token
+      const payload = {
+        email: user.email,
+        sub: user.id,
+        role: user.role,
+        username: user.username,
+      };
+
+      return {
+        success: true,
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          full_name: user.full_name,
+          phone: user.phone,
+          role: user.role,
+        },
+        message: 'Đăng nhập thành công',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.',
+        error: 'OTP_LOGIN_ERROR'
+      };
+    }
   }
 }
