@@ -61,6 +61,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 import { MessagesModule } from './messages/messages.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.mo
     })(),
     ScheduleModule.forRoot(),
     // DatabaseModule, // Tắt seeder tự động vì dữ liệu Atlas đã có
+    CommonModule,
     UsersModule,
     AuthModule,
     ResidentsModule,
