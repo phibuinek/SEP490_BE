@@ -44,26 +44,11 @@ export class EmergencyContactDto {
   phone: string;
 
   @ApiProperty({
-    enum: [
-      'con trai',
-      'con gái',
-      'cháu trai',
-      'cháu gái',
-      'anh em',
-      'vợ/chồng',
-      'khác',
-    ],
     example: 'con gái',
+    description: 'Relationship with emergency contact (can be any string)'
   })
-  @IsEnum([
-    'con trai',
-    'con gái',
-    'cháu trai',
-    'cháu gái',
-    'anh em',
-    'vợ/chồng',
-    'khác',
-  ])
+  @IsString()
+  @IsNotEmpty()
   relationship: string;
 }
 
@@ -117,27 +102,11 @@ export class CreateResidentDto {
   family_member_id: string;
 
   @ApiProperty({
-    enum: [
-      'con trai',
-      'con gái',
-      'cháu trai',
-      'cháu gái',
-      'anh em',
-      'vợ/chồng',
-      'khác',
-    ],
     example: 'con gái',
-    description: 'Relationship with family member'
+    description: 'Relationship with family member (can be any string)'
   })
-  @IsEnum([
-    'con trai',
-    'con gái',
-    'cháu trai',
-    'cháu gái',
-    'anh em',
-    'vợ/chồng',
-    'khác',
-  ])
+  @IsString()
+  @IsNotEmpty()
   relationship: string;
 
   @ApiProperty({ 
