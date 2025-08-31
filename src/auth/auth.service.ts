@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OtpService } from './otp.service';
+import { MailService } from '../common/mail.service';
 import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { OtpLoginDto } from './dto/otp-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { Role } from '../common/enums/role.enum';
 import { UserRole, UserStatus, UserDocument } from '../users/schemas/user.schema';
 
@@ -23,6 +25,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private otpService: OtpService,
+    private mailService: MailService,
   ) {}
 
   // Helper function để kiểm tra và format avatar path
@@ -213,6 +216,60 @@ export class AuthService {
       currentPassword,
       newPassword
     );
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    try {
+      const { email } = forgotPasswordDto;
+      
+      // Tìm user theo email
+      const user = await this.usersService.findByEmail(email);
+      
+      if (!user) {
+        return {
+          success: false,
+          message: 'Email không tồn tại trong hệ thống',
+          error: 'EMAIL_NOT_FOUND'
+        };
+      }
+
+      // Kiểm tra trạng thái tài khoản
+      if (user.status !== 'active') {
+        return {
+          success: false,
+          message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt',
+          error: 'ACCOUNT_INACTIVE'
+        };
+      }
+
+      // Mật khẩu cố định theo yêu cầu
+      const newPassword = '123456789';
+      
+      // Reset password trong database
+      await this.usersService.resetPassword((user as any)._id.toString(), newPassword);
+      
+      // Gửi email thông báo
+      const emailResult = await this.mailService.sendResetPasswordEmail({
+        to: user.email,
+        username: user.username,
+        newPassword: newPassword
+      });
+
+      return {
+        success: true,
+        message: 'Mật khẩu đã được đặt lại và gửi về email của bạn',
+        emailSent: !emailResult.error,
+        userId: (user as any)._id.toString()
+      };
+      
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return {
+        success: false,
+        message: 'Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại sau.',
+        error: 'RESET_PASSWORD_ERROR'
+      };
+    }
   }
 
   // OTP Authentication Methods

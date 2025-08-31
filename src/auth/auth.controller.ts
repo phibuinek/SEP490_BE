@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { OtpLoginDto, SendOtpDto } from './dto/otp-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -59,6 +60,15 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return this.authService.changePassword(req.user, changePasswordDto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Forgot password - Reset password and send to email' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully and email sent.' })
+  @ApiResponse({ status: 400, description: 'Email not found or account inactive.' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   // OTP Authentication Endpoints
