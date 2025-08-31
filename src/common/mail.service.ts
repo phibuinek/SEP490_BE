@@ -31,11 +31,28 @@ export class MailService {
     const from = process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
     const subject = 'Thông tin tài khoản đăng nhập';
+    const getRoleDisplayName = (role?: string) => {
+      switch (role) {
+        case 'admin':
+          return 'Quản trị viên';
+        case 'staff':
+          return 'Nhân viên';
+        case 'family':
+          return 'Gia đình người cao tuổi';
+        default:
+          return 'Người dùng';
+      }
+    };
+
+    const roleDisplayName = getRoleDisplayName(params.role);
+
     const text = `Xin chào,
 
 Thông tin đăng nhập tại viện dưỡng lão CareHome  
+Email: ${params.to}
 Tên đăng nhập: ${params.username}
 Mật khẩu: ${params.password}
+Loại tài khoản: ${roleDisplayName}
 
 Bạn có thể đăng nhập tại: ${appUrl}/login
 
@@ -45,8 +62,10 @@ Trân trọng,`;
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827">
         <p>Xin chào,</p>
         <p>Thông tin đăng nhập tại viện dưỡng lão CareHome</p>
-        <p><strong>Tên đăng nhập:</strong> ${params.username}<br/>
-        <strong>Mật khẩu:</strong> ${params.password}</p>
+        <p><strong>Email:</strong> ${params.to}<br/>
+        <strong>Tên đăng nhập:</strong> ${params.username}<br/>
+        <strong>Mật khẩu:</strong> ${params.password}<br/>
+        <strong>Loại tài khoản:</strong> ${roleDisplayName}</p>
         <p>Bạn có thể đăng nhập tại: <a href="${appUrl}/login" target="_blank">${appUrl}/login</a></p>
         <p>Trân trọng,</p>
       </div>
