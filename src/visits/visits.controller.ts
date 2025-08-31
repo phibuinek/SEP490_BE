@@ -25,9 +25,16 @@ export class VisitsController {
 
   @Post()
   async create(@Req() req, @Body() dto: CreateVisitDto) {
+    console.log('VisitsController.create - Request body:', dto);
+    console.log('VisitsController.create - User from JWT:', req.user);
+    
     // Lấy family_member_id từ JWT
     const family_member_id = req.user.userId;
-    return this.visitsService.create({ ...dto, family_member_id });
+    console.log('VisitsController.create - Family member ID:', family_member_id);
+    
+    const result = await this.visitsService.create({ ...dto, family_member_id });
+    console.log('VisitsController.create - Result:', result);
+    return result;
   }
 
   @Post('multiple')

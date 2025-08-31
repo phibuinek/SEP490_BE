@@ -2,9 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsDateString, IsNumber, IsOptional, IsEnum, Min } from 'class-validator';
 
 export class CreateVisitDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  resident_id: string;
+  resident_id?: string;
 
   @ApiProperty()
   @IsString()

@@ -5,6 +5,7 @@ import {
   IsDateString,
   IsNumber,
   IsPositive,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateActivityDto {
@@ -23,7 +24,7 @@ export class CreateActivityDto {
   @IsPositive()
   duration: number;
 
-  @ApiProperty({ example: '2024-03-02T07:00:00' })
+  @ApiProperty({ example: '2024-03-02T07:00:00.000Z' })
   @IsString()
   @IsNotEmpty()
   schedule_time: string;
