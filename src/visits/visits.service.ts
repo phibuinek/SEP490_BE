@@ -8,21 +8,31 @@ export class VisitsService {
   constructor(@InjectModel(Visit.name) private visitModel: Model<Visit>) {}
 
   async create(data: any) {
+    console.log('VisitsService.create - Input data:', data);
+    
     if (data.family_member_id && typeof data.family_member_id === 'string') {
       if (!Types.ObjectId.isValid(data.family_member_id)) {
         throw new Error('Invalid family_member_id format');
       }
       data.family_member_id = new Types.ObjectId(data.family_member_id);
     }
+    
+    // Xử lý resident_id - có thể null nếu family member không chỉ định resident cụ thể
     if (data.resident_id && typeof data.resident_id === 'string') {
       if (!Types.ObjectId.isValid(data.resident_id)) {
         throw new Error('Invalid resident_id format');
       }
       data.resident_id = new Types.ObjectId(data.resident_id);
+    } else {
+      // Nếu không có resident_id, set thành null
+      data.resident_id = null;
     }
+    
     if (!data.status) {
       data.status = 'completed';
     }
+    
+    console.log('VisitsService.create - Processed data:', data);
 
     // Kiểm tra trùng lịch - chỉ check trùng khi cùng family member đặt lịch cùng thời gian (bất kể resident nào)
     const targetDate = new Date(data.visit_date);

@@ -8,6 +8,8 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OtpService } from './otp.service';
 import * as bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { LoginDto } from './dto/login.dto';
 import { OtpLoginDto } from './dto/otp-login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -22,6 +24,32 @@ export class AuthService {
     private jwtService: JwtService,
     private otpService: OtpService,
   ) {}
+
+  // Helper function để kiểm tra và format avatar path
+  private validateAndFormatAvatar(avatarPath: string | null): string | null {
+    if (!avatarPath) return null;
+    
+    // Format path: thay thế backslash thành forward slash
+    const formattedPath = avatarPath.replace(/\\/g, '/');
+    
+    // Kiểm tra file có tồn tại không
+    try {
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+      const fileName = path.basename(formattedPath);
+      const fullPath = path.join(uploadsDir, fileName);
+      
+      if (fs.existsSync(fullPath)) {
+        console.log(`Avatar file exists: ${fileName}`);
+        return formattedPath;
+      } else {
+        console.log(`Avatar file not found: ${fileName}, full path: ${fullPath}`);
+        return null; // File không tồn tại, trả về null
+      }
+    } catch (error) {
+      console.error('Error checking avatar file:', error);
+      return null;
+    }
+  }
 
   async validateUser(email: string, password: string): Promise<any> {
     // Tối ưu: Kiểm tra email format trước khi query database
@@ -55,10 +83,14 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     try {
+      console.log('Login attempt for email:', loginDto.email);
+      
       const validationResult = await this.validateUser(loginDto.email, loginDto.password);
+      console.log('Validation result:', validationResult);
       
       // Nếu validation thất bại
       if (!validationResult.success) {
+        console.log('Login validation failed:', validationResult.message);
         return {
           success: false,
           message: validationResult.message,
@@ -67,6 +99,8 @@ export class AuthService {
       }
       
       const user = validationResult.user;
+      console.log('User found:', user.email, 'Role:', user.role, 'Avatar:', user.avatar);
+      
       const payload = {
         email: user.email,
         sub: user._id.toString(),
@@ -74,18 +108,27 @@ export class AuthService {
         username: user.username,
       };
 
-      return {
+      const response = {
         success: true,
         access_token: this.jwtService.sign(payload),
         user: {
+          ...user,
           id: user._id.toString(),
-          email: user.email,
-          username: user.username,
-          full_name: user.full_name,
-          role: user.role,
+          // Validate và format avatar path
+          avatar: this.validateAndFormatAvatar(user.avatar || null),
         },
       };
+      
+      console.log('Login successful, user data:', {
+        id: response.user.id,
+        email: response.user.email,
+        role: response.user.role,
+        avatar: response.user.avatar
+      });
+      
+      return response;
     } catch (error) {
+      console.error('Login error:', error);
       // Xử lý các lỗi khác
       return {
         success: false,
@@ -130,6 +173,8 @@ export class AuthService {
     return {
       ...profileData,
       id: profileData._id.toString(),
+      // Validate và format avatar path
+      avatar: this.validateAndFormatAvatar(profileData.avatar || null),
     };
   }
 
@@ -149,6 +194,8 @@ export class AuthService {
     return {
       ...profile,
       id: profile._id.toString(),
+      // Validate và format avatar path
+      avatar: this.validateAndFormatAvatar(profile.avatar || null),
       message: 'Cập nhật thông tin cá nhân thành công',
     };
   }
@@ -198,10 +245,18 @@ export class AuthService {
         username: user.username,
       };
 
+      // Lấy đầy đủ thông tin user từ database
+      const fullUserProfile = await this.usersService.findOne(user.id);
+      
       return {
         success: true,
         access_token: this.jwtService.sign(payload),
-        user: {
+        user: fullUserProfile ? {
+          ...fullUserProfile.toObject(),
+          id: (fullUserProfile as any)._id.toString(),
+          // Validate và format avatar path
+          avatar: this.validateAndFormatAvatar(fullUserProfile.avatar || null),
+        } : {
           id: user.id,
           email: user.email,
           username: user.username,

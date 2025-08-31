@@ -22,16 +22,22 @@ export class ActivityService {
   }
 
   async create(createDto: CreateActivityDto): Promise<Activity> {
-    // Kiểm tra trùng lặp tên hoạt động + ngày (bất kể giờ nào)
+    console.log('ActivityService.create called with:', createDto);
+    
+    // Kiểm tra trùng lặp tên hoạt động + ngày + staff_id (bất kể giờ nào)
     const inputDate = new Date(createDto.schedule_time);
+    console.log('Parsed inputDate:', inputDate);
+    
     const startOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 0, 0, 0, 0);
     const endOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 23, 59, 59, 999);
+    
     const exists = await this.activityModel.findOne({
       activity_name: createDto.activity_name,
+      staff_id: createDto.staff_id,
       schedule_time: { $gte: startOfDay, $lte: endOfDay },
     });
     if (exists) {
-      throw new BadRequestException('Đã có hoạt động này trong ngày này!');
+      throw new BadRequestException('Bạn đã có hoạt động với tên này trong ngày này!');
     }
 
     // Kiểm tra trùng lịch với staff (nếu có staff_id)
@@ -45,8 +51,12 @@ export class ActivityService {
       schedule_time: new Date(createDto.schedule_time)
     };
     
+    console.log('Activity data to save:', activityData);
+    
     const createdActivity = new this.activityModel(activityData);
-    return createdActivity.save();
+    const savedActivity = await createdActivity.save();
+    console.log('Activity saved successfully:', savedActivity);
+    return savedActivity;
   }
 
   /**
@@ -72,13 +82,17 @@ export class ActivityService {
 
         // Kiểm tra overlap thời gian
         if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
-          const activityTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
+          const activityStartTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          const activityEndTime = existingActivityEndTime.toLocaleTimeString('vi-VN', { 
             hour: '2-digit', 
             minute: '2-digit' 
           });
           
           throw new BadRequestException(
-            `Nhân viên đã có hoạt động "${activity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+            `Nhân viên đã có hoạt động "${activity.activity_name}" từ ${activityStartTime} đến ${activityEndTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
           );
         }
       }

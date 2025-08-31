@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   BadRequestException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
@@ -25,8 +26,14 @@ export class ActivityController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new activity template' })
-  create(@Body() dto: CreateActivityDto) {
-    return this.service.create(dto);
+  create(@Body(new ValidationPipe({ transform: true, whitelist: true })) dto: CreateActivityDto) {
+    console.log('Creating activity with DTO:', dto);
+    try {
+      return this.service.create(dto);
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      throw error;
+    }
   }
 
   @Get()

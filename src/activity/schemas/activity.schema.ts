@@ -28,6 +28,9 @@ export class Activity {
 
   @Prop({ required: true, min: 1 })
   capacity: number;
+
+  @Prop({ required: true, type: String })
+  staff_id: string;
 }
 
 export const ActivitySchema = SchemaFactory.createForClass(Activity);
