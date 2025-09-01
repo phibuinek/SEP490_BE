@@ -99,4 +99,25 @@ export class ActivityController {
       throw error;
     }
   }
+
+  @Post('check-schedule-conflict-for-update')
+  @ApiOperation({ summary: 'Check schedule conflict for a resident when updating activity' })
+  async checkScheduleConflictForUpdate(
+    @Body() body: { activityId: string; residentId: string; scheduleTime: string; duration: number }
+  ) {
+    try {
+      await this.service.checkScheduleConflictWithResidentForUpdate(
+        body.activityId,
+        body.residentId,
+        new Date(body.scheduleTime),
+        body.duration
+      );
+      return { hasConflict: false, message: 'Không có trùng lịch' };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        return { hasConflict: true, message: error.message };
+      }
+      throw error;
+    }
+  }
 }
