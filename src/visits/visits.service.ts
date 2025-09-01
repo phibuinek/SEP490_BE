@@ -9,14 +9,14 @@ export class VisitsService {
 
   async create(data: any) {
     console.log('VisitsService.create - Input data:', data);
-    
+
     if (data.family_member_id && typeof data.family_member_id === 'string') {
       if (!Types.ObjectId.isValid(data.family_member_id)) {
         throw new Error('Invalid family_member_id format');
       }
       data.family_member_id = new Types.ObjectId(data.family_member_id);
     }
-    
+
     // Xử lý resident_id - có thể null nếu family member không chỉ định resident cụ thể
     if (data.resident_id && typeof data.resident_id === 'string') {
       if (!Types.ObjectId.isValid(data.resident_id)) {
@@ -27,30 +27,38 @@ export class VisitsService {
       // Nếu không có resident_id, set thành null
       data.resident_id = null;
     }
-    
+
     if (!data.status) {
       data.status = 'completed';
     }
-    
+
     console.log('VisitsService.create - Processed data:', data);
 
     // Kiểm tra trùng lịch - chỉ check trùng khi cùng family member đặt lịch cùng thời gian (bất kể resident nào)
     const targetDate = new Date(data.visit_date);
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const startOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
-    
-    const existingVisit = await this.visitModel.findOne({
-      family_member_id: data.family_member_id,
-      visit_date: { $gte: startOfDay, $lte: endOfDay },
-      visit_time: data.visit_time,
-      status: { $ne: 'cancelled' } // Không tính các lịch đã hủy
-    }).select('_id').lean(); // Chỉ lấy _id và dùng lean() để tăng tốc
+
+    const existingVisit = await this.visitModel
+      .findOne({
+        family_member_id: data.family_member_id,
+        visit_date: { $gte: startOfDay, $lte: endOfDay },
+        visit_time: data.visit_time,
+        status: { $ne: 'cancelled' }, // Không tính các lịch đã hủy
+      })
+      .select('_id')
+      .lean(); // Chỉ lấy _id và dùng lean() để tăng tốc
 
     if (existingVisit) {
       return {
         success: false,
-        message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
-        isDuplicate: true
+        message:
+          'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
+        isDuplicate: true,
       };
     }
 
@@ -58,7 +66,7 @@ export class VisitsService {
     return {
       success: true,
       data: result,
-      message: 'Đặt lịch thăm thành công'
+      message: 'Đặt lịch thăm thành công',
     };
   }
 
@@ -76,21 +84,29 @@ export class VisitsService {
 
     // Kiểm tra trùng lịch - chỉ check trùng khi cùng family member đặt lịch cùng thời gian (bất kể resident nào)
     const targetDate = new Date(data.visit_date);
-    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const startOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
     const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
-    
-    const existingVisit = await this.visitModel.findOne({
-      family_member_id: data.family_member_id,
-      visit_date: { $gte: startOfDay, $lte: endOfDay },
-      visit_time: data.visit_time,
-      status: { $ne: 'cancelled' } // Không tính các lịch đã hủy
-    }).select('_id').lean();
+
+    const existingVisit = await this.visitModel
+      .findOne({
+        family_member_id: data.family_member_id,
+        visit_date: { $gte: startOfDay, $lte: endOfDay },
+        visit_time: data.visit_time,
+        status: { $ne: 'cancelled' }, // Không tính các lịch đã hủy
+      })
+      .select('_id')
+      .lean();
 
     if (existingVisit) {
       return {
         success: false,
-        message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
-        isDuplicate: true
+        message:
+          'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
+        isDuplicate: true,
       };
     }
 
@@ -104,15 +120,15 @@ export class VisitsService {
       status: data.status,
       purpose: data.purpose,
       numberOfVisitors: data.numberOfVisitors,
-      notes: data.notes
+      notes: data.notes,
     }));
 
     const results = await this.visitModel.insertMany(visitsToCreate);
-    
+
     return {
       success: true,
       data: results,
-      message: `Đặt lịch thăm thành công cho ${results.length} người thân`
+      message: `Đặt lịch thăm thành công cho ${results.length} người thân`,
     };
   }
 
@@ -123,31 +139,34 @@ export class VisitsService {
     if (!Types.ObjectId.isValid(resident_id)) {
       throw new Error('Invalid resident_id format');
     }
-    
-    return this.visitModel.find({ 
-      family_member_id: new Types.ObjectId(family_member_id),
-      resident_id: new Types.ObjectId(resident_id)
-    }).exec();
+
+    return this.visitModel
+      .find({
+        family_member_id: new Types.ObjectId(family_member_id),
+        resident_id: new Types.ObjectId(resident_id),
+      })
+      .exec();
   }
 
   async getByFamily(family_member_id: string) {
     if (!Types.ObjectId.isValid(family_member_id)) {
       throw new Error('Invalid family_member_id format');
     }
-    
-    const visits = await this.visitModel.find({ 
-      family_member_id: new Types.ObjectId(family_member_id)
-    })
-    .populate('resident_id', 'full_name')
-    .exec();
+
+    const visits = await this.visitModel
+      .find({
+        family_member_id: new Types.ObjectId(family_member_id),
+      })
+      .populate('resident_id', 'full_name')
+      .exec();
 
     // Nhóm các visits có cùng thời gian
     const groupedVisits = new Map();
-    
-    visits.forEach(visit => {
+
+    visits.forEach((visit) => {
       const visitObj = visit.toObject();
       const key = `${visitObj.visit_date}_${visitObj.visit_time}`;
-      
+
       if (!groupedVisits.has(key)) {
         groupedVisits.set(key, {
           _id: visitObj._id,
@@ -159,13 +178,18 @@ export class VisitsService {
           purpose: visitObj.purpose,
           numberOfVisitors: visitObj.numberOfVisitors,
           notes: visitObj.notes,
-          residents_name: []
+          residents_name: [],
         });
       }
-      
+
       // Thêm tên resident vào danh sách
-      if (visitObj.resident_id && typeof visitObj.resident_id === 'object' && 'full_name' in visitObj.resident_id) {
-        const residentName = (visitObj.resident_id as { full_name: string }).full_name;
+      if (
+        visitObj.resident_id &&
+        typeof visitObj.resident_id === 'object' &&
+        'full_name' in visitObj.resident_id
+      ) {
+        const residentName = (visitObj.resident_id as { full_name: string })
+          .full_name;
         if (!groupedVisits.get(key).residents_name.includes(residentName)) {
           groupedVisits.get(key).residents_name.push(residentName);
         }
@@ -185,11 +209,11 @@ export class VisitsService {
 
     // Nhóm các visits có cùng thời gian và family member
     const groupedVisits = new Map();
-    
-    visits.forEach(visit => {
+
+    visits.forEach((visit) => {
       const visitObj = visit.toObject();
       const key = `${visitObj.family_member_id?._id}_${visitObj.visit_date}_${visitObj.visit_time}`;
-      
+
       if (!groupedVisits.has(key)) {
         groupedVisits.set(key, {
           _id: visitObj._id, // Lấy ID của visit đầu tiên
@@ -201,13 +225,18 @@ export class VisitsService {
           purpose: visitObj.purpose,
           numberOfVisitors: visitObj.numberOfVisitors,
           notes: visitObj.notes,
-          residents_name: []
+          residents_name: [],
         });
       }
-      
+
       // Thêm tên resident vào danh sách
-      if (visitObj.resident_id && typeof visitObj.resident_id === 'object' && 'full_name' in visitObj.resident_id) {
-        const residentName = (visitObj.resident_id as { full_name: string }).full_name;
+      if (
+        visitObj.resident_id &&
+        typeof visitObj.resident_id === 'object' &&
+        'full_name' in visitObj.resident_id
+      ) {
+        const residentName = (visitObj.resident_id as { full_name: string })
+          .full_name;
         if (!groupedVisits.get(key).residents_name.includes(residentName)) {
           groupedVisits.get(key).residents_name.push(residentName);
         }
@@ -225,31 +254,45 @@ export class VisitsService {
     // Kiểm tra trùng lịch khi cập nhật thời gian
     if (updateData.visit_date || updateData.visit_time) {
       const targetDate = new Date(updateData.visit_date);
-      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const startOfDay = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth(),
+        targetDate.getDate(),
+      );
       const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
-      
-      const existingVisit = await this.visitModel.findOne({
-        _id: { $ne: new Types.ObjectId(id) }, // Loại trừ visit hiện tại
-        family_member_id: updateData.family_member_id,
-        visit_date: { $gte: startOfDay, $lte: endOfDay },
-        visit_time: updateData.visit_time,
-        status: { $ne: 'cancelled' }
-      }).select('_id').lean();
+
+      const existingVisit = await this.visitModel
+        .findOne({
+          _id: { $ne: new Types.ObjectId(id) }, // Loại trừ visit hiện tại
+          family_member_id: updateData.family_member_id,
+          visit_date: { $gte: startOfDay, $lte: endOfDay },
+          visit_time: updateData.visit_time,
+          status: { $ne: 'cancelled' },
+        })
+        .select('_id')
+        .lean();
 
       if (existingVisit) {
         return {
           success: false,
-          message: 'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
-          isDuplicate: true
+          message:
+            'Bạn đã có lịch thăm vào khung giờ này. Vui lòng chọn thời gian khác.',
+          isDuplicate: true,
         };
       }
     }
 
-    const result = await this.visitModel.findByIdAndUpdate(id, updateData, { new: true });
+    const result = await this.visitModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
     if (!result) {
       throw new Error('Visit not found');
     }
-    return { success: true, data: result, message: 'Visit updated successfully' };
+    return {
+      success: true,
+      data: result,
+      message: 'Visit updated successfully',
+    };
   }
 
   async deleteById(id: string) {

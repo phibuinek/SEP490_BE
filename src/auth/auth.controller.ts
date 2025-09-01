@@ -1,5 +1,19 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Put, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Get,
+  Put,
+  Patch,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { OtpLoginDto, SendOtpDto } from './dto/otp-login.dto';
@@ -18,7 +32,10 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'User logged in successfully.' })
-  @ApiResponse({ status: 200, description: 'Login failed - Invalid credentials.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login failed - Invalid credentials.',
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
@@ -48,25 +65,42 @@ export class AuthController {
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+  async updateProfile(
+    @Request() req,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
     return this.authService.updateProfile(req.user, updateProfileDto);
   }
 
   @Patch('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'User self change password (must provide oldPassword & newPassword)' })
+  @ApiOperation({
+    summary:
+      'User self change password (must provide oldPassword & newPassword)',
+  })
   @ApiResponse({ status: 200, description: 'Password changed successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
+  async changePassword(
+    @Request() req,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
     return this.authService.changePassword(req.user, changePasswordDto);
   }
 
   @Public()
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Forgot password - Reset password and send to email' })
-  @ApiResponse({ status: 200, description: 'Password reset successfully and email sent.' })
-  @ApiResponse({ status: 400, description: 'Email not found or account inactive.' })
+  @ApiOperation({
+    summary: 'Forgot password - Reset password and send to email',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully and email sent.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Email not found or account inactive.',
+  })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
@@ -76,7 +110,10 @@ export class AuthController {
   @Post('send-otp')
   @ApiOperation({ summary: 'Send OTP to phone number' })
   @ApiResponse({ status: 200, description: 'OTP sent successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid phone number or user not found.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid phone number or user not found.',
+  })
   async sendOtp(@Body() sendOtpDto: SendOtpDto) {
     return this.authService.sendOtp(sendOtpDto.phone);
   }

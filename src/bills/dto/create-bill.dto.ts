@@ -23,7 +23,8 @@ export class CreateBillDto {
 
   @ApiProperty({
     example: '605c5f2e8e3b3a2f8c8e4b1c',
-    description: 'ID của care plan assignment (có thể null để tính tổng tất cả)',
+    description:
+      'ID của care plan assignment (có thể null để tính tổng tất cả)',
     required: false,
   })
   @IsMongoId()

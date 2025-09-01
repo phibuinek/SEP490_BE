@@ -8,10 +8,10 @@ export class CreatePaymentDto {
   @IsNotEmpty()
   bill_id: string;
 
-  @ApiProperty({ 
-    example: 'web', 
+  @ApiProperty({
+    example: 'web',
     description: 'Platform type: web, mobile, or webview',
-    required: false 
+    required: false,
   })
   @IsOptional()
   @IsIn(['web', 'mobile', 'webview'])

@@ -34,23 +34,25 @@ export class AssessmentsController {
 
   @Post()
   @ApiBody({ type: CreateAssessmentDto })
-  @UsePipes(new ValidationPipe({ 
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }))
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async create(@Body() dto: CreateAssessmentDto, @Req() req) {
     try {
       console.log('=== CREATING ASSESSMENT ===');
       console.log('DTO received:', JSON.stringify(dto, null, 2));
       console.log('User ID:', req.user?.userId);
-      
+
       const conducted_by = dto.conducted_by || req.user?.userId;
-      
+
       if (!conducted_by) {
         throw new HttpException(
           'Không tìm thấy thông tin người thực hiện',
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -64,7 +66,7 @@ export class AssessmentsController {
       }
       throw new HttpException(
         error.message || 'Lỗi tạo đánh giá',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -74,7 +76,7 @@ export class AssessmentsController {
     try {
       console.log('=== GETTING ASSESSMENT BY ID ===');
       console.log('Assessment ID:', id);
-      
+
       const result = await this.service.findOne(id);
       console.log('Assessment found:', (result as any)._id);
       return result;
@@ -85,7 +87,7 @@ export class AssessmentsController {
       }
       throw new HttpException(
         error.message || 'Lỗi lấy thông tin đánh giá',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -93,14 +95,17 @@ export class AssessmentsController {
   @Get()
   async findAll(@Query('resident_id') resident_id: string, @Req() req) {
     const user = req.user;
-    
+
     // If specific resident_id is provided, return care notes for that resident
     if (resident_id) {
       // Tạm thời bỏ qua kiểm tra quyền phân công để test
-      console.log('🔄 Temporarily bypassing assignment check for resident:', resident_id);
+      console.log(
+        '🔄 Temporarily bypassing assignment check for resident:',
+        resident_id,
+      );
       console.log('👤 User role:', user?.role);
       console.log('👤 User ID:', user?.userId);
-      
+
       // Comment out assignment check temporarily
       /*
       if (user?.role === Role.STAFF) {
@@ -113,34 +118,39 @@ export class AssessmentsController {
         }
       }
       */
-      
+
       return this.service.findAll(resident_id);
     }
-    
+
     // If no resident_id provided, return care notes for all assigned residents (staff only)
     if (user?.role === Role.STAFF) {
       return this.service.findAllByStaffId(user.userId);
     }
-    
+
     // For admin, return all care notes (you might want to add a separate endpoint for this)
     return this.service.findAll(resident_id);
   }
 
   @Put(':id')
   @ApiBody({ type: UpdateCareNoteDto })
-  @UsePipes(new ValidationPipe({ 
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }))
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async update(@Param('id') id: string, @Body() dto: UpdateCareNoteDto) {
     try {
       console.log('=== UPDATING ASSESSMENT VIA CONTROLLER ===');
       console.log('Assessment ID:', id);
       console.log('Update DTO:', JSON.stringify(dto, null, 2));
-      
+
       const result = await this.service.update(id, dto);
-      console.log('Assessment updated successfully via controller:', (result as any)._id);
+      console.log(
+        'Assessment updated successfully via controller:',
+        (result as any)._id,
+      );
       return result;
     } catch (error) {
       console.error('Error updating assessment via controller:', error);
@@ -149,26 +159,31 @@ export class AssessmentsController {
       }
       throw new HttpException(
         error.message || 'Lỗi cập nhật đánh giá',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Patch(':id')
   @ApiBody({ type: UpdateCareNoteDto })
-  @UsePipes(new ValidationPipe({ 
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  }))
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   async patch(@Param('id') id: string, @Body() dto: UpdateCareNoteDto) {
     try {
       console.log('=== PATCHING ASSESSMENT VIA CONTROLLER ===');
       console.log('Assessment ID:', id);
       console.log('Patch DTO:', JSON.stringify(dto, null, 2));
-      
+
       const result = await this.service.patch(id, dto);
-      console.log('Assessment patched successfully via controller:', result._id);
+      console.log(
+        'Assessment patched successfully via controller:',
+        result._id,
+      );
       return result;
     } catch (error) {
       console.error('Error patching assessment via controller:', error);
@@ -177,7 +192,7 @@ export class AssessmentsController {
       }
       throw new HttpException(
         error.message || 'Lỗi cập nhật đánh giá',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -189,7 +204,7 @@ export class AssessmentsController {
     try {
       console.log('=== DELETING ASSESSMENT ===');
       console.log('Assessment ID:', id);
-      
+
       const result = await this.service.remove(id);
       console.log('Assessment deleted successfully:', id);
       return result;
@@ -200,7 +215,7 @@ export class AssessmentsController {
       }
       throw new HttpException(
         error.message || 'Lỗi xóa đánh giá',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

@@ -39,4 +39,3 @@ MessageSchema.index({ timestamp: -1 });
 MessageSchema.index({ resident_id: 1 });
 MessageSchema.index({ status: 1 });
 MessageSchema.index({ receiver_id: 1, status: 1 }); // For unread messages
-

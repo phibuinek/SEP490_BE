@@ -11,8 +11,8 @@ try {
     console.log(envContent);
     console.log('---END---');
     console.log('📏 File length:', envContent.length);
-    
-    envContent.split('\n').forEach(line => {
+
+    envContent.split('\n').forEach((line) => {
       console.log('🔍 Processing line:', JSON.stringify(line));
       const [key, ...valueParts] = line.trim().split('=');
       if (key && valueParts.length > 0) {
@@ -21,9 +21,15 @@ try {
       }
     });
     console.log('✅ .env file loaded successfully');
-    console.log('📌 MONGODB_URI exists:', process.env.MONGODB_URI ? 'YES' : 'NO');
+    console.log(
+      '📌 MONGODB_URI exists:',
+      process.env.MONGODB_URI ? 'YES' : 'NO',
+    );
     if (process.env.MONGODB_URI) {
-      console.log('🔗 MONGODB_URI value:', process.env.MONGODB_URI.substring(0, 50) + '...');
+      console.log(
+        '🔗 MONGODB_URI value:',
+        process.env.MONGODB_URI.substring(0, 50) + '...',
+      );
     }
   } else {
     console.log('❌ .env file not found at:', envPath);
@@ -67,7 +73,9 @@ import { CommonModule } from './common/common.module';
   imports: [
     (() => {
       if (!process.env.MONGODB_URI) {
-        throw new Error('MONGODB_URI environment variable is required for MongoDB Atlas connection!');
+        throw new Error(
+          'MONGODB_URI environment variable is required for MongoDB Atlas connection!',
+        );
       }
       return MongooseModule.forRoot(process.env.MONGODB_URI);
     })(),

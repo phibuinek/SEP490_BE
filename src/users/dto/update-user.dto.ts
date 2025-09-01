@@ -2,7 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEmail, IsDateString } from 'class-validator';
 
 export class UpdateUserDto {
-  @ApiPropertyOptional({ example: 'Nguyễn Văn A', minLength: 1, maxLength: 100 })
+  @ApiPropertyOptional({
+    example: 'Nguyễn Văn A',
+    minLength: 1,
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
   full_name?: string;
@@ -17,7 +21,11 @@ export class UpdateUserDto {
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg', nullable: true })
+  @ApiPropertyOptional({
+    example:
+      'https://png.pngtree.com/element_our/20200610/ourmid/pngtree-character-default-avatar-image_2237203.jpg',
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   avatar?: string | null;
@@ -42,11 +50,11 @@ export class UpdateUserDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     example: '2024-01-15',
-    description: 'Join date in YYYY-MM-DD format (optional)'
+    description: 'Join date in YYYY-MM-DD format (optional)',
   })
   @IsOptional()
   @IsDateString()
   join_date?: string;
-} 
+}

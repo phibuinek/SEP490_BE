@@ -24,7 +24,13 @@ import { CommonModule } from '../common/common.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, OtpService, LocalStrategy, JwtStrategy, AuthExceptionFilter],
+  providers: [
+    AuthService,
+    OtpService,
+    LocalStrategy,
+    JwtStrategy,
+    AuthExceptionFilter,
+  ],
   exports: [AuthService, OtpService, AuthExceptionFilter],
 })
 export class AuthModule {}

@@ -12,9 +12,9 @@ export enum BillStatus {
   CANCELLED = 'cancelled',
 }
 
-@Schema({ 
+@Schema({
   collection: 'billings',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
@@ -23,7 +23,11 @@ export class Bill extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Resident' })
   resident_id: MongooseSchema.Types.ObjectId;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'CarePlanAssignment', required: false })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'CarePlanAssignment',
+    required: false,
+  })
   care_plan_assignment_id?: MongooseSchema.Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
@@ -74,7 +78,12 @@ export class Bill extends Document {
 
   @Prop({
     required: true,
-    enum: [BillStatus.PENDING, BillStatus.PAID, BillStatus.OVERDUE, BillStatus.CANCELLED],
+    enum: [
+      BillStatus.PENDING,
+      BillStatus.PAID,
+      BillStatus.OVERDUE,
+      BillStatus.CANCELLED,
+    ],
     default: BillStatus.PENDING,
   })
   status: BillStatus;

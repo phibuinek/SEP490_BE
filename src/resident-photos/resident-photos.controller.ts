@@ -77,20 +77,34 @@ export class ResidentPhotosController {
         file: { type: 'string', format: 'binary' },
         resident_id: { type: 'string', description: 'ID của người cao tuổi' },
         caption: { type: 'string', description: 'Mô tả về ảnh' },
-        activity_type: { 
-          type: 'string', 
-          description: 'Loại hoạt động trong ảnh'
+        activity_type: {
+          type: 'string',
+          description: 'Loại hoạt động trong ảnh',
         },
-        tags: { type: 'array', items: { type: 'string' }, description: 'Các tag cho ảnh' },
-        taken_date: { type: 'string', format: 'date-time', description: 'Ngày chụp ảnh' },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Các tag cho ảnh',
+        },
+        taken_date: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Ngày chụp ảnh',
+        },
         staff_notes: { type: 'string', description: 'Ghi chú của nhân viên' },
-        related_activity_id: { type: 'string', description: 'ID của hoạt động liên quan (nếu có)' },
+        related_activity_id: {
+          type: 'string',
+          description: 'ID của hoạt động liên quan (nếu có)',
+        },
       },
       required: ['file', 'resident_id'],
     },
   })
   @ApiResponse({ status: 201, description: 'Photo uploaded successfully.' })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid file or data.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid file or data.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 500, description: 'Internal server error.' })
@@ -121,7 +135,7 @@ export class ResidentPhotosController {
 
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
-      
+
       const file_path = file.path || `uploads/${file.filename}`;
       console.log('File path:', file_path);
 
@@ -135,10 +149,10 @@ export class ResidentPhotosController {
       };
 
       console.log('Upload data to service:', uploadData);
-      
+
       const result = await this.service.uploadPhoto(uploadData);
       console.log('Upload result:', result);
-      
+
       return result;
     } catch (error) {
       console.error('Error in uploadPhoto controller:', error);
@@ -148,17 +162,22 @@ export class ResidentPhotosController {
 
   @Get()
   @ApiQuery({ name: 'family_member_id', required: false })
-  async getPhotos(@Query('family_member_id') family_member_id: string, @Req() req) {
+  async getPhotos(
+    @Query('family_member_id') family_member_id: string,
+    @Req() req,
+  ) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-    
+
     if (userRole === Role.FAMILY) {
       // Family chỉ có thể xem photos của residents thuộc về họ
       if (!family_member_id || family_member_id !== userId) {
-        throw new ForbiddenException('Bạn chỉ có thể xem photos của người thân của mình');
+        throw new ForbiddenException(
+          'Bạn chỉ có thể xem photos của người thân của mình',
+        );
       }
     }
-    
+
     // STAFF/ADMIN: xem tất cả hoặc lọc theo family_member_id nếu có
     return this.service.findAll(family_member_id);
   }
@@ -168,15 +187,17 @@ export class ResidentPhotosController {
     try {
       const userRole = req.user?.role;
       const userId = req.user?.userId;
-      
+
       if (userRole === Role.FAMILY) {
         // Kiểm tra resident này có thuộc về family không
         const resident = await this.residentsService.findOne(resident_id);
         if (!resident || resident.family_member_id.toString() !== userId) {
-          throw new ForbiddenException('Bạn không có quyền xem photos của resident này');
+          throw new ForbiddenException(
+            'Bạn không có quyền xem photos của resident này',
+          );
         }
       }
-      
+
       return this.service.findByResidentId(resident_id);
     } catch (error) {
       console.error('Error in getPhotosByResidentId:', error);

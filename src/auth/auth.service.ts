@@ -17,7 +17,11 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { Role } from '../common/enums/role.enum';
-import { UserRole, UserStatus, UserDocument } from '../users/schemas/user.schema';
+import {
+  UserRole,
+  UserStatus,
+  UserDocument,
+} from '../users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -31,21 +35,23 @@ export class AuthService {
   // Helper function để kiểm tra và format avatar path
   private validateAndFormatAvatar(avatarPath: string | null): string | null {
     if (!avatarPath) return null;
-    
+
     // Format path: thay thế backslash thành forward slash
     const formattedPath = avatarPath.replace(/\\/g, '/');
-    
+
     // Kiểm tra file có tồn tại không
     try {
       const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
       const fileName = path.basename(formattedPath);
       const fullPath = path.join(uploadsDir, fileName);
-      
+
       if (fs.existsSync(fullPath)) {
         console.log(`Avatar file exists: ${fileName}`);
         return formattedPath;
       } else {
-        console.log(`Avatar file not found: ${fileName}, full path: ${fullPath}`);
+        console.log(
+          `Avatar file not found: ${fileName}, full path: ${fullPath}`,
+        );
         return null; // File không tồn tại, trả về null
       }
     } catch (error) {
@@ -63,23 +69,26 @@ export class AuthService {
 
     // Tối ưu: Lấy user với các field cần thiết
     const user = await this.usersService.findByEmail(email);
-    
+
     // Kiểm tra email có tồn tại không
     if (!user) {
       return { success: false, message: 'Mật khẩu và email không chính xác!' };
     }
-    
+
     // Kiểm tra trạng thái tài khoản
     if (user.status !== 'active') {
-      return { success: false, message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt' };
+      return {
+        success: false,
+        message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt',
+      };
     }
-    
+
     // Tối ưu: So sánh password ngay lập tức
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return { success: false, message: 'Mật khẩu không chính xác' };
     }
-    
+
     const { password: _, ...result } = user.toObject();
     return { success: true, user: result };
   }
@@ -87,23 +96,33 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     try {
       console.log('Login attempt for email:', loginDto.email);
-      
-      const validationResult = await this.validateUser(loginDto.email, loginDto.password);
+
+      const validationResult = await this.validateUser(
+        loginDto.email,
+        loginDto.password,
+      );
       console.log('Validation result:', validationResult);
-      
+
       // Nếu validation thất bại
       if (!validationResult.success) {
         console.log('Login validation failed:', validationResult.message);
         return {
           success: false,
           message: validationResult.message,
-          error: 'INVALID_CREDENTIALS'
+          error: 'INVALID_CREDENTIALS',
         };
       }
-      
+
       const user = validationResult.user;
-      console.log('User found:', user.email, 'Role:', user.role, 'Avatar:', user.avatar);
-      
+      console.log(
+        'User found:',
+        user.email,
+        'Role:',
+        user.role,
+        'Avatar:',
+        user.avatar,
+      );
+
       const payload = {
         email: user.email,
         sub: user._id.toString(),
@@ -121,14 +140,14 @@ export class AuthService {
           avatar: this.validateAndFormatAvatar(user.avatar || null),
         },
       };
-      
+
       console.log('Login successful, user data:', {
         id: response.user.id,
         email: response.user.email,
         role: response.user.role,
-        avatar: response.user.avatar
+        avatar: response.user.avatar,
       });
-      
+
       return response;
     } catch (error) {
       console.error('Login error:', error);
@@ -136,7 +155,7 @@ export class AuthService {
       return {
         success: false,
         message: 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.',
-        error: 'LOGIN_ERROR'
+        error: 'LOGIN_ERROR',
       };
     }
   }
@@ -158,11 +177,11 @@ export class AuthService {
     console.log('getProfile - user.userId:', user.userId);
     console.log('getProfile - user.sub:', user.sub);
     console.log('getProfile - user.email:', user.email);
-    
+
     // Thử cả hai cách để đảm bảo
     const userId = user.userId || user.sub;
     console.log('getProfile - final userId:', userId);
-    
+
     const userProfile = await this.usersService.findOne(userId);
     if (!userProfile) {
       console.log('getProfile - User not found with ID:', userId);
@@ -170,7 +189,7 @@ export class AuthService {
     }
 
     console.log('getProfile - User found:', userProfile.email);
-    
+
     // Convert to plain object and add id field
     const profileData = userProfile.toObject();
     return {
@@ -191,7 +210,7 @@ export class AuthService {
     // Cập nhật các field được phép
     Object.assign(userProfile, updateProfileDto);
     await userProfile.save();
-    
+
     const profileData = userProfile.toObject();
     const { password, ...profile } = profileData;
     return {
@@ -207,29 +226,31 @@ export class AuthService {
     const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
 
     if (newPassword !== confirmPassword) {
-      throw new BadRequestException('Mật khẩu mới và xác nhận mật khẩu không khớp');
+      throw new BadRequestException(
+        'Mật khẩu mới và xác nhận mật khẩu không khớp',
+      );
     }
 
     // Sử dụng method có sẵn từ UsersService
     return await this.usersService.changePassword(
       user.userId,
       currentPassword,
-      newPassword
+      newPassword,
     );
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     try {
       const { email } = forgotPasswordDto;
-      
+
       // Tìm user theo email
       const user = await this.usersService.findByEmail(email);
-      
+
       if (!user) {
         return {
           success: false,
           message: 'Email không tồn tại trong hệ thống',
-          error: 'EMAIL_NOT_FOUND'
+          error: 'EMAIL_NOT_FOUND',
         };
       }
 
@@ -238,36 +259,38 @@ export class AuthService {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc chưa được kích hoạt',
-          error: 'ACCOUNT_INACTIVE'
+          error: 'ACCOUNT_INACTIVE',
         };
       }
 
       // Mật khẩu cố định theo yêu cầu
       const newPassword = '123456789';
-      
+
       // Reset password trong database
-      await this.usersService.resetPassword((user as any)._id.toString(), newPassword);
-      
+      await this.usersService.resetPassword(
+        (user as any)._id.toString(),
+        newPassword,
+      );
+
       // Gửi email thông báo
       const emailResult = await this.mailService.sendResetPasswordEmail({
         to: user.email,
         username: user.username,
-        newPassword: newPassword
+        newPassword: newPassword,
       });
 
       return {
         success: true,
         message: 'Mật khẩu đã được đặt lại và gửi về email của bạn',
         emailSent: !emailResult.error,
-        userId: (user as any)._id.toString()
+        userId: (user as any)._id.toString(),
       };
-      
     } catch (error) {
       console.error('Forgot password error:', error);
       return {
         success: false,
         message: 'Có lỗi xảy ra khi đặt lại mật khẩu. Vui lòng thử lại sau.',
-        error: 'RESET_PASSWORD_ERROR'
+        error: 'RESET_PASSWORD_ERROR',
       };
     }
   }
@@ -280,20 +303,20 @@ export class AuthService {
   async loginWithOtp(otpLoginDto: OtpLoginDto) {
     try {
       const { phone, otp } = otpLoginDto;
-      
+
       // Xác thực OTP
       const verificationResult = await this.otpService.verifyOtp(phone, otp);
-      
+
       if (!verificationResult.success) {
         return {
           success: false,
           message: verificationResult.message,
-          error: 'INVALID_OTP'
+          error: 'INVALID_OTP',
         };
       }
 
       const user = verificationResult.user;
-      
+
       // Tạo JWT token
       const payload = {
         email: user.email,
@@ -304,30 +327,35 @@ export class AuthService {
 
       // Lấy đầy đủ thông tin user từ database
       const fullUserProfile = await this.usersService.findOne(user.id);
-      
+
       return {
         success: true,
         access_token: this.jwtService.sign(payload),
-        user: fullUserProfile ? {
-          ...fullUserProfile.toObject(),
-          id: (fullUserProfile as any)._id.toString(),
-          // Validate và format avatar path
-          avatar: this.validateAndFormatAvatar(fullUserProfile.avatar || null),
-        } : {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          full_name: user.full_name,
-          phone: user.phone,
-          role: user.role,
-        },
+        user: fullUserProfile
+          ? {
+              ...fullUserProfile.toObject(),
+              id: (fullUserProfile as any)._id.toString(),
+              // Validate và format avatar path
+              avatar: this.validateAndFormatAvatar(
+                fullUserProfile.avatar || null,
+              ),
+            }
+          : {
+              id: user.id,
+              email: user.email,
+              username: user.username,
+              full_name: user.full_name,
+              phone: user.phone,
+              role: user.role,
+            },
         message: 'Đăng nhập thành công',
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.',
-        error: 'OTP_LOGIN_ERROR'
+        message:
+          error.message || 'Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại sau.',
+        error: 'OTP_LOGIN_ERROR',
       };
     }
   }

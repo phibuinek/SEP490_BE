@@ -3,9 +3,9 @@ import { Document, Types } from 'mongoose';
 
 export type CarePlanAssignmentDocument = CarePlanAssignment & Document;
 
-@Schema({ 
+@Schema({
   collection: 'care_plan_assignments',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class CarePlanAssignment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
@@ -40,7 +40,11 @@ export class CarePlanAssignment {
 
   @Prop({
     type: {
-      preferred_room_gender: { type: String, enum: ['male', 'female'], default: null },
+      preferred_room_gender: {
+        type: String,
+        enum: ['male', 'female'],
+        default: null,
+      },
       preferred_floor: { type: Number, default: null },
       special_requests: { type: String, default: null },
     },

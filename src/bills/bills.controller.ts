@@ -47,7 +47,8 @@ export class BillsController {
   async calculateTotal(@Param('residentId') residentId: string) {
     try {
       console.log('API called: calculate-total for resident:', residentId);
-      const result = await this.billsService.calculateTotalAmountForResident(residentId);
+      const result =
+        await this.billsService.calculateTotalAmountForResident(residentId);
       console.log('API result:', result);
       return result;
     } catch (error) {
@@ -72,14 +73,22 @@ export class BillsController {
 
   @Get('by-family-member')
   @ApiOperation({ summary: 'Get bills by family_member_id' })
-  @ApiResponse({ status: 200, description: 'List of bills for the family member.' })
-  async getBillsByFamilyMember(@Query('family_member_id') family_member_id: string) {
+  @ApiResponse({
+    status: 200,
+    description: 'List of bills for the family member.',
+  })
+  async getBillsByFamilyMember(
+    @Query('family_member_id') family_member_id: string,
+  ) {
     return this.billsService.findByFamilyMemberId(family_member_id);
   }
 
   @Get('staff/:staffId')
   @ApiOperation({ summary: 'Get bills by staff_id' })
-  @ApiResponse({ status: 200, description: 'List of bills created by the staff.' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of bills created by the staff.',
+  })
   async getBillsByStaff(@Param('staffId') staffId: string) {
     return this.billsService.findByStaffId(staffId);
   }
@@ -102,18 +111,21 @@ export class BillsController {
     console.log('Update data:', JSON.stringify(updateBillDto, null, 2));
     console.log('Timestamp:', new Date().toISOString());
     console.log('==========================');
-    
-    return this.billsService.update(id, updateBillDto).then(result => {
-      console.log('✅ Bill updated successfully:', {
-        billId: result._id,
-        newStatus: result.status,
-        paidDate: result.paid_date
+
+    return this.billsService
+      .update(id, updateBillDto)
+      .then((result) => {
+        console.log('✅ Bill updated successfully:', {
+          billId: result._id,
+          newStatus: result.status,
+          paidDate: result.paid_date,
+        });
+        return result;
+      })
+      .catch((error) => {
+        console.error('❌ Bill update failed:', error);
+        throw error;
       });
-      return result;
-    }).catch(error => {
-      console.error('❌ Bill update failed:', error);
-      throw error;
-    });
   }
 
   @Delete(':id')

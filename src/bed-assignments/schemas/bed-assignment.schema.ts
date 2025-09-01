@@ -3,9 +3,9 @@ import { Document, Types } from 'mongoose';
 
 export type BedAssignmentDocument = BedAssignment & Document;
 
-@Schema({ 
+@Schema({
   collection: 'bed_assignments',
-  timestamps: false 
+  timestamps: false,
 })
 export class BedAssignment {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Resident' })

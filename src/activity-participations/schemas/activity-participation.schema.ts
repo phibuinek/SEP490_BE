@@ -10,9 +10,9 @@ export enum AttendanceStatus {
   PENDING = 'pending',
 }
 
-@Schema({ 
+@Schema({
   collection: 'activity_participations',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class ActivityParticipation {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })

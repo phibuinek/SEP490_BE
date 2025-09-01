@@ -1,4 +1,8 @@
-import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiHideProperty,
+} from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
@@ -53,50 +57,50 @@ export class EmergencyContactDto {
 }
 
 export class CreateResidentDto {
-  @ApiProperty({ 
+  @ApiProperty({
     example: 'Nguyễn Văn Nam',
-    description: 'Full name of the resident'
+    description: 'Full name of the resident',
   })
   @IsString()
   @IsNotEmpty()
   full_name: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: '1950-05-15',
-    description: 'Date of birth in YYYY-MM-DD format'
+    description: 'Date of birth in YYYY-MM-DD format',
   })
   @IsDateString()
   @IsNotEmpty()
   date_of_birth: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     example: '2024-01-15',
-    description: 'Admission date in YYYY-MM-DD format (optional)'
+    description: 'Admission date in YYYY-MM-DD format (optional)',
   })
   @IsOptional()
   @IsDateString()
   admission_date?: string;
 
-  @ApiProperty({ 
-    enum: Gender, 
+  @ApiProperty({
+    enum: Gender,
     example: Gender.MALE,
-    description: 'Gender of the resident'
+    description: 'Gender of the resident',
   })
   @IsEnum(Gender)
   gender: Gender;
 
-  @ApiPropertyOptional({ 
-    example: 'https://example.com/avatar.jpg', 
+  @ApiPropertyOptional({
+    example: 'https://example.com/avatar.jpg',
     nullable: true,
-    description: 'Avatar URL (optional)'
+    description: 'Avatar URL (optional)',
   })
   @IsOptional()
   @IsString()
   avatar?: string | null;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: '664f1b2c2f8b2c0012a4e750',
-    description: 'Family member ID (MongoDB ObjectId)'
+    description: 'Family member ID (MongoDB ObjectId)',
   })
   @IsMongoId()
   family_member_id: string;
@@ -109,27 +113,31 @@ export class CreateResidentDto {
   @IsNotEmpty()
   relationship: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 'Cao huyết áp, tiểu đường type 2',
-    description: 'Medical history of the resident'
+    description: 'Medical history of the resident',
   })
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     example: 'Cao huyết áp, tiểu đường type 2',
-    description: 'Medical history of the resident (optional)'
+    description: 'Medical history of the resident (optional)',
   })
   @IsOptional()
   @IsString()
   medical_history?: string;
 
-  @ApiProperty({ 
-    type: [MedicationDto], 
-    example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }],
-    description: 'Current medications list'
+  @ApiProperty({
+    type: [MedicationDto],
+    example: [
+      { medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' },
+    ],
+    description: 'Current medications list',
   })
-  @ApiPropertyOptional({ 
-    type: [MedicationDto], 
-    example: [{ medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' }],
-    description: 'Current medications list (optional)'
+  @ApiPropertyOptional({
+    type: [MedicationDto],
+    example: [
+      { medication_name: 'Aspirin', dosage: '81mg', frequency: 'Sáng' },
+    ],
+    description: 'Current medications list (optional)',
   })
   @IsOptional()
   @IsArray()
@@ -137,24 +145,24 @@ export class CreateResidentDto {
   @Type(() => MedicationDto)
   current_medications?: MedicationDto[];
 
-  @ApiProperty({ 
-    type: [String], 
+  @ApiProperty({
+    type: [String],
     example: ['Dị ứng hải sản'],
-    description: 'List of allergies'
+    description: 'List of allergies',
   })
-  @ApiPropertyOptional({ 
-    type: [String], 
+  @ApiPropertyOptional({
+    type: [String],
     example: ['Dị ứng hải sản'],
-    description: 'List of allergies (optional)'
+    description: 'List of allergies (optional)',
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   allergies?: string[];
 
-  @ApiProperty({ 
+  @ApiProperty({
     type: EmergencyContactDto,
-    description: 'Emergency contact information'
+    description: 'Emergency contact information',
   })
   @IsOptional()
   @IsObject()

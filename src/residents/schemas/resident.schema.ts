@@ -27,7 +27,8 @@ export class EmergencyContact {
   @Prop({ required: true })
   relationship: string;
 }
-export const EmergencyContactSchema = SchemaFactory.createForClass(EmergencyContact);
+export const EmergencyContactSchema =
+  SchemaFactory.createForClass(EmergencyContact);
 
 export type ResidentDocument = Resident & Document;
 
@@ -59,11 +60,15 @@ export class Resident {
   @Prop({ type: String, required: false, default: null })
   avatar?: string | null;
 
-  @Prop({ type: Date, required: true, default: () => {
-    const now = new Date();
-    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    return vietnamTime;
-  }})
+  @Prop({
+    type: Date,
+    required: true,
+    default: () => {
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+      return vietnamTime;
+    },
+  })
   admission_date: Date;
 
   @Prop({ type: Date, default: null })

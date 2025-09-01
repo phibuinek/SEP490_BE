@@ -8,9 +8,9 @@ export enum AssignmentStatus {
   EXPIRED = 'expired',
 }
 
-@Schema({ 
+@Schema({
   collection: 'staff_assignments',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class StaffAssignment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
@@ -47,7 +47,8 @@ export class StaffAssignment {
   updated_at: Date;
 }
 
-export const StaffAssignmentSchema = SchemaFactory.createForClass(StaffAssignment);
+export const StaffAssignmentSchema =
+  SchemaFactory.createForClass(StaffAssignment);
 
 // Create compound index to ensure unique staff-resident assignments
-StaffAssignmentSchema.index({ staff_id: 1, resident_id: 1 }, { unique: true }); 
+StaffAssignmentSchema.index({ staff_id: 1, resident_id: 1 }, { unique: true });

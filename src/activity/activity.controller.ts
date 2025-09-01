@@ -26,7 +26,10 @@ export class ActivityController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new activity template' })
-  create(@Body(new ValidationPipe({ transform: true, whitelist: true })) dto: CreateActivityDto) {
+  create(
+    @Body(new ValidationPipe({ transform: true, whitelist: true }))
+    dto: CreateActivityDto,
+  ) {
     console.log('Creating activity with DTO:', dto);
     try {
       return this.service.create(dto);
@@ -68,11 +71,11 @@ export class ActivityController {
     console.log('Controller received body:', body);
     console.log('Controller received resident_ids:', body.resident_ids);
     console.log('Controller received schedule_time:', body.schedule_time);
-    
+
     try {
       return await this.service.recommendActivityAI(
-        body.resident_ids, 
-        body.schedule_time
+        body.resident_ids,
+        body.schedule_time,
       );
     } catch (error) {
       console.error('Error in recommendActivityAI controller:', error);
@@ -83,13 +86,18 @@ export class ActivityController {
   @Post('check-schedule-conflict')
   @ApiOperation({ summary: 'Check schedule conflict for a resident' })
   async checkScheduleConflict(
-    @Body() body: { residentId: string; scheduleTime: string; duration: number }
+    @Body()
+    body: {
+      residentId: string;
+      scheduleTime: string;
+      duration: number;
+    },
   ) {
     try {
       await this.service.checkScheduleConflictWithResident(
         body.residentId,
         new Date(body.scheduleTime),
-        body.duration
+        body.duration,
       );
       return { hasConflict: false, message: 'Không có trùng lịch' };
     } catch (error) {
@@ -101,16 +109,24 @@ export class ActivityController {
   }
 
   @Post('check-schedule-conflict-for-update')
-  @ApiOperation({ summary: 'Check schedule conflict for a resident when updating activity' })
+  @ApiOperation({
+    summary: 'Check schedule conflict for a resident when updating activity',
+  })
   async checkScheduleConflictForUpdate(
-    @Body() body: { activityId: string; residentId: string; scheduleTime: string; duration: number }
+    @Body()
+    body: {
+      activityId: string;
+      residentId: string;
+      scheduleTime: string;
+      duration: number;
+    },
   ) {
     try {
       await this.service.checkScheduleConflictWithResidentForUpdate(
         body.activityId,
         body.residentId,
         new Date(body.scheduleTime),
-        body.duration
+        body.duration,
       );
       return { hasConflict: false, message: 'Không có trùng lịch' };
     } catch (error) {

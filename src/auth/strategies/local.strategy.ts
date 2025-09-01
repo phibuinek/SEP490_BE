@@ -24,7 +24,9 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
         throw error;
       }
       // Xử lý các lỗi khác
-      throw new UnauthorizedException('Có lỗi xảy ra khi xác thực. Vui lòng thử lại sau.');
+      throw new UnauthorizedException(
+        'Có lỗi xảy ra khi xác thực. Vui lòng thử lại sau.',
+      );
     }
   }
 }

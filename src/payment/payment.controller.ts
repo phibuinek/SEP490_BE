@@ -34,10 +34,10 @@ export class PaymentController {
   handlePaymentSuccess(@Query() query: any, @Res() res?: Response) {
     // Handle successful payment logic
     console.log('Payment successful:', query);
-    
+
     // Kiểm tra nếu có billId để xác định platform
     const billId = query.billId;
-    
+
     // Nếu có billId, có thể là mobile callback
     if (billId) {
       // Return JSON response for mobile app
@@ -50,8 +50,8 @@ export class PaymentController {
           transactionId: query.transactionId,
           amount: query.amount,
           paymentMethod: query.paymentMethod,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     } else {
       // Redirect for web frontend
@@ -70,10 +70,10 @@ export class PaymentController {
   handlePaymentCancel(@Query() query: any, @Res() res?: Response) {
     // Handle cancelled payment logic
     console.log('Payment cancelled:', query);
-    
+
     // Kiểm tra nếu có billId để xác định platform
     const billId = query.billId;
-    
+
     // Nếu có billId, có thể là mobile callback
     if (billId) {
       // Return JSON response for mobile app
@@ -83,8 +83,8 @@ export class PaymentController {
         message: 'Thanh toán đã hủy',
         data: {
           orderCode: query.orderCode,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     } else {
       // Redirect for web frontend
@@ -107,7 +107,7 @@ export class PaymentController {
     console.log('Data keys:', Object.keys(data));
     console.log('Timestamp:', new Date().toISOString());
     console.log('==============================');
-    
+
     try {
       const result = await this.paymentService.handlePaymentWebhook(data);
       console.log('✅ Webhook processed successfully:', result);

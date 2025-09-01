@@ -12,69 +12,75 @@ import { MongoError } from 'mongodb';
 // Mapping các thông báo lỗi kỹ thuật sang thông báo thân thiện
 const ERROR_MESSAGE_MAPPINGS = {
   // User/Account related
-  'Username already exists': 'Tên đăng nhập đã được sử dụng. Vui lòng chọn tên đăng nhập khác.',
+  'Username already exists':
+    'Tên đăng nhập đã được sử dụng. Vui lòng chọn tên đăng nhập khác.',
   'Email already exists': 'Email đã được sử dụng. Vui lòng sử dụng email khác.',
   'Invalid user id': 'ID người dùng không hợp lệ.',
   'User not found': 'Không tìm thấy người dùng.',
-  'Invalid email format': 'Định dạng email không hợp lệ. Vui lòng kiểm tra lại.',
-  'Invalid join_date format': 'Định dạng ngày vào làm không hợp lệ. Vui lòng kiểm tra lại.',
+  'Invalid email format':
+    'Định dạng email không hợp lệ. Vui lòng kiểm tra lại.',
+  'Invalid join_date format':
+    'Định dạng ngày vào làm không hợp lệ. Vui lòng kiểm tra lại.',
   'Old password is incorrect': 'Mật khẩu cũ không chính xác.',
   'New passwords do not match': 'Mật khẩu mới và xác nhận mật khẩu không khớp.',
-  
+
   // Resident related
   'Resident not found': 'Không tìm thấy thông tin người cao tuổi.',
   'Invalid resident ID': 'ID người cao tuổi không hợp lệ.',
   'Invalid resident_id format': 'Định dạng ID người cao tuổi không hợp lệ.',
-  
+
   // Staff related
   'Staff not found': 'Không tìm thấy thông tin nhân viên.',
   'User is not a staff member': 'Người dùng này không phải là nhân viên.',
   'Invalid staff_id format': 'Định dạng ID nhân viên không hợp lệ.',
-  
+
   // Activity related
   'Activity not found': 'Không tìm thấy hoạt động.',
   'Invalid activity_id format': 'Định dạng ID hoạt động không hợp lệ.',
-  
+
   // Participation related
   'Invalid participation ID format': 'Định dạng ID tham gia không hợp lệ.',
   'Participation with ID': 'Không tìm thấy thông tin tham gia.',
-  'Participation not found for resident': 'Không tìm thấy thông tin tham gia cho người cao tuổi này.',
-  'Staff is already actively assigned to this resident': 'Nhân viên đã được phân công cho người cao tuổi này.',
-  
+  'Participation not found for resident':
+    'Không tìm thấy thông tin tham gia cho người cao tuổi này.',
+  'Staff is already actively assigned to this resident':
+    'Nhân viên đã được phân công cho người cao tuổi này.',
+
   // Vital signs related
   'Vital sign not found': 'Không tìm thấy chỉ số sinh hiệu.',
   'Invalid vital sign ID': 'ID chỉ số sinh hiệu không hợp lệ.',
-  
+
   // Care plans related
   'CarePlan with ID': 'Không tìm thấy kế hoạch chăm sóc.',
-  
+
   // Care notes/Assessments related
   'Assessment not found': 'Không tìm thấy đánh giá.',
   'Failed to update assessment': 'Không thể cập nhật đánh giá.',
   'Failed to patch assessment': 'Không thể chỉnh sửa đánh giá.',
-  
+
   // Bills related
   'Bill #': 'Không tìm thấy hóa đơn.',
   'resident_id is required': 'ID người cao tuổi là bắt buộc.',
   'staff_id is required': 'ID nhân viên là bắt buộc.',
-  'Invalid family member ID format': 'Định dạng ID thành viên gia đình không hợp lệ.',
-  
+  'Invalid family member ID format':
+    'Định dạng ID thành viên gia đình không hợp lệ.',
+
   // General validation
   'Invalid input': 'Dữ liệu đầu vào không hợp lệ.',
   'Required field': 'Trường này là bắt buộc.',
   'No valid fields to update': 'Không có dữ liệu nào để cập nhật.',
   'Invalid ID format': 'Định dạng ID không hợp lệ.',
   'Invalid format': 'Định dạng không hợp lệ.',
-  
+
   // MongoDB errors
-  'E11000': 'Thông tin đã tồn tại trong hệ thống.',
+  E11000: 'Thông tin đã tồn tại trong hệ thống.',
   'Cast to ObjectId failed': 'ID không hợp lệ.',
-  
+
   // Common patterns
   'not found': 'Không tìm thấy thông tin.',
   'already exists': 'Thông tin đã tồn tại.',
   'is required': 'là bắt buộc.',
-  'Invalid': 'Không hợp lệ.',
+  Invalid: 'Không hợp lệ.',
   'Failed to': 'Không thể.',
 } as const;
 
@@ -95,10 +101,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'string') {
         message = this.translateMessage(exceptionResponse);
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         const responseObj = exceptionResponse as any;
         if (Array.isArray(responseObj.message)) {
           message = this.translateMessage(responseObj.message[0]);
@@ -106,7 +115,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           message = this.translateMessage(responseObj.message);
         }
       }
-      
+
       error = exception.name;
     } else if (exception instanceof MongoError) {
       // Handle MongoDB specific errors
@@ -159,7 +168,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Handle common patterns
     translatedMessage = translatedMessage
       .replace(/Please enter a valid value/g, 'Vui lòng nhập giá trị hợp lệ')
-      .replace(/The two nearest valid values are/g, 'Hai giá trị hợp lệ gần nhất là')
+      .replace(
+        /The two nearest valid values are/g,
+        'Hai giá trị hợp lệ gần nhất là',
+      )
       .replace(/Invalid input/g, 'Dữ liệu đầu vào không hợp lệ')
       .replace(/Required field/g, 'Trường này là bắt buộc')
       .replace(/must be a number/g, 'phải là số')

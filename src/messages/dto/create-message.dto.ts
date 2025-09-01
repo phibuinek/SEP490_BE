@@ -11,9 +11,9 @@ export class CreateMessageDto {
   @IsMongoId()
   receiver_id: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'ID cư dân liên quan (bắt buộc)',
-    example: '507f1f77bcf86cd799439011'
+    example: '507f1f77bcf86cd799439011',
   })
   @IsMongoId()
   @IsNotEmpty()
@@ -24,4 +24,3 @@ export class CreateMessageDto {
   @IsString()
   attachment?: string;
 }
-

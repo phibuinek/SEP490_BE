@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional , IsMongoId} from 'class-validator';
+import { IsString, IsOptional, IsMongoId } from 'class-validator';
 
 export class CreateServiceRequestDto {
   @ApiProperty()

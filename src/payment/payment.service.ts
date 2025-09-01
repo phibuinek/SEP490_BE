@@ -12,10 +12,12 @@ import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class PaymentService {
-  private readonly payosUrl = "https://api-merchant.payos.vn/v2/payment-requests";
-  private readonly clientId = "d89d5297-4ff5-4f10-9d44-c8dd3f68f71b";
-  private readonly apiKey = "79bc8e19-0dc0-4111-95ff-69bf4687858e";
-  private readonly checksumKey = "0ecbdbfa3f52b73dacdd2790501563fccca43d92e039e37aef14ffca2850d147";
+  private readonly payosUrl =
+    'https://api-merchant.payos.vn/v2/payment-requests';
+  private readonly clientId = 'd89d5297-4ff5-4f10-9d44-c8dd3f68f71b';
+  private readonly apiKey = '79bc8e19-0dc0-4111-95ff-69bf4687858e';
+  private readonly checksumKey =
+    '0ecbdbfa3f52b73dacdd2790501563fccca43d92e039e37aef14ffca2850d147';
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
@@ -25,22 +27,24 @@ export class PaymentService {
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
     const bill = await this.billModel.findById(createPaymentDto.bill_id).exec();
     if (!bill) throw new Error('Bill không tồn tại');
-       const amount = bill.amount;
+    const amount = bill.amount;
     const orderCode = this.generateOrderCode();
     const rawDescription = `Thanh toán hóa đơn: ${bill._id}`;
-    const description = rawDescription.slice(0, 25); 
-    
+    const description = rawDescription.slice(0, 25);
+
     // Xác định platform từ request (web hoặc mobile)
     const platform = createPaymentDto.platform || 'web'; // default là web
-    
+
     // URL cho từng platform - Sử dụng URL thực tế thay vì deep link
-    const returnUrl = platform === 'mobile' || platform === 'webview'
-      ? `https://payos.vn/payment/success?billId=${bill._id}&orderCode=${orderCode}` 
-      : 'http://localhost:3000/payment/success';
-    const cancelUrl = platform === 'mobile' || platform === 'webview'
-      ? `https://payos.vn/payment/cancel?billId=${bill._id}&orderCode=${orderCode}` 
-      : 'http://localhost:3000/payment/cancel';
-    
+    const returnUrl =
+      platform === 'mobile' || platform === 'webview'
+        ? `https://payos.vn/payment/success?billId=${bill._id}&orderCode=${orderCode}`
+        : 'http://localhost:3000/payment/success';
+    const cancelUrl =
+      platform === 'mobile' || platform === 'webview'
+        ? `https://payos.vn/payment/cancel?billId=${bill._id}&orderCode=${orderCode}`
+        : 'http://localhost:3000/payment/cancel';
+
     const data = {
       orderCode,
       amount,
@@ -50,7 +54,13 @@ export class PaymentService {
       cancelUrl,
 
       expiredAt: moment().add(15, 'minutes').unix(),
-      signature: this.generateSignature(amount, orderCode, description, returnUrl, cancelUrl),
+      signature: this.generateSignature(
+        amount,
+        orderCode,
+        description,
+        returnUrl,
+        cancelUrl,
+      ),
     };
     const headers = {
       'x-client-id': this.clientId,
@@ -62,8 +72,11 @@ export class PaymentService {
 
       await this.billModel.findByIdAndUpdate(bill._id, {
         order_code: orderCode,
-        payment_link_id: response.data?.data?.paymentLinkId || response.data?.paymentLinkId || response.data?.payment_link_id,
-        platform: platform // Lưu platform để xử lý webhook
+        payment_link_id:
+          response.data?.data?.paymentLinkId ||
+          response.data?.paymentLinkId ||
+          response.data?.payment_link_id,
+        platform: platform, // Lưu platform để xử lý webhook
       });
       return response.data;
     } catch (error) {
@@ -86,7 +99,6 @@ export class PaymentService {
     returnUrl: string,
     cancelUrl: string,
   ): string {
-
     const data = `amount=${amount}&cancelUrl=${cancelUrl}&description=${description}&orderCode=${orderCode}&returnUrl=${returnUrl}`;
 
     return crypto.HmacSHA256(data, this.checksumKey).toString(crypto.enc.Hex);
@@ -95,7 +107,7 @@ export class PaymentService {
   async handlePaymentWebhook(data: any) {
     console.log('=== WEBHOOK RECEIVED ===');
     console.log('Raw webhook data:', JSON.stringify(data, null, 2));
-    
+
     const payload = data.data || data;
     console.log('Processed payload:', JSON.stringify(payload, null, 2));
 
@@ -116,42 +128,61 @@ export class PaymentService {
 
     // 1. Tìm theo paymentLinkId
     if (payload.paymentLinkId) {
-      bill = await this.billModel.findOne({ payment_link_id: payload.paymentLinkId });
+      bill = await this.billModel.findOne({
+        payment_link_id: payload.paymentLinkId,
+      });
       searchMethod = 'paymentLinkId';
-      console.log('🔍 Search by paymentLinkId:', payload.paymentLinkId, bill ? 'Found' : 'Not found');
+      console.log(
+        '🔍 Search by paymentLinkId:',
+        payload.paymentLinkId,
+        bill ? 'Found' : 'Not found',
+      );
     }
-    
+
     // 2. Tìm theo orderCode
     if (!bill && payload.orderCode) {
       bill = await this.billModel.findOne({ order_code: payload.orderCode });
       searchMethod = 'orderCode';
-      console.log('🔍 Search by orderCode:', payload.orderCode, bill ? 'Found' : 'Not found');
+      console.log(
+        '🔍 Search by orderCode:',
+        payload.orderCode,
+        bill ? 'Found' : 'Not found',
+      );
     }
-    
+
     // 3. Tìm theo orderCode trong data gốc
     if (!bill && data.orderCode) {
       bill = await this.billModel.findOne({ order_code: data.orderCode });
       searchMethod = 'data.orderCode';
-      console.log('🔍 Search by data.orderCode:', data.orderCode, bill ? 'Found' : 'Not found');
+      console.log(
+        '🔍 Search by data.orderCode:',
+        data.orderCode,
+        bill ? 'Found' : 'Not found',
+      );
     }
 
     if (!bill) {
       console.error('❌ Cannot find bill!');
       console.error('Search methods tried:', searchMethod);
-      console.error('Available data:', { 
-        paymentLinkId: payload.paymentLinkId, 
+      console.error('Available data:', {
+        paymentLinkId: payload.paymentLinkId,
         orderCode: payload.orderCode,
-        dataOrderCode: data.orderCode 
+        dataOrderCode: data.orderCode,
       });
-      
+
       // Log tất cả bills để debug
-      const allBills = await this.billModel.find({}, 'order_code payment_link_id _id').limit(10);
+      const allBills = await this.billModel
+        .find({}, 'order_code payment_link_id _id')
+        .limit(10);
       console.error('Recent bills in DB:', allBills);
-      
-      return { 
-        message: 'Bill not found, but webhook received successfully', 
+
+      return {
+        message: 'Bill not found, but webhook received successfully',
         status: 'bill_not_found',
-        data: { paymentLinkId: payload.paymentLinkId, orderCode: payload.orderCode }
+        data: {
+          paymentLinkId: payload.paymentLinkId,
+          orderCode: payload.orderCode,
+        },
       };
     }
 
@@ -159,7 +190,7 @@ export class PaymentService {
       billId: (bill as any)._id,
       orderCode: (bill as any).order_code,
       paymentLinkId: (bill as any).payment_link_id,
-      currentStatus: (bill as any).status
+      currentStatus: (bill as any).status,
     });
 
     const billId = String((bill as any)._id);
@@ -167,19 +198,32 @@ export class PaymentService {
     // Xác định trạng thái mới
     let newStatus: 'pending' | 'paid' | 'overdue' | 'cancelled' = 'pending';
     const statusIndicators = [
-      data.status, payload.status, data.code, payload.code,
-      data.paymentStatus, payload.paymentStatus
+      data.status,
+      payload.status,
+      data.code,
+      payload.code,
+      data.paymentStatus,
+      payload.paymentStatus,
     ];
-    
+
     console.log('Status indicators:', statusIndicators);
-    
-    if (statusIndicators.some(status => 
-      status === 'PAID' || status === 'paid' || status === '00' || status === 0
-    )) {
+
+    if (
+      statusIndicators.some(
+        (status) =>
+          status === 'PAID' ||
+          status === 'paid' ||
+          status === '00' ||
+          status === 0,
+      )
+    ) {
       newStatus = 'paid';
     }
 
-    console.log('🔄 Updating bill status:', { from: (bill as any).status, to: newStatus });
+    console.log('🔄 Updating bill status:', {
+      from: (bill as any).status,
+      to: newStatus,
+    });
 
     // Cập nhật bill sử dụng method riêng
     const updatedBill = await this.updateBillStatus(billId, newStatus);
@@ -190,11 +234,18 @@ export class PaymentService {
         bill_id: billId,
         amount: payload.amount || data.amount,
         payment_method: 'qr_payment', // Luôn sử dụng qr_payment cho PayOS
-        transaction_id: payload.reference || payload.transaction_id || data.reference || data.transaction_id || `PAY_${Date.now()}`,
+        transaction_id:
+          payload.reference ||
+          payload.transaction_id ||
+          data.reference ||
+          data.transaction_id ||
+          `PAY_${Date.now()}`,
         status: newStatus,
       };
 
-      const existing = await this.paymentModel.findOne({ transaction_id: paymentData.transaction_id });
+      const existing = await this.paymentModel.findOne({
+        transaction_id: paymentData.transaction_id,
+      });
       if (!existing) {
         const payment = await this.paymentModel.create(paymentData);
         console.log('✅ Payment record created:', payment._id);
@@ -204,18 +255,22 @@ export class PaymentService {
     }
 
     console.log('=== WEBHOOK PROCESSED SUCCESSFULLY ===');
-    return { 
-      message: 'Webhook processed successfully', 
+    return {
+      message: 'Webhook processed successfully',
       status: newStatus,
-      billId: billId
+      billId: billId,
     };
   }
 
   // Method riêng để update bill status
-  async updateBillStatus(billId: string, status: 'pending' | 'paid' | 'overdue' | 'cancelled', paidDate?: Date) {
+  async updateBillStatus(
+    billId: string,
+    status: 'pending' | 'paid' | 'overdue' | 'cancelled',
+    paidDate?: Date,
+  ) {
     try {
       const updateData: any = { status };
-      
+
       // Chỉ update paid_date khi status = 'paid'
       if (status === 'paid') {
         updateData.paid_date = paidDate || new Date();
@@ -226,7 +281,7 @@ export class PaymentService {
       const updatedBill = await this.billModel.findByIdAndUpdate(
         billId,
         updateData,
-        { new: true }
+        { new: true },
       );
 
       if (!updatedBill) {
@@ -236,7 +291,7 @@ export class PaymentService {
       console.log('✅ Bill status updated successfully:', {
         billId: updatedBill._id,
         newStatus: updatedBill.status,
-        paidDate: updatedBill.paid_date
+        paidDate: updatedBill.paid_date,
       });
 
       return updatedBill;
@@ -252,7 +307,7 @@ export class PaymentService {
       if (!bill) {
         throw new BadRequestException('Bill không tồn tại');
       }
-      
+
       return {
         success: true,
         data: {
@@ -261,9 +316,9 @@ export class PaymentService {
           amount: bill.amount,
           paid_date: bill.paid_date,
           order_code: bill.order_code,
-          payment_link_id: bill.payment_link_id
+          payment_link_id: bill.payment_link_id,
         },
-        message: 'Kiểm tra trạng thái thanh toán thành công'
+        message: 'Kiểm tra trạng thái thanh toán thành công',
       };
     } catch (error) {
       console.error('Error checking payment status:', error);
@@ -276,44 +331,74 @@ export class PaymentService {
       // Lấy thống kê từ bills
       const totalBills = await this.billModel.countDocuments();
       const paidBills = await this.billModel.countDocuments({ status: 'paid' });
-      const pendingBills = await this.billModel.countDocuments({ status: 'pending' });
-      const overdueBills = await this.billModel.countDocuments({ status: 'overdue' });
+      const pendingBills = await this.billModel.countDocuments({
+        status: 'pending',
+      });
+      const overdueBills = await this.billModel.countDocuments({
+        status: 'overdue',
+      });
 
       // Tính tổng doanh thu
       const paidBillsData = await this.billModel.find({ status: 'paid' });
-      const totalRevenue = paidBillsData.reduce((sum, bill) => sum + bill.amount, 0);
+      const totalRevenue = paidBillsData.reduce(
+        (sum, bill) => sum + bill.amount,
+        0,
+      );
 
       // Tính doanh thu tháng hiện tại
       const currentMonth = new Date();
-      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      
+      const startOfMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        1,
+      );
+      const endOfMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 1,
+        0,
+      );
+
       const monthlyBills = await this.billModel.find({
         status: 'paid',
         paid_date: {
           $gte: startOfMonth,
-          $lte: endOfMonth
-        }
+          $lte: endOfMonth,
+        },
       });
-      const monthlyRevenue = monthlyBills.reduce((sum, bill) => sum + bill.amount, 0);
+      const monthlyRevenue = monthlyBills.reduce(
+        (sum, bill) => sum + bill.amount,
+        0,
+      );
 
       // Tính doanh thu tháng trước để so sánh
-      const lastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-      const endOfLastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
-      
+      const lastMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 1,
+        1,
+      );
+      const endOfLastMonth = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        0,
+      );
+
       const lastMonthBills = await this.billModel.find({
         status: 'paid',
         paid_date: {
           $gte: lastMonth,
-          $lte: endOfLastMonth
-        }
+          $lte: endOfLastMonth,
+        },
       });
-      const lastMonthRevenue = lastMonthBills.reduce((sum, bill) => sum + bill.amount, 0);
+      const lastMonthRevenue = lastMonthBills.reduce(
+        (sum, bill) => sum + bill.amount,
+        0,
+      );
 
       // Tính phần trăm tăng trưởng
-      const growthPercentage = lastMonthRevenue > 0 
-        ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
-        : 0;
+      const growthPercentage =
+        lastMonthRevenue > 0
+          ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+          : 0;
 
       return {
         success: true,
@@ -326,9 +411,9 @@ export class PaymentService {
           monthlyRevenue,
           lastMonthRevenue,
           growthPercentage: Math.round(growthPercentage * 100) / 100,
-          pendingPayments: pendingBills + overdueBills
+          pendingPayments: pendingBills + overdueBills,
         },
-        message: 'Thống kê thanh toán được lấy thành công'
+        message: 'Thống kê thanh toán được lấy thành công',
       };
     } catch (error) {
       console.error('Error getting payment stats:', error);

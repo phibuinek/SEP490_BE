@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Assessment, AssessmentDocument } from './schemas/care-note.schema';
 import { CreateAssessmentDto } from './dto/create-care-note.dto';
 import { UpdateCareNoteDto } from './dto/update-care-note.dto';
-import { StaffAssignment, StaffAssignmentDocument } from '../staff-assignments/schemas/staff-assignment.schema';
+import {
+  StaffAssignment,
+  StaffAssignmentDocument,
+} from '../staff-assignments/schemas/staff-assignment.schema';
 
 // Interface for assessment data
 interface AssessmentData {
@@ -28,20 +35,20 @@ export class CareNotesService {
   async create(createAssessmentDto: CreateAssessmentDto) {
     try {
       console.log('Creating assessment with:', createAssessmentDto);
-      
+
       // Check collection validation rules
       try {
         const collection = this.careNoteModel.collection;
         const options = await collection.options();
         console.log('Collection options:', options);
-        
+
         // Try to get collection info
         const collInfo = await collection.listIndexes().toArray();
         console.log('Collection indexes:', collInfo);
       } catch (infoError) {
         console.log('Could not get collection info:', infoError.message);
       }
-      
+
       // Validate required fields
       if (!createAssessmentDto.resident_id) {
         throw new Error('Resident ID is required');
@@ -53,11 +60,11 @@ export class CareNotesService {
         notes: createAssessmentDto.notes?.trim() || null,
         recommendations: createAssessmentDto.recommendations?.trim() || null,
         resident_id: createAssessmentDto.resident_id,
-        conducted_by: createAssessmentDto.conducted_by || null
+        conducted_by: createAssessmentDto.conducted_by || null,
       };
 
       // Convert empty strings to null
-      Object.keys(cleanData).forEach(key => {
+      Object.keys(cleanData).forEach((key) => {
         if (cleanData[key] === '') {
           cleanData[key] = null;
         }
@@ -69,7 +76,10 @@ export class CareNotesService {
       }
 
       // Validate conducted_by format if provided
-      if (cleanData.conducted_by && !Types.ObjectId.isValid(cleanData.conducted_by)) {
+      if (
+        cleanData.conducted_by &&
+        !Types.ObjectId.isValid(cleanData.conducted_by)
+      ) {
         throw new Error('Invalid conducted_by ID format');
       }
 
@@ -79,27 +89,38 @@ export class CareNotesService {
         date: new Date(Date.now() + 7 * 60 * 60 * 1000), // GMT+7
         notes: cleanData.notes,
         recommendations: cleanData.recommendations,
-        resident_id: new Types.ObjectId(cleanData.resident_id)
+        resident_id: new Types.ObjectId(cleanData.resident_id),
       };
 
       // Only add conducted_by if it exists
       if (cleanData.conducted_by) {
-        assessmentData.conducted_by = new Types.ObjectId(cleanData.conducted_by);
+        assessmentData.conducted_by = new Types.ObjectId(
+          cleanData.conducted_by,
+        );
       }
 
       console.log('=== ASSESSMENT DATA DEBUG ===');
       console.log('Clean data:', cleanData);
       console.log('Assessment data before model:', assessmentData);
       console.log('resident_id type:', typeof assessmentData.resident_id);
-      console.log('resident_id instanceof ObjectId:', assessmentData.resident_id instanceof Types.ObjectId);
+      console.log(
+        'resident_id instanceof ObjectId:',
+        assessmentData.resident_id instanceof Types.ObjectId,
+      );
       if (assessmentData.conducted_by) {
         console.log('conducted_by type:', typeof assessmentData.conducted_by);
-        console.log('conducted_by instanceof ObjectId:', assessmentData.conducted_by instanceof Types.ObjectId);
+        console.log(
+          'conducted_by instanceof ObjectId:',
+          assessmentData.conducted_by instanceof Types.ObjectId,
+        );
       }
       console.log('============================');
 
-      console.log('Assessment model data:', JSON.stringify(assessmentData, null, 2));
-      
+      console.log(
+        'Assessment model data:',
+        JSON.stringify(assessmentData, null, 2),
+      );
+
       // Try using native MongoDB insertOne to bypass validation issues
       try {
         const result = await this.careNoteModel.create(assessmentData);
@@ -109,39 +130,49 @@ export class CareNotesService {
         console.log('Create method failed, trying insertOne...');
         // Fallback to native MongoDB insertOne with validation bypass
         const collection = this.careNoteModel.collection;
-        const insertResult = await collection.insertOne(assessmentData, { 
-          bypassDocumentValidation: true 
+        const insertResult = await collection.insertOne(assessmentData, {
+          bypassDocumentValidation: true,
         });
-        console.log('Assessment created with insertOne:', insertResult.insertedId);
-        
+        console.log(
+          'Assessment created with insertOne:',
+          insertResult.insertedId,
+        );
+
         // Fetch the created document
-        const createdDoc = await this.careNoteModel.findById(insertResult.insertedId);
+        const createdDoc = await this.careNoteModel.findById(
+          insertResult.insertedId,
+        );
         return createdDoc;
       }
     } catch (err) {
       console.error('Error saving assessment:', err);
-      
+
       // Handle specific MongoDB errors
       if (err.code === 11000) {
         throw new Error('Đánh giá đã tồn tại');
       }
-      
+
       if (err.name === 'ValidationError') {
-        const validationErrors = Object.values(err.errors).map((e: any) => e.message);
+        const validationErrors = Object.values(err.errors).map(
+          (e: any) => e.message,
+        );
         throw new Error(`Lỗi validation: ${validationErrors.join(', ')}`);
       }
-      
+
       if (err.name === 'CastError') {
         throw new Error('Dữ liệu không đúng định dạng');
       }
-      
+
       if (err.code === 121) {
         console.error('MongoDB validation error details:', err.errInfo);
         console.error('Full error object:', JSON.stringify(err, null, 2));
-        console.error('Schema rules not satisfied:', err.errInfo?.details?.schemaRulesNotSatisfied);
+        console.error(
+          'Schema rules not satisfied:',
+          err.errInfo?.details?.schemaRulesNotSatisfied,
+        );
         throw new Error('Dữ liệu không hợp lệ với schema');
       }
-      
+
       throw err;
     }
   }
@@ -160,7 +191,10 @@ export class CareNotesService {
     return assessments;
   }
 
-  async isStaffAssignedToResident(staff_id: string, resident_id: string): Promise<boolean> {
+  async isStaffAssignedToResident(
+    staff_id: string,
+    resident_id: string,
+  ): Promise<boolean> {
     try {
       const assignment = await this.staffAssignmentModel.findOne({
         staff_id: new Types.ObjectId(staff_id),
@@ -180,17 +214,17 @@ export class CareNotesService {
       staff_id: new Types.ObjectId(staff_id),
       status: 'active',
     });
-    
-    const residentIds = assignments.map(assignment => assignment.resident_id);
-    
+
+    const residentIds = assignments.map((assignment) => assignment.resident_id);
+
     if (residentIds.length === 0) {
       return [];
     }
-    
+
     // Get care notes for all assigned residents
     return this.careNoteModel
       .find({
-        resident_id: { $in: residentIds }
+        resident_id: { $in: residentIds },
       })
       .sort({ date: -1 })
       .populate({
@@ -208,7 +242,7 @@ export class CareNotesService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
-    
+
     const assessment = await this.careNoteModel.findById(id).exec();
     if (!assessment) {
       throw new NotFoundException('Không tìm thấy đánh giá');
@@ -216,24 +250,27 @@ export class CareNotesService {
     return assessment;
   }
 
-  async update(id: string, updateCareNoteDto: UpdateCareNoteDto): Promise<Assessment> {
+  async update(
+    id: string,
+    updateCareNoteDto: UpdateCareNoteDto,
+  ): Promise<Assessment> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
-    
+
     const assessment = await this.careNoteModel.findById(id).exec();
     if (!assessment) {
       throw new NotFoundException('Không tìm thấy đánh giá');
     }
-    
+
     const updatedAssessment = await this.careNoteModel
       .findByIdAndUpdate(id, updateCareNoteDto, { new: true })
       .exec();
-      
+
     if (!updatedAssessment) {
       throw new NotFoundException('Không thể cập nhật đánh giá');
     }
-    
+
     return updatedAssessment;
   }
 
@@ -248,7 +285,7 @@ export class CareNotesService {
         const collection = this.careNoteModel.collection;
         const options = await collection.options();
         console.log('Collection options:', options);
-        
+
         // Try to get collection info
         const collInfo = await collection.listIndexes().toArray();
         console.log('Collection indexes:', collInfo);
@@ -273,7 +310,8 @@ export class CareNotesService {
       const patchData: any = {};
 
       if (patchAssessmentDto.assessment_type !== undefined) {
-        patchData.assessment_type = patchAssessmentDto.assessment_type?.trim() || null;
+        patchData.assessment_type =
+          patchAssessmentDto.assessment_type?.trim() || null;
       }
 
       if (patchAssessmentDto.notes !== undefined) {
@@ -282,10 +320,14 @@ export class CareNotesService {
 
       if (patchAssessmentDto.recommendations !== undefined) {
         // Handle undefined values properly
-        if (patchAssessmentDto.recommendations === undefined || patchAssessmentDto.recommendations === null) {
+        if (
+          patchAssessmentDto.recommendations === undefined ||
+          patchAssessmentDto.recommendations === null
+        ) {
           patchData.recommendations = null;
         } else {
-          patchData.recommendations = patchAssessmentDto.recommendations.trim() || null;
+          patchData.recommendations =
+            patchAssessmentDto.recommendations.trim() || null;
         }
       }
 
@@ -293,19 +335,25 @@ export class CareNotesService {
         if (!Types.ObjectId.isValid(patchAssessmentDto.resident_id)) {
           throw new Error('Invalid resident ID format');
         }
-        patchData.resident_id = new Types.ObjectId(patchAssessmentDto.resident_id);
+        patchData.resident_id = new Types.ObjectId(
+          patchAssessmentDto.resident_id,
+        );
       }
 
       if (patchAssessmentDto.conducted_by !== undefined) {
-        if (patchAssessmentDto.conducted_by && !Types.ObjectId.isValid(patchAssessmentDto.conducted_by)) {
+        if (
+          patchAssessmentDto.conducted_by &&
+          !Types.ObjectId.isValid(patchAssessmentDto.conducted_by)
+        ) {
           throw new Error('Invalid conducted_by ID format');
         }
-        patchData.conducted_by = patchAssessmentDto.conducted_by ? 
-          new Types.ObjectId(patchAssessmentDto.conducted_by) : null;
+        patchData.conducted_by = patchAssessmentDto.conducted_by
+          ? new Types.ObjectId(patchAssessmentDto.conducted_by)
+          : null;
       }
 
       // Remove undefined values from patchData
-      Object.keys(patchData).forEach(key => {
+      Object.keys(patchData).forEach((key) => {
         if (patchData[key] === undefined) {
           delete patchData[key];
         }
@@ -315,15 +363,13 @@ export class CareNotesService {
 
       // Try using findByIdAndUpdate first
       try {
-        const patchedAssessment = await this.careNoteModel.findByIdAndUpdate(
-          id,
-          patchData,
-          { 
+        const patchedAssessment = await this.careNoteModel
+          .findByIdAndUpdate(id, patchData, {
             new: true, // Return updated document
             runValidators: false, // Disable validation to avoid schema issues
-            bypassDocumentValidation: true // Bypass schema validation for patch
-          }
-        ).exec();
+            bypassDocumentValidation: true, // Bypass schema validation for patch
+          })
+          .exec();
 
         if (!patchedAssessment) {
           throw new NotFoundException('Failed to patch assessment');
@@ -332,51 +378,60 @@ export class CareNotesService {
         console.log('Assessment patched successfully:', patchedAssessment._id);
         return patchedAssessment;
       } catch (updateError) {
-        console.log('findByIdAndUpdate failed, trying native collection method...');
-        
+        console.log(
+          'findByIdAndUpdate failed, trying native collection method...',
+        );
+
         // Fallback to native MongoDB collection method
         const collection = this.careNoteModel.collection;
         const updateResult = await collection.findOneAndUpdate(
           { _id: new Types.ObjectId(id) },
           { $set: patchData },
-          { 
+          {
             returnDocument: 'after',
-            bypassDocumentValidation: true
-          }
+            bypassDocumentValidation: true,
+          },
         );
 
         if (!updateResult || !updateResult.value) {
           throw new NotFoundException('Failed to patch assessment');
         }
 
-        console.log('Assessment patched with native method:', updateResult.value._id);
+        console.log(
+          'Assessment patched with native method:',
+          updateResult.value._id,
+        );
         return updateResult.value;
       }
-
     } catch (error) {
       console.error('Error patching assessment:', error);
-      
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       if (error.name === 'CastError') {
         throw new Error('Dữ liệu không đúng định dạng');
       }
-      
+
       if (error.name === 'ValidationError') {
-        const validationErrors = Object.values(error.errors).map((e: any) => e.message);
+        const validationErrors = Object.values(error.errors).map(
+          (e: any) => e.message,
+        );
         throw new Error(`Lỗi validation: ${validationErrors.join(', ')}`);
       }
-      
+
       // Handle MongoDB validation errors
       if (error.code === 121) {
         console.error('MongoDB validation error details:', error.errInfo);
         console.error('Full error object:', JSON.stringify(error, null, 2));
-        console.error('Schema rules not satisfied:', error.errInfo?.details?.schemaRulesNotSatisfied);
+        console.error(
+          'Schema rules not satisfied:',
+          error.errInfo?.details?.schemaRulesNotSatisfied,
+        );
         throw new Error('Dữ liệu không hợp lệ với schema MongoDB');
       }
-      
+
       throw new Error(error.message || 'Lỗi cập nhật đánh giá');
     }
   }
@@ -385,12 +440,12 @@ export class CareNotesService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID đánh giá không hợp lệ');
     }
-    
+
     const assessment = await this.careNoteModel.findByIdAndDelete(id).exec();
     if (!assessment) {
       throw new NotFoundException('Không tìm thấy đánh giá');
     }
-    
+
     return assessment;
   }
 }
