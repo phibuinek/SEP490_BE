@@ -14,7 +14,12 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: process.env.NODE_ENV === 'production' 
+      ? [
+          process.env.APP_URL || 'https://carehome-system.vercel.app',
+          'https://carehome-system.vercel.app'
+        ].filter(Boolean)
+      : 'http://localhost:3000',
     credentials: true,
   });
 
