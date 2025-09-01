@@ -25,7 +25,11 @@ export class BedsController {
   }
 
   @Get()
-  @ApiQuery({ name: 'status', required: false, description: 'Trạng thái bed: available hoặc occupied' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Trạng thái bed: available hoặc occupied',
+  })
   findAll(@Query('status') status?: string) {
     return this.bedsService.findAllByStatus(status);
   }
@@ -35,14 +39,21 @@ export class BedsController {
     return this.bedsService.findAllByStatus('available');
   }
 
-  @Get('occupied') 
+  @Get('occupied')
   getOccupiedBeds() {
     return this.bedsService.findAllByStatus('occupied');
   }
 
   @Get('by-room/:room_id')
-  @ApiQuery({ name: 'status', required: false, description: 'Trạng thái bed: available hoặc occupied' })
-  async getBedsByRoom(@Param('room_id') room_id: string, @Query('status') status?: string) {
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Trạng thái bed: available hoặc occupied',
+  })
+  async getBedsByRoom(
+    @Param('room_id') room_id: string,
+    @Query('status') status?: string,
+  ) {
     return this.bedsService.findByRoomIdWithStatus(room_id, status);
   }
 

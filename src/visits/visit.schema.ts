@@ -3,9 +3,9 @@ import { Document, Types } from 'mongoose';
 
 export type VisitDocument = Visit & Document;
 
-@Schema({ 
+@Schema({
   collection: 'visits',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class Visit {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
@@ -23,10 +23,10 @@ export class Visit {
   @Prop({ type: Number, min: 1, required: false, default: null })
   duration?: number | null;
 
-  @Prop({ 
+  @Prop({
     required: true,
     enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
-    default: 'pending' 
+    default: 'pending',
   })
   status: string;
 

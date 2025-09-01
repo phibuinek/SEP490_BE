@@ -49,8 +49,14 @@ export class CarePlanAssignmentsController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  create(@Body() createCarePlanAssignmentDto: CreateCarePlanAssignmentDto, @Req() req) {
-    return this.carePlanAssignmentsService.create(createCarePlanAssignmentDto, req);
+  create(
+    @Body() createCarePlanAssignmentDto: CreateCarePlanAssignmentDto,
+    @Req() req,
+  ) {
+    return this.carePlanAssignmentsService.create(
+      createCarePlanAssignmentDto,
+      req,
+    );
   }
 
   @Get()
@@ -219,10 +225,10 @@ export class CarePlanAssignmentsController {
     @Body() renewAssignmentDto: RenewAssignmentDto,
   ) {
     return this.carePlanAssignmentsService.renewAssignment(
-      id, 
+      id,
       renewAssignmentDto.newEndDate,
       renewAssignmentDto.newStartDate,
-      renewAssignmentDto.selectedCarePlanIds
+      renewAssignmentDto.selectedCarePlanIds,
     );
   }
 
@@ -236,10 +242,7 @@ export class CarePlanAssignmentsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Care plan assignment not found' })
-  removePackage(
-    @Param('id') id: string,
-    @Body() body: { packageId: string },
-  ) {
+  removePackage(@Param('id') id: string, @Body() body: { packageId: string }) {
     return this.carePlanAssignmentsService.removePackage(id, body.packageId);
   }
 

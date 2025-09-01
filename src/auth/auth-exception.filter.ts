@@ -18,7 +18,7 @@ export class AuthExceptionFilter implements ExceptionFilter {
     // Xử lý lỗi authentication
     if (status === HttpStatus.UNAUTHORIZED) {
       let errorMessage = 'Thông tin đăng nhập không chính xác';
-      
+
       // Kiểm tra message từ exception
       if (typeof message === 'string') {
         errorMessage = message;
@@ -42,7 +42,10 @@ export class AuthExceptionFilter implements ExceptionFilter {
     // Xử lý các lỗi khác
     const errorResponse = {
       statusCode: status,
-      message: typeof message === 'string' ? message : (message as any)['message'] || 'Internal server error',
+      message:
+        typeof message === 'string'
+          ? message
+          : (message as any)['message'] || 'Internal server error',
       error: exception.name,
       timestamp: new Date().toISOString(),
       path: ctx.getRequest().url,
@@ -50,4 +53,4 @@ export class AuthExceptionFilter implements ExceptionFilter {
 
     response.status(status).json(errorResponse);
   }
-} 
+}

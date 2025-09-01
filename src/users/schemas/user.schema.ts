@@ -24,7 +24,11 @@ export class User {
   @Prop({ required: true, minlength: 1, maxlength: 100 })
   full_name: string;
 
-  @Prop({ required: true, unique: true, match: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ })
+  @Prop({
+    required: true,
+    unique: true,
+    match: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  })
   email: string;
 
   @Prop({ required: true, match: /^[0-9]{10,15}$/ })

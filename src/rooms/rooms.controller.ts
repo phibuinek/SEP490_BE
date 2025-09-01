@@ -39,7 +39,12 @@ export class RoomsController {
     @Query('main_care_plan_id') main_care_plan_id?: string,
     @Query('gender') gender?: string,
   ) {
-    return this.roomsService.filterRooms(room_type, status, main_care_plan_id, gender);
+    return this.roomsService.filterRooms(
+      room_type,
+      status,
+      main_care_plan_id,
+      gender,
+    );
   }
 
   @Get(':id')

@@ -3,9 +3,9 @@ import { Document } from 'mongoose';
 
 export type ActivityDocument = Activity & Document;
 
-@Schema({ 
+@Schema({
   collection: 'activities',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class Activity {
   @Prop({ required: true })

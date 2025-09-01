@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Bill } from './schemas/bill.schema';
@@ -50,7 +54,7 @@ export class BillsService {
       }> = [];
 
       console.log('Calculating total for resident:', residentId);
-      
+
       // Validate residentId
       if (!residentId || !Types.ObjectId.isValid(residentId)) {
         throw new BadRequestException('Invalid resident ID');
@@ -59,47 +63,59 @@ export class BillsService {
       // 1. Lấy tất cả care plan assignments của resident
       let carePlanAssignments;
       try {
-        carePlanAssignments = await this.carePlanAssignmentsService.findByResident(residentId);
+        carePlanAssignments =
+          await this.carePlanAssignmentsService.findByResident(residentId);
         console.log('Found care plan assignments:', carePlanAssignments.length);
       } catch (error) {
         console.error('Error fetching care plan assignments:', error);
         carePlanAssignments = [];
       }
-      
+
       // 2. Tính tổng tiền dịch vụ từ tất cả assignments ACTIVE (chưa hết hạn)
       const now = new Date();
       for (const assignment of carePlanAssignments) {
         // Kiểm tra assignment có active và chưa hết hạn không
-        const notExpired = !assignment?.end_date || new Date(assignment.end_date) >= now;
-        const notCancelled = !['cancelled', 'completed', 'expired'].includes(String(assignment?.status || '').toLowerCase());
+        const notExpired =
+          !assignment?.end_date || new Date(assignment.end_date) >= now;
+        const notCancelled = !['cancelled', 'completed', 'expired'].includes(
+          String(assignment?.status || '').toLowerCase(),
+        );
         const isActive = assignment?.status === 'active' || !assignment?.status;
-        
+
         console.log(`📅 Assignment ${assignment._id}:`, {
           end_date: assignment?.end_date,
           status: assignment?.status,
           notExpired,
           notCancelled,
           isActive,
-          isValid: notExpired && notCancelled && isActive
+          isValid: notExpired && notCancelled && isActive,
         });
-        
+
         // Chỉ tính tiền nếu assignment còn active và chưa hết hạn
         if (notExpired && notCancelled && isActive) {
-          if (assignment.care_plan_ids && Array.isArray(assignment.care_plan_ids)) {
+          if (
+            assignment.care_plan_ids &&
+            Array.isArray(assignment.care_plan_ids)
+          ) {
             for (const carePlanId of assignment.care_plan_ids) {
               try {
-                const carePlanIdStr = typeof carePlanId === 'object' && carePlanId?._id ? 
-                  carePlanId._id.toString() : carePlanId.toString();
-                
-                const carePlan = await this.carePlansService.findOne(carePlanIdStr);
+                const carePlanIdStr =
+                  typeof carePlanId === 'object' && carePlanId?._id
+                    ? carePlanId._id.toString()
+                    : carePlanId.toString();
+
+                const carePlan =
+                  await this.carePlansService.findOne(carePlanIdStr);
                 if (carePlan) {
                   totalServiceCost += carePlan.monthly_price || 0;
                   serviceDetails.push({
                     plan_name: carePlan.plan_name,
                     monthly_price: carePlan.monthly_price,
-                    description: carePlan.description
+                    description: carePlan.description,
                   });
-                  console.log(`✅ Added care plan ${carePlan.plan_name}: ${carePlan.monthly_price}`);
+                  console.log(
+                    `✅ Added care plan ${carePlan.plan_name}: ${carePlan.monthly_price}`,
+                  );
                 }
               } catch (error) {
                 console.error('Error fetching care plan:', error);
@@ -108,70 +124,93 @@ export class BillsService {
             }
           }
         } else {
-          console.log(`❌ Skipped expired/cancelled assignment ${assignment._id}`);
+          console.log(
+            `❌ Skipped expired/cancelled assignment ${assignment._id}`,
+          );
         }
       }
 
       // 3. Lấy thông tin phòng và tính tiền phòng
       let bedAssignments;
       try {
-        bedAssignments = await this.bedAssignmentsService.findByResidentId(residentId);
+        bedAssignments =
+          await this.bedAssignmentsService.findByResidentId(residentId);
         console.log('Found bed assignments:', bedAssignments.length);
-        console.log('Bed assignments data:', JSON.stringify(bedAssignments, null, 2));
+        console.log(
+          'Bed assignments data:',
+          JSON.stringify(bedAssignments, null, 2),
+        );
       } catch (error) {
         console.error('Error fetching bed assignments:', error);
         bedAssignments = [];
       }
-      
+
       let roomDetails: {
         room_number: string;
         room_type: string;
         floor: string;
         monthly_price: number;
       } | null = null;
-      
+
       if (bedAssignments && bedAssignments.length > 0) {
         const bedAssignment = bedAssignments[0]; // Lấy assignment đầu tiên
-        console.log('First bed assignment:', JSON.stringify(bedAssignment, null, 2));
-        
+        console.log(
+          'First bed assignment:',
+          JSON.stringify(bedAssignment, null, 2),
+        );
+
         if (bedAssignment.bed_id) {
           console.log('Bed assignment has bed_id:', bedAssignment.bed_id);
-          
+
           // Kiểm tra xem bed_id có được populate không
-          if (typeof bedAssignment.bed_id === 'object' && bedAssignment.bed_id !== null) {
-            console.log('Bed_id is an object:', JSON.stringify(bedAssignment.bed_id, null, 2));
-            
-            if ((bedAssignment.bed_id as any).room_id) {
-              const room = (bedAssignment.bed_id as any).room_id;
+          if (
+            typeof bedAssignment.bed_id === 'object' &&
+            bedAssignment.bed_id !== null
+          ) {
+            console.log(
+              'Bed_id is an object:',
+              JSON.stringify(bedAssignment.bed_id, null, 2),
+            );
+
+            if (bedAssignment.bed_id.room_id) {
+              const room = bedAssignment.bed_id.room_id;
               console.log('Found room in bed:', JSON.stringify(room, null, 2));
-              
+
               if (room && room.room_type) {
                 console.log('Room has room_type:', room.room_type);
                 try {
                   // Tìm room type bằng room_type string value
-                  const roomType = await this.roomTypesService.findByRoomType(room.room_type);
-                  console.log('Found room type:', JSON.stringify(roomType, null, 2));
-                  
+                  const roomType = await this.roomTypesService.findByRoomType(
+                    room.room_type,
+                  );
+                  console.log(
+                    'Found room type:',
+                    JSON.stringify(roomType, null, 2),
+                  );
+
                   if (roomType) {
                     totalRoomCost = roomType.monthly_price || 0;
                     roomDetails = {
                       room_number: room.room_number,
                       room_type: room.room_type,
                       floor: room.floor ? room.floor.toString() : 'N/A',
-                      monthly_price: roomType.monthly_price
+                      monthly_price: roomType.monthly_price,
                     };
                     console.log('Set room cost to:', totalRoomCost);
                   } else {
                     console.log('Room type not found for:', room.room_type);
                     // Thử tìm bằng type_name nếu không tìm được bằng room_type
-                    const roomTypeByName = await this.roomTypesService.findByRoomType(room.room_type);
+                    const roomTypeByName =
+                      await this.roomTypesService.findByRoomType(
+                        room.room_type,
+                      );
                     if (roomTypeByName) {
                       totalRoomCost = roomTypeByName.monthly_price || 0;
                       roomDetails = {
                         room_number: room.room_number,
                         room_type: room.room_type,
                         floor: room.floor ? room.floor.toString() : 'N/A',
-                        monthly_price: roomTypeByName.monthly_price
+                        monthly_price: roomTypeByName.monthly_price,
                       };
                       console.log('Set room cost to (by name):', totalRoomCost);
                     }
@@ -201,7 +240,7 @@ export class BillsService {
         totalServiceCost,
         totalRoomCost,
         totalAmount,
-        serviceDetailsCount: serviceDetails.length
+        serviceDetailsCount: serviceDetails.length,
       });
 
       return {
@@ -209,7 +248,7 @@ export class BillsService {
         totalRoomCost,
         totalAmount,
         serviceDetails,
-        roomDetails
+        roomDetails,
       };
     } catch (error) {
       console.error('Error in calculateTotalAmountForResident:', error);
@@ -219,8 +258,9 @@ export class BillsService {
 
   async create(createBillDto: CreateBillDto, req?: any): Promise<Bill> {
     try {
-      const toVNDate = (d: Date | string | undefined) => d ? new Date(new Date(d).getTime() + 7 * 60 * 60 * 1000) : undefined;
-      
+      const toVNDate = (d: Date | string | undefined) =>
+        d ? new Date(new Date(d).getTime() + 7 * 60 * 60 * 1000) : undefined;
+
       // Validate resident_id
       if (!createBillDto.resident_id) {
         throw new BadRequestException('ID người cao tuổi là bắt buộc');
@@ -228,11 +268,15 @@ export class BillsService {
 
       // Validate ObjectId format
       if (!Types.ObjectId.isValid(createBillDto.resident_id.toString())) {
-        throw new BadRequestException('Định dạng ID người cao tuổi không hợp lệ');
+        throw new BadRequestException(
+          'Định dạng ID người cao tuổi không hợp lệ',
+        );
       }
 
       // Check if resident exists and get family_member_id
-      const resident = await this.residentsService.findOne(createBillDto.resident_id.toString());
+      const resident = await this.residentsService.findOne(
+        createBillDto.resident_id.toString(),
+      );
       if (!resident) {
         throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
       }
@@ -281,7 +325,8 @@ export class BillsService {
           {
             path: 'care_plan_ids',
             model: 'CarePlan',
-            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            select:
+              'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
           },
           {
             path: 'assigned_room_id',
@@ -303,7 +348,7 @@ export class BillsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID hóa đơn không hợp lệ');
     }
-    
+
     const bill = await this.billModel
       .findById(id)
       .populate('family_member_id', 'full_name email')
@@ -315,7 +360,8 @@ export class BillsService {
           {
             path: 'care_plan_ids',
             model: 'CarePlan',
-            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            select:
+              'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
           },
           {
             path: 'assigned_room_id',
@@ -330,11 +376,11 @@ export class BillsService {
         ],
       })
       .exec();
-      
+
     if (!bill) {
       throw new NotFoundException(`Không tìm thấy hóa đơn #${id}`);
     }
-    
+
     return bill;
   }
 
@@ -342,23 +388,27 @@ export class BillsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID hóa đơn không hợp lệ');
     }
-    
+
     const bill = await this.billModel.findById(id);
     if (!bill) {
       throw new NotFoundException(`Không tìm thấy hóa đơn #${id}`);
     }
-    
+
     const updatedBill = await this.billModel
-      .findByIdAndUpdate(id, { ...updateBillDto, updated_at: new Date() }, { new: true })
+      .findByIdAndUpdate(
+        id,
+        { ...updateBillDto, updated_at: new Date() },
+        { new: true },
+      )
       .populate('resident_id', 'full_name room_number')
       .populate('staff_id', 'full_name')
       .populate('family_member_id', 'full_name email')
       .exec();
-      
+
     if (!updatedBill) {
       throw new NotFoundException(`Không tìm thấy hóa đơn #${id}`);
     }
-    
+
     return updatedBill;
   }
 
@@ -366,12 +416,12 @@ export class BillsService {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Định dạng ID hóa đơn không hợp lệ');
     }
-    
+
     const bill = await this.billModel.findByIdAndDelete(id);
     if (!bill) {
       throw new NotFoundException(`Không tìm thấy hóa đơn #${id}`);
     }
-    
+
     return bill;
   }
 
@@ -379,7 +429,7 @@ export class BillsService {
     if (!Types.ObjectId.isValid(resident_id)) {
       throw new BadRequestException('Invalid resident ID format');
     }
-    
+
     return this.billModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
       .populate('family_member_id', 'full_name email')
@@ -391,7 +441,8 @@ export class BillsService {
           {
             path: 'care_plan_ids',
             model: 'CarePlan',
-            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            select:
+              'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
           },
           {
             path: 'assigned_room_id',
@@ -424,7 +475,8 @@ export class BillsService {
           {
             path: 'care_plan_ids',
             model: 'CarePlan',
-            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            select:
+              'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
           },
           {
             path: 'assigned_room_id',
@@ -457,7 +509,8 @@ export class BillsService {
           {
             path: 'care_plan_ids',
             model: 'CarePlan',
-            select: 'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
+            select:
+              'plan_name description monthly_price plan_type category services_included staff_ratio duration_type',
           },
           {
             path: 'assigned_room_id',

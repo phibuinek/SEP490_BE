@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CarePlan, CarePlanDocument } from './schemas/care-plan.schema';
@@ -27,47 +31,64 @@ export class CarePlansService {
 
   async findOne(id: string): Promise<CarePlan> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Định dạng ID kế hoạch chăm sóc không hợp lệ');
+      throw new BadRequestException(
+        'Định dạng ID kế hoạch chăm sóc không hợp lệ',
+      );
     }
-    
+
     const carePlan = await this.carePlanModel.findById(id).exec();
     if (!carePlan) {
-      throw new NotFoundException(`Không tìm thấy kế hoạch chăm sóc với ID "${id}"`);
+      throw new NotFoundException(
+        `Không tìm thấy kế hoạch chăm sóc với ID "${id}"`,
+      );
     }
     return carePlan;
   }
 
-  async update(id: string, updateCarePlanDto: UpdateCarePlanDto): Promise<CarePlan> {
+  async update(
+    id: string,
+    updateCarePlanDto: UpdateCarePlanDto,
+  ): Promise<CarePlan> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Định dạng ID kế hoạch chăm sóc không hợp lệ');
+      throw new BadRequestException(
+        'Định dạng ID kế hoạch chăm sóc không hợp lệ',
+      );
     }
-    
+
     const carePlan = await this.carePlanModel.findById(id).exec();
     if (!carePlan) {
-      throw new NotFoundException(`Không tìm thấy kế hoạch chăm sóc với ID "${id}"`);
+      throw new NotFoundException(
+        `Không tìm thấy kế hoạch chăm sóc với ID "${id}"`,
+      );
     }
-    
+
     const updatedCarePlan = await this.carePlanModel
       .findByIdAndUpdate(id, updateCarePlanDto, { new: true })
       .exec();
-      
+
     if (!updatedCarePlan) {
-      throw new NotFoundException(`Không tìm thấy kế hoạch chăm sóc với ID "${id}"`);
+      throw new NotFoundException(
+        `Không tìm thấy kế hoạch chăm sóc với ID "${id}"`,
+      );
     }
-    
+
     return updatedCarePlan;
   }
 
   async remove(id: string): Promise<CarePlan> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Định dạng ID kế hoạch chăm sóc không hợp lệ');
+      throw new BadRequestException(
+        'Định dạng ID kế hoạch chăm sóc không hợp lệ',
+      );
     }
-    
+
     const carePlan = await this.carePlanModel.findByIdAndDelete(id).exec();
     if (!carePlan) {
-      throw new NotFoundException(`Không tìm thấy kế hoạch chăm sóc với ID "${id}"`);
+      throw new NotFoundException(
+        `Không tìm thấy kế hoạch chăm sóc với ID "${id}"`,
+      );
     }
-    
+
     return carePlan;
   }
 }

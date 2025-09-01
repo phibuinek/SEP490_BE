@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
+import {
+  Resident,
+  ResidentDocument,
+} from '../residents/schemas/resident.schema';
 import { Activity, ActivityDocument } from './schemas/activity.schema';
 import { CreateActivityDto } from './dto/create-activity.dto';
-import { ActivityParticipation, ActivityParticipationDocument } from '../activity-participations/schemas/activity-participation.schema';
+import {
+  ActivityParticipation,
+  ActivityParticipationDocument,
+} from '../activity-participations/schemas/activity-participation.schema';
 import axios from 'axios';
 
 @Injectable()
@@ -14,7 +24,8 @@ export class ActivityService {
   constructor(
     @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
-    @InjectModel(ActivityParticipation.name) private participationModel: Model<ActivityParticipationDocument>,
+    @InjectModel(ActivityParticipation.name)
+    private participationModel: Model<ActivityParticipationDocument>,
   ) {
     this.apiKey = process.env.GEMINI_API_KEY ?? '';
     this.apiUrl =
@@ -23,36 +34,58 @@ export class ActivityService {
 
   async create(createDto: CreateActivityDto): Promise<Activity> {
     console.log('ActivityService.create called with:', createDto);
-    
+
     // Kiểm tra trùng lặp tên hoạt động + ngày + staff_id (bất kể giờ nào)
     const inputDate = new Date(createDto.schedule_time);
     console.log('Parsed inputDate:', inputDate);
-    
-    const startOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 23, 59, 59, 999);
-    
+
+    const startOfDay = new Date(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
     const exists = await this.activityModel.findOne({
       activity_name: createDto.activity_name,
       staff_id: createDto.staff_id,
       schedule_time: { $gte: startOfDay, $lte: endOfDay },
     });
     if (exists) {
-      throw new BadRequestException('Bạn đã có hoạt động với tên này trong ngày này!');
+      throw new BadRequestException(
+        'Bạn đã có hoạt động với tên này trong ngày này!',
+      );
     }
 
     // Kiểm tra trùng lịch với staff (nếu có staff_id)
     if (createDto.staff_id) {
-      await this.checkStaffScheduleConflict(createDto.staff_id, new Date(createDto.schedule_time), createDto.duration);
+      await this.checkStaffScheduleConflict(
+        createDto.staff_id,
+        new Date(createDto.schedule_time),
+        createDto.duration,
+      );
     }
-    
+
     // Tạo activity với schedule_time là Date object từ string
     const activityData = {
       ...createDto,
-      schedule_time: new Date(createDto.schedule_time)
+      schedule_time: new Date(createDto.schedule_time),
     };
-    
+
     console.log('Activity data to save:', activityData);
-    
+
     const createdActivity = new this.activityModel(activityData);
     const savedActivity = await createdActivity.save();
     console.log('Activity saved successfully:', savedActivity);
@@ -62,38 +95,61 @@ export class ActivityService {
   /**
    * Kiểm tra trùng lịch với staff khi cập nhật hoạt động
    */
-  async checkStaffScheduleConflictForUpdate(activityId: string, staffId: string, scheduleTime: Date, duration: number): Promise<void> {
+  async checkStaffScheduleConflictForUpdate(
+    activityId: string,
+    staffId: string,
+    scheduleTime: Date,
+    duration: number,
+  ): Promise<void> {
     try {
       const newActivityStartTime = new Date(scheduleTime);
-      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+      const newActivityEndTime = new Date(
+        newActivityStartTime.getTime() + duration * 60 * 1000,
+      );
 
       // Lấy tất cả activities của staff trong cùng ngày (loại trừ activity hiện tại)
-      const startOfDay = new Date(newActivityStartTime.getFullYear(), newActivityStartTime.getMonth(), newActivityStartTime.getDate());
+      const startOfDay = new Date(
+        newActivityStartTime.getFullYear(),
+        newActivityStartTime.getMonth(),
+        newActivityStartTime.getDate(),
+      );
       const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
 
-      const existingActivities = await this.activityModel.find({
-        _id: { $ne: activityId }, // Loại trừ activity hiện tại
-        staff_id: new Types.ObjectId(staffId),
-        schedule_time: { $gte: startOfDay, $lte: endOfDay }
-      }).exec();
+      const existingActivities = await this.activityModel
+        .find({
+          _id: { $ne: activityId }, // Loại trừ activity hiện tại
+          staff_id: new Types.ObjectId(staffId),
+          schedule_time: { $gte: startOfDay, $lte: endOfDay },
+        })
+        .exec();
 
       for (const activity of existingActivities) {
         const existingActivityStartTime = new Date(activity.schedule_time);
-        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (activity.duration || 60) * 60 * 1000);
+        const existingActivityEndTime = new Date(
+          existingActivityStartTime.getTime() +
+            (activity.duration || 60) * 60 * 1000,
+        );
 
         // Kiểm tra overlap thời gian
-        if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
-          const activityStartTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          const activityEndTime = existingActivityEndTime.toLocaleTimeString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
+        if (
+          newActivityStartTime < existingActivityEndTime &&
+          newActivityEndTime > existingActivityStartTime
+        ) {
+          const activityStartTime =
+            existingActivityStartTime.toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          const activityEndTime = existingActivityEndTime.toLocaleTimeString(
+            'vi-VN',
+            {
+              hour: '2-digit',
+              minute: '2-digit',
+            },
+          );
+
           throw new BadRequestException(
-            `Nhân viên đã có hoạt động "${activity.activity_name}" từ ${activityStartTime} đến ${activityEndTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+            `Nhân viên đã có hoạt động "${activity.activity_name}" từ ${activityStartTime} đến ${activityEndTime} trong cùng ngày. Vui lòng chọn thời gian khác.`,
           );
         }
       }
@@ -101,7 +157,10 @@ export class ActivityService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error checking staff schedule conflict for update:', error);
+      console.error(
+        'Error checking staff schedule conflict for update:',
+        error,
+      );
       // Nếu có lỗi khi kiểm tra, cho phép cập nhật hoạt động
     }
   }
@@ -109,37 +168,59 @@ export class ActivityService {
   /**
    * Kiểm tra trùng lịch với staff khi tạo hoạt động mới
    */
-  async checkStaffScheduleConflict(staffId: string, scheduleTime: Date, duration: number): Promise<void> {
+  async checkStaffScheduleConflict(
+    staffId: string,
+    scheduleTime: Date,
+    duration: number,
+  ): Promise<void> {
     try {
       const newActivityStartTime = new Date(scheduleTime);
-      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+      const newActivityEndTime = new Date(
+        newActivityStartTime.getTime() + duration * 60 * 1000,
+      );
 
       // Lấy tất cả activities của staff trong cùng ngày
-      const startOfDay = new Date(newActivityStartTime.getFullYear(), newActivityStartTime.getMonth(), newActivityStartTime.getDate());
+      const startOfDay = new Date(
+        newActivityStartTime.getFullYear(),
+        newActivityStartTime.getMonth(),
+        newActivityStartTime.getDate(),
+      );
       const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
 
-      const existingActivities = await this.activityModel.find({
-        staff_id: new Types.ObjectId(staffId),
-        schedule_time: { $gte: startOfDay, $lte: endOfDay }
-      }).exec();
+      const existingActivities = await this.activityModel
+        .find({
+          staff_id: new Types.ObjectId(staffId),
+          schedule_time: { $gte: startOfDay, $lte: endOfDay },
+        })
+        .exec();
 
       for (const activity of existingActivities) {
         const existingActivityStartTime = new Date(activity.schedule_time);
-        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (activity.duration || 60) * 60 * 1000);
+        const existingActivityEndTime = new Date(
+          existingActivityStartTime.getTime() +
+            (activity.duration || 60) * 60 * 1000,
+        );
 
         // Kiểm tra overlap thời gian
-        if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
-          const activityStartTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          const activityEndTime = existingActivityEndTime.toLocaleTimeString('vi-VN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
+        if (
+          newActivityStartTime < existingActivityEndTime &&
+          newActivityEndTime > existingActivityStartTime
+        ) {
+          const activityStartTime =
+            existingActivityStartTime.toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+          const activityEndTime = existingActivityEndTime.toLocaleTimeString(
+            'vi-VN',
+            {
+              hour: '2-digit',
+              minute: '2-digit',
+            },
+          );
+
           throw new BadRequestException(
-            `Nhân viên đã có hoạt động "${activity.activity_name}" từ ${activityStartTime} đến ${activityEndTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+            `Nhân viên đã có hoạt động "${activity.activity_name}" từ ${activityStartTime} đến ${activityEndTime} trong cùng ngày. Vui lòng chọn thời gian khác.`,
           );
         }
       }
@@ -155,23 +236,33 @@ export class ActivityService {
   /**
    * Kiểm tra trùng lịch với cư dân khi cập nhật hoạt động
    */
-  async checkScheduleConflictWithResidentForUpdate(activityId: string, residentId: string, scheduleTime: Date, duration: number): Promise<void> {
+  async checkScheduleConflictWithResidentForUpdate(
+    activityId: string,
+    residentId: string,
+    scheduleTime: Date,
+    duration: number,
+  ): Promise<void> {
     try {
       // Lấy tất cả participations của cư dân (loại trừ activity hiện tại)
       const residentParticipations = await this.participationModel
-        .find({ 
+        .find({
           resident_id: new Types.ObjectId(residentId),
-          activity_id: { $ne: new Types.ObjectId(activityId) } // Loại trừ activity hiện tại
+          activity_id: { $ne: new Types.ObjectId(activityId) }, // Loại trừ activity hiện tại
         })
         .populate('activity_id')
         .exec();
 
       const newActivityStartTime = new Date(scheduleTime);
-      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+      const newActivityEndTime = new Date(
+        newActivityStartTime.getTime() + duration * 60 * 1000,
+      );
 
       // Kiểm tra trùng lịch trong cùng ngày
       for (const participation of residentParticipations) {
-        if (!participation.activity_id || typeof participation.activity_id === 'string') {
+        if (
+          !participation.activity_id ||
+          typeof participation.activity_id === 'string'
+        ) {
           continue;
         }
 
@@ -180,23 +271,36 @@ export class ActivityService {
           continue;
         }
 
-        const existingActivityStartTime = new Date(existingActivity.schedule_time);
-        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (existingActivity.duration || 60) * 60 * 1000);
+        const existingActivityStartTime = new Date(
+          existingActivity.schedule_time,
+        );
+        const existingActivityEndTime = new Date(
+          existingActivityStartTime.getTime() +
+            (existingActivity.duration || 60) * 60 * 1000,
+        );
 
         // Kiểm tra cùng ngày
         const newDateStr = newActivityStartTime.toISOString().split('T')[0];
-        const existingDateStr = existingActivityStartTime.toISOString().split('T')[0];
+        const existingDateStr = existingActivityStartTime
+          .toISOString()
+          .split('T')[0];
 
         if (newDateStr === existingDateStr) {
           // Kiểm tra overlap thời gian
-          if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
-            const activityTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            });
-            
+          if (
+            newActivityStartTime < existingActivityEndTime &&
+            newActivityEndTime > existingActivityStartTime
+          ) {
+            const activityTime = existingActivityStartTime.toLocaleTimeString(
+              'vi-VN',
+              {
+                hour: '2-digit',
+                minute: '2-digit',
+              },
+            );
+
             throw new BadRequestException(
-              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`,
             );
           }
         }
@@ -213,7 +317,11 @@ export class ActivityService {
   /**
    * Kiểm tra trùng lịch với cư dân khi tạo hoạt động mới
    */
-  async checkScheduleConflictWithResident(residentId: string, scheduleTime: Date, duration: number): Promise<void> {
+  async checkScheduleConflictWithResident(
+    residentId: string,
+    scheduleTime: Date,
+    duration: number,
+  ): Promise<void> {
     try {
       // Lấy tất cả participations của cư dân
       const residentParticipations = await this.participationModel
@@ -222,11 +330,16 @@ export class ActivityService {
         .exec();
 
       const newActivityStartTime = new Date(scheduleTime);
-      const newActivityEndTime = new Date(newActivityStartTime.getTime() + duration * 60 * 1000);
+      const newActivityEndTime = new Date(
+        newActivityStartTime.getTime() + duration * 60 * 1000,
+      );
 
       // Kiểm tra trùng lịch trong cùng ngày
       for (const participation of residentParticipations) {
-        if (!participation.activity_id || typeof participation.activity_id === 'string') {
+        if (
+          !participation.activity_id ||
+          typeof participation.activity_id === 'string'
+        ) {
           continue;
         }
 
@@ -235,23 +348,36 @@ export class ActivityService {
           continue;
         }
 
-        const existingActivityStartTime = new Date(existingActivity.schedule_time);
-        const existingActivityEndTime = new Date(existingActivityStartTime.getTime() + (existingActivity.duration || 60) * 60 * 1000);
+        const existingActivityStartTime = new Date(
+          existingActivity.schedule_time,
+        );
+        const existingActivityEndTime = new Date(
+          existingActivityStartTime.getTime() +
+            (existingActivity.duration || 60) * 60 * 1000,
+        );
 
         // Kiểm tra cùng ngày
         const newDateStr = newActivityStartTime.toISOString().split('T')[0];
-        const existingDateStr = existingActivityStartTime.toISOString().split('T')[0];
+        const existingDateStr = existingActivityStartTime
+          .toISOString()
+          .split('T')[0];
 
         if (newDateStr === existingDateStr) {
           // Kiểm tra overlap thời gian
-          if (newActivityStartTime < existingActivityEndTime && newActivityEndTime > existingActivityStartTime) {
-            const activityTime = existingActivityStartTime.toLocaleTimeString('vi-VN', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            });
-            
+          if (
+            newActivityStartTime < existingActivityEndTime &&
+            newActivityEndTime > existingActivityStartTime
+          ) {
+            const activityTime = existingActivityStartTime.toLocaleTimeString(
+              'vi-VN',
+              {
+                hour: '2-digit',
+                minute: '2-digit',
+              },
+            );
+
             throw new BadRequestException(
-              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`
+              `Cư dân đã có hoạt động "${existingActivity.activity_name}" vào lúc ${activityTime} trong cùng ngày. Vui lòng chọn thời gian khác.`,
             );
           }
         }
@@ -286,31 +412,61 @@ export class ActivityService {
 
     // Nếu có schedule_time, chuyển đổi từ string sang Date
     if (updateActivityDto.schedule_time) {
-      updateActivityDto.schedule_time = new Date(updateActivityDto.schedule_time);
+      updateActivityDto.schedule_time = new Date(
+        updateActivityDto.schedule_time,
+      );
     }
 
     // Kiểm tra xem có thay đổi thời gian, duration hoặc staff_id không
-    const scheduleTimeChanged = updateActivityDto.schedule_time && 
-      updateActivityDto.schedule_time.getTime() !== existingActivity.schedule_time.getTime();
-    const durationChanged = updateActivityDto.duration && 
+    const scheduleTimeChanged =
+      updateActivityDto.schedule_time &&
+      updateActivityDto.schedule_time.getTime() !==
+        existingActivity.schedule_time.getTime();
+    const durationChanged =
+      updateActivityDto.duration &&
       updateActivityDto.duration !== existingActivity.duration;
-    const staffChanged = updateActivityDto.staff_id && 
+    const staffChanged =
+      updateActivityDto.staff_id &&
       updateActivityDto.staff_id !== existingActivity.staff_id.toString();
 
     // Nếu có thay đổi về thời gian, cần kiểm tra conflicts
     if (scheduleTimeChanged || durationChanged || staffChanged) {
-      const newScheduleTime = updateActivityDto.schedule_time || existingActivity.schedule_time;
-      const newDuration = updateActivityDto.duration || existingActivity.duration;
-      const newStaffId = updateActivityDto.staff_id || existingActivity.staff_id.toString();
+      const newScheduleTime =
+        updateActivityDto.schedule_time || existingActivity.schedule_time;
+      const newDuration =
+        updateActivityDto.duration || existingActivity.duration;
+      const newStaffId =
+        updateActivityDto.staff_id || existingActivity.staff_id.toString();
 
       // Kiểm tra trùng lặp tên hoạt động + ngày + staff_id (nếu thay đổi)
-      if (updateActivityDto.activity_name || scheduleTimeChanged || staffChanged) {
-        const activityName = updateActivityDto.activity_name || existingActivity.activity_name;
+      if (
+        updateActivityDto.activity_name ||
+        scheduleTimeChanged ||
+        staffChanged
+      ) {
+        const activityName =
+          updateActivityDto.activity_name || existingActivity.activity_name;
         const inputDate = new Date(newScheduleTime);
-        
-        const startOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 0, 0, 0, 0);
-        const endOfDay = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate(), 23, 59, 59, 999);
-        
+
+        const startOfDay = new Date(
+          inputDate.getFullYear(),
+          inputDate.getMonth(),
+          inputDate.getDate(),
+          0,
+          0,
+          0,
+          0,
+        );
+        const endOfDay = new Date(
+          inputDate.getFullYear(),
+          inputDate.getMonth(),
+          inputDate.getDate(),
+          23,
+          59,
+          59,
+          999,
+        );
+
         const duplicateActivity = await this.activityModel.findOne({
           _id: { $ne: id }, // Loại trừ activity hiện tại
           activity_name: activityName,
@@ -319,14 +475,21 @@ export class ActivityService {
         });
 
         if (duplicateActivity) {
-          throw new BadRequestException('Bạn đã có hoạt động với tên này trong ngày này!');
+          throw new BadRequestException(
+            'Bạn đã có hoạt động với tên này trong ngày này!',
+          );
         }
       }
 
       // Kiểm tra trùng lịch với staff
-      await this.checkStaffScheduleConflictForUpdate(id, newStaffId, newScheduleTime, newDuration);
+      await this.checkStaffScheduleConflictForUpdate(
+        id,
+        newStaffId,
+        newScheduleTime,
+        newDuration,
+      );
     }
-    
+
     return this.activityModel.findByIdAndUpdate(id, updateActivityDto, {
       new: true,
     });
@@ -346,12 +509,14 @@ export class ActivityService {
     console.log('Type of resident_ids:', typeof resident_ids);
     console.log('Is Array?', Array.isArray(resident_ids));
     console.log('Received schedule_time:', schedule_time);
-    
+
     // Validation để đảm bảo resident_ids là array
     if (!Array.isArray(resident_ids)) {
-      throw new Error(`resident_ids must be an array, received: ${typeof resident_ids}`);
+      throw new Error(
+        `resident_ids must be an array, received: ${typeof resident_ids}`,
+      );
     }
-    
+
     const results: any[] = [];
     for (const resident_id of resident_ids) {
       const resident = await this.residentModel.findById(resident_id);
@@ -359,16 +524,19 @@ export class ActivityService {
         results.push({ resident_id, feedback: 'Resident not found' });
         continue;
       }
-      
+
       // Tạo prompt với thông tin thời gian cụ thể nếu có
       let timeInfo = 'vào thời gian phù hợp';
       if (schedule_time) {
         const scheduleDate = new Date(schedule_time);
         const formattedDate = scheduleDate.toLocaleDateString('vi-VN');
-        const formattedTime = scheduleDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const formattedTime = scheduleDate.toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
         timeInfo = `vào thời gian cụ thể: ${formattedTime} ngày ${formattedDate}`;
       }
-      
+
       const prompt = `
         Tôi cần tạo 3-5 hoạt động đa dạng cho người cao tuổi ${resident.full_name} ${timeInfo}. 
         

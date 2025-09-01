@@ -1,4 +1,11 @@
-import { IsMongoId, IsString, IsOptional, IsArray, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsMongoId,
+  IsString,
+  IsOptional,
+  IsArray,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AssignmentStatus } from '../schemas/staff-assignment.schema';
 
@@ -24,10 +31,10 @@ export class CreateStaffAssignmentDto {
   @IsDateString()
   end_date?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     enum: AssignmentStatus,
     description: 'Trạng thái phân công',
-    default: AssignmentStatus.ACTIVE
+    default: AssignmentStatus.ACTIVE,
   })
   @IsOptional()
   @IsEnum(AssignmentStatus)
@@ -38,12 +45,12 @@ export class CreateStaffAssignmentDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: 'Danh sách trách nhiệm',
-    example: ['vital_signs', 'care_notes', 'activities', 'photos']
+    example: ['vital_signs', 'care_notes', 'activities', 'photos'],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   responsibilities?: string[];
-} 
+}

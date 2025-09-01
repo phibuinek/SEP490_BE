@@ -3,7 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Assessment, AssessmentSchema } from './schemas/care-note.schema';
 import { CareNotesService } from './care-notes.service';
 import { AssessmentsController } from './care-notes.controller';
-import { StaffAssignment, StaffAssignmentSchema } from '../staff-assignments/schemas/staff-assignment.schema';
+import {
+  StaffAssignment,
+  StaffAssignmentSchema,
+} from '../staff-assignments/schemas/staff-assignment.schema';
 
 @Module({
   imports: [

@@ -15,4 +15,4 @@ export class ResetPasswordDto {
   @IsString()
   @MinLength(6)
   confirmPassword: string;
-} 
+}

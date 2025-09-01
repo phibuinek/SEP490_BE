@@ -21,9 +21,11 @@ export class DatabaseSeeder {
     try {
       // Kiểm tra xem đã có users trong database chưa
       const existingUsersCount = await this.userModel.countDocuments();
-      
+
       if (existingUsersCount > 0) {
-        console.log(`✅ Database already has ${existingUsersCount} users. Seeding skipped to preserve Atlas data.`);
+        console.log(
+          `✅ Database already has ${existingUsersCount} users. Seeding skipped to preserve Atlas data.`,
+        );
         return;
       }
 
@@ -47,7 +49,10 @@ export class DatabaseSeeder {
       for (const userData of usersData) {
         try {
           // Hash password nếu chưa hash
-          if (!userData.password.startsWith('$2a$') && !userData.password.startsWith('$2b$')) {
+          if (
+            !userData.password.startsWith('$2a$') &&
+            !userData.password.startsWith('$2b$')
+          ) {
             userData.password = await bcrypt.hash(userData.password, 10);
           }
 
@@ -60,11 +65,15 @@ export class DatabaseSeeder {
 
           // Tạo user mới
           await this.userModel.create(userData);
-          console.log(`✅ Seeded user: ${userData.email} (${userData.username})`);
+          console.log(
+            `✅ Seeded user: ${userData.email} (${userData.username})`,
+          );
           successCount++;
-          
         } catch (err) {
-          console.error(`❌ Error seeding user ${userData.email || 'unknown'}:`, err.message);
+          console.error(
+            `❌ Error seeding user ${userData.email || 'unknown'}:`,
+            err.message,
+          );
           errorCount++;
         }
       }
@@ -72,14 +81,13 @@ export class DatabaseSeeder {
       console.log('\n🎉 Seeding completed!');
       console.log(`✅ Success: ${successCount} users`);
       console.log(`❌ Errors: ${errorCount} users`);
-      
+
       if (successCount > 0) {
         console.log('\n🔐 Login credentials:');
         console.log('Admin: admin@gmail.com / admin123');
         console.log('Staff: staff@gmail.com / staff123');
         console.log('Family: bao@gmail.com / family123');
       }
-      
     } catch (error) {
       console.error('Error in seeding process:', error);
     }

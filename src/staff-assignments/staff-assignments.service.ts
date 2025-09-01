@@ -13,7 +13,10 @@ import {
 } from './schemas/staff-assignment.schema';
 import { CreateStaffAssignmentDto } from './dto/create-staff-assignment.dto';
 import { UpdateStaffAssignmentDto } from './dto/update-staff-assignment.dto';
-import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
+import {
+  Resident,
+  ResidentDocument,
+} from '../residents/schemas/resident.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
@@ -32,7 +35,8 @@ export class StaffAssignmentsService {
     req: any,
   ): Promise<StaffAssignment> {
     try {
-      const { staff_id, resident_id, assigned_date, assigned_by } = createStaffAssignmentDto;
+      const { staff_id, resident_id, assigned_date, assigned_by } =
+        createStaffAssignmentDto;
 
       // Validate staff exists and is actually a staff
       const staff = await this.userModel.findById(staff_id);
@@ -57,15 +61,19 @@ export class StaffAssignmentsService {
       });
 
       if (existingActiveAssignment) {
-        throw new ConflictException('Nhân viên đã được phân công cho người cao tuổi này');
+        throw new ConflictException(
+          'Nhân viên đã được phân công cho người cao tuổi này',
+        );
       }
 
       // If there's an expired assignment, update it instead of creating a new one
-      const existingExpiredAssignment = await this.staffAssignmentModel.findOne({
-        staff_id: new Types.ObjectId(staff_id),
-        resident_id: new Types.ObjectId(resident_id),
-        status: AssignmentStatus.EXPIRED,
-      });
+      const existingExpiredAssignment = await this.staffAssignmentModel.findOne(
+        {
+          staff_id: new Types.ObjectId(staff_id),
+          resident_id: new Types.ObjectId(resident_id),
+          status: AssignmentStatus.EXPIRED,
+        },
+      );
 
       if (existingExpiredAssignment) {
         // Update the expired assignment to active
@@ -80,7 +88,9 @@ export class StaffAssignmentsService {
         resident_id: new Types.ObjectId(resident_id),
         assigned_by: new Types.ObjectId(assigned_by),
         assigned_date: new Date(assigned_date),
-        end_date: createStaffAssignmentDto.end_date ? new Date(createStaffAssignmentDto.end_date) : null,
+        end_date: createStaffAssignmentDto.end_date
+          ? new Date(createStaffAssignmentDto.end_date)
+          : null,
         status: createStaffAssignmentDto.status || AssignmentStatus.ACTIVE,
         notes: createStaffAssignmentDto.notes || null,
         responsibilities: createStaffAssignmentDto.responsibilities || [],
@@ -103,19 +113,22 @@ export class StaffAssignmentsService {
       await this.staffAssignmentModel.updateMany(
         {
           status: AssignmentStatus.ACTIVE,
-          end_date: { $lt: now, $ne: null }
+          end_date: { $lt: now, $ne: null },
         },
         {
-          $set: { 
+          $set: {
             status: 'expired',
-            updated_at: now
-          }
-        }
+            updated_at: now,
+          },
+        },
       );
 
       return await this.staffAssignmentModel
         .find({ status: AssignmentStatus.ACTIVE }) // Chỉ lấy những assignment còn active
-        .populate('staff_id', 'full_name email role avatar position qualification')
+        .populate(
+          'staff_id',
+          'full_name email role avatar position qualification',
+        )
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -133,19 +146,22 @@ export class StaffAssignmentsService {
       await this.staffAssignmentModel.updateMany(
         {
           status: AssignmentStatus.ACTIVE,
-          end_date: { $lt: now, $ne: null }
+          end_date: { $lt: now, $ne: null },
         },
         {
-          $set: { 
+          $set: {
             status: 'expired',
-            updated_at: now
-          }
-        }
+            updated_at: now,
+          },
+        },
       );
 
       return await this.staffAssignmentModel
         .find() // Lấy tất cả assignment (bao gồm cả expired)
-        .populate('staff_id', 'full_name email role avatar position qualification')
+        .populate(
+          'staff_id',
+          'full_name email role avatar position qualification',
+        )
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -164,7 +180,10 @@ export class StaffAssignmentsService {
 
       const assignment = await this.staffAssignmentModel
         .findById(id)
-        .populate('staff_id', 'full_name email role avatar position qualification')
+        .populate(
+          'staff_id',
+          'full_name email role avatar position qualification',
+        )
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -175,7 +194,10 @@ export class StaffAssignmentsService {
 
       return assignment;
     } catch (error: any) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException(
@@ -191,12 +213,18 @@ export class StaffAssignmentsService {
       }
 
       return await this.staffAssignmentModel
-        .find({ 
-          staff_id: new Types.ObjectId(staff_id)
+        .find({
+          staff_id: new Types.ObjectId(staff_id),
           // Removed status filter to show all assignments
         })
-        .populate('staff_id', 'full_name email role avatar position qualification')
-        .populate('resident_id', 'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar')
+        .populate(
+          'staff_id',
+          'full_name email role avatar position qualification',
+        )
+        .populate(
+          'resident_id',
+          'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar',
+        )
         .populate('assigned_by', 'full_name email')
         .exec();
     } catch (error: any) {
@@ -215,12 +243,15 @@ export class StaffAssignmentsService {
         throw new BadRequestException('Invalid resident ID format');
       }
 
-            return await this.staffAssignmentModel
-        .find({ 
+      return await this.staffAssignmentModel
+        .find({
           resident_id: new Types.ObjectId(resident_id),
-          status: AssignmentStatus.ACTIVE 
+          status: AssignmentStatus.ACTIVE,
         })
-        .populate('staff_id', 'full_name email role avatar position qualification')
+        .populate(
+          'staff_id',
+          'full_name email role avatar position qualification',
+        )
         .populate('resident_id', 'full_name date_of_birth gender avatar')
         .populate('assigned_by', 'full_name email')
         .exec();
@@ -266,9 +297,15 @@ export class StaffAssignmentsService {
       }
 
       // If updating staff_id or resident_id, check for conflicts
-      if (updateStaffAssignmentDto.staff_id || updateStaffAssignmentDto.resident_id) {
-        const staff_id = updateStaffAssignmentDto.staff_id || assignment.staff_id.toString();
-        const resident_id = updateStaffAssignmentDto.resident_id || assignment.resident_id.toString();
+      if (
+        updateStaffAssignmentDto.staff_id ||
+        updateStaffAssignmentDto.resident_id
+      ) {
+        const staff_id =
+          updateStaffAssignmentDto.staff_id || assignment.staff_id.toString();
+        const resident_id =
+          updateStaffAssignmentDto.resident_id ||
+          assignment.resident_id.toString();
 
         const existingAssignment = await this.staffAssignmentModel.findOne({
           staff_id: new Types.ObjectId(staff_id),
@@ -278,7 +315,9 @@ export class StaffAssignmentsService {
         });
 
         if (existingAssignment) {
-          throw new ConflictException('Staff is already assigned to this resident');
+          throw new ConflictException(
+            'Staff is already assigned to this resident',
+          );
         }
       }
 
@@ -287,7 +326,7 @@ export class StaffAssignmentsService {
           id,
           {
             ...updateStaffAssignmentDto,
-            staff_id: updateStaffAssignmentDto.staff_id 
+            staff_id: updateStaffAssignmentDto.staff_id
               ? new Types.ObjectId(updateStaffAssignmentDto.staff_id)
               : undefined,
             resident_id: updateStaffAssignmentDto.resident_id
@@ -298,7 +337,7 @@ export class StaffAssignmentsService {
               : undefined,
             updated_at: new Date(),
           },
-          { new: true }
+          { new: true },
         )
         .populate('staff_id', 'full_name email role avatar')
         .populate('resident_id', 'full_name date_of_birth gender avatar')
@@ -311,9 +350,11 @@ export class StaffAssignmentsService {
 
       return updatedAssignment;
     } catch (error: any) {
-      if (error instanceof NotFoundException || 
-          error instanceof BadRequestException || 
-          error instanceof ConflictException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       throw new BadRequestException(
@@ -335,7 +376,10 @@ export class StaffAssignmentsService {
 
       await this.staffAssignmentModel.findByIdAndDelete(id);
     } catch (error: any) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException(
@@ -343,6 +387,4 @@ export class StaffAssignmentsService {
       );
     }
   }
-
-
-} 
+}

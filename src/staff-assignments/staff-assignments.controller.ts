@@ -11,7 +11,12 @@ import {
   Query,
   ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { StaffAssignmentsService } from './staff-assignments.service';
 import { CreateStaffAssignmentDto } from './dto/create-staff-assignment.dto';
 import { UpdateStaffAssignmentDto } from './dto/update-staff-assignment.dto';
@@ -25,7 +30,9 @@ import { Role } from '../common/enums/role.enum';
 @Controller('staff-assignments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StaffAssignmentsController {
-  constructor(private readonly staffAssignmentsService: StaffAssignmentsService) {}
+  constructor(
+    private readonly staffAssignmentsService: StaffAssignmentsService,
+  ) {}
 
   @Post()
   @Roles(Role.ADMIN)
@@ -36,8 +43,14 @@ export class StaffAssignmentsController {
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 404, description: 'Staff or resident not found.' })
-  @ApiResponse({ status: 409, description: 'Staff is already assigned to this resident.' })
-  create(@Body() createStaffAssignmentDto: CreateStaffAssignmentDto, @Req() req: any) {
+  @ApiResponse({
+    status: 409,
+    description: 'Staff is already assigned to this resident.',
+  })
+  create(
+    @Body() createStaffAssignmentDto: CreateStaffAssignmentDto,
+    @Req() req: any,
+  ) {
     return this.staffAssignmentsService.create(createStaffAssignmentDto, req);
   }
 
@@ -85,25 +98,37 @@ export class StaffAssignmentsController {
     description: 'Staff assignments retrieved successfully.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Family members can only access their own residents.' })
-  async findByResident(@Param('residentId') residentId: string, @Req() req: any) {
+  @ApiResponse({
+    status: 403,
+    description:
+      'Forbidden - Family members can only access their own residents.',
+  })
+  async findByResident(
+    @Param('residentId') residentId: string,
+    @Req() req: any,
+  ) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-    
+
     if (userRole === Role.FAMILY) {
       // Verify that the family member has access to this resident
-      const resident = await this.staffAssignmentsService.findResidentById(residentId);
+      const resident =
+        await this.staffAssignmentsService.findResidentById(residentId);
       if (!resident || resident.family_member_id?.toString() !== userId) {
-        throw new ForbiddenException('Bạn không có quyền xem thông tin nhân viên phụ trách cho cư dân này');
+        throw new ForbiddenException(
+          'Bạn không có quyền xem thông tin nhân viên phụ trách cho cư dân này',
+        );
       }
     }
-    
+
     return this.staffAssignmentsService.findByResident(residentId);
   }
 
   @Get('my-assignments')
   @Roles(Role.STAFF)
-  @ApiOperation({ summary: 'Get current staff assignments for logged-in staff' })
+  @ApiOperation({
+    summary: 'Get current staff assignments for logged-in staff',
+  })
   @ApiResponse({
     status: 200,
     description: 'Staff assignments retrieved successfully.',
@@ -136,15 +161,16 @@ export class StaffAssignmentsController {
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 404, description: 'Staff assignment not found.' })
-  @ApiResponse({ status: 409, description: 'Staff is already assigned to this resident.' })
+  @ApiResponse({
+    status: 409,
+    description: 'Staff is already assigned to this resident.',
+  })
   update(
     @Param('id') id: string,
     @Body() updateStaffAssignmentDto: UpdateStaffAssignmentDto,
   ) {
     return this.staffAssignmentsService.update(id, updateStaffAssignmentDto);
   }
-
-
 
   @Delete(':id')
   @Roles(Role.ADMIN)
@@ -158,4 +184,4 @@ export class StaffAssignmentsController {
   remove(@Param('id') id: string) {
     return this.staffAssignmentsService.remove(id);
   }
-} 
+}

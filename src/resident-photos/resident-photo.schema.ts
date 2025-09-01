@@ -3,9 +3,9 @@ import { Document, Types } from 'mongoose';
 
 export type ResidentPhotoDocument = ResidentPhoto & Document;
 
-@Schema({ 
+@Schema({
   collection: 'resident_photos',
-  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class ResidentPhoto {
   @Prop({

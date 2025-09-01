@@ -45,134 +45,165 @@ export class UsersController {
 
   @Post()
   @Roles('admin', 'staff')
-  @UseInterceptors(FileInterceptor('avatar', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + extname(file.originalname));
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
       },
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed'), false);
-      }
-    },
-    limits: { fileSize: 5 * 1024 * 1024 },
-  }))
+  )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Tạo user mới, có thể upload avatar. Các trường sẽ thay đổi tùy theo role.',
+    description:
+      'Tạo user mới, có thể upload avatar. Các trường sẽ thay đổi tùy theo role.',
     schema: {
       type: 'object',
       properties: {
-        avatar: { 
-          type: 'string', 
-          format: 'binary', 
-          description: 'Ảnh đại diện (tùy chọn)' 
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'Ảnh đại diện (tùy chọn)',
         },
-        full_name: { 
-          type: 'string', 
-          description: 'Họ tên đầy đủ (bắt buộc cho tất cả roles)' 
+        full_name: {
+          type: 'string',
+          description: 'Họ tên đầy đủ (bắt buộc cho tất cả roles)',
         },
-        email: { 
-          type: 'string', 
-          description: 'Email (bắt buộc cho tất cả roles)' 
+        email: {
+          type: 'string',
+          description: 'Email (bắt buộc cho tất cả roles)',
         },
-        phone: { 
-          type: 'string', 
-          description: 'Số điện thoại (bắt buộc cho tất cả roles)' 
+        phone: {
+          type: 'string',
+          description: 'Số điện thoại (bắt buộc cho tất cả roles)',
         },
-        username: { 
-          type: 'string', 
-          description: 'Tên đăng nhập (bắt buộc cho tất cả roles)' 
+        username: {
+          type: 'string',
+          description: 'Tên đăng nhập (bắt buộc cho tất cả roles)',
         },
-        password: { 
-          type: 'string', 
-          description: 'Mật khẩu (bắt buộc cho tất cả roles, tối thiểu 6 ký tự)' 
+        password: {
+          type: 'string',
+          description:
+            'Mật khẩu (bắt buộc cho tất cả roles, tối thiểu 6 ký tự)',
         },
-        role: { 
-          type: 'string', 
+        role: {
+          type: 'string',
           enum: ['admin', 'staff', 'family'],
-          description: 'Vai trò người dùng (bắt buộc)' 
+          description: 'Vai trò người dùng (bắt buộc)',
         },
-        status: { 
-          type: 'string', 
+        status: {
+          type: 'string',
           enum: ['active', 'inactive', 'suspended', 'deleted'],
-          description: 'Trạng thái tài khoản (mặc định: active)' 
+          description: 'Trạng thái tài khoản (mặc định: active)',
         },
-        is_super_admin: { 
-          type: 'boolean', 
-          description: 'Có phải super admin không (chỉ dành cho admin)' 
+        is_super_admin: {
+          type: 'boolean',
+          description: 'Có phải super admin không (chỉ dành cho admin)',
         },
-        position: { 
-          type: 'string', 
-          description: 'Chức vụ (chủ yếu dành cho staff)' 
+        position: {
+          type: 'string',
+          description: 'Chức vụ (chủ yếu dành cho staff)',
         },
-        qualification: { 
-          type: 'string', 
-          description: 'Bằng cấp/chuyên môn (chủ yếu dành cho staff)' 
+        qualification: {
+          type: 'string',
+          description: 'Bằng cấp/chuyên môn (chủ yếu dành cho staff)',
         },
-        join_date: { 
-          type: 'string', 
+        join_date: {
+          type: 'string',
           format: 'date-time',
-          description: 'Ngày vào làm (chủ yếu dành cho staff)' 
+          description: 'Ngày vào làm (chủ yếu dành cho staff)',
         },
-        address: { 
-          type: 'string', 
-          description: 'Địa chỉ (dành cho tất cả roles)' 
+        address: {
+          type: 'string',
+          description: 'Địa chỉ (dành cho tất cả roles)',
         },
-        notes: { 
-          type: 'string', 
-          description: 'Ghi chú (dành cho tất cả roles)' 
+        notes: {
+          type: 'string',
+          description: 'Ghi chú (dành cho tất cả roles)',
         },
-        created_at: { 
-          type: 'string', 
+        created_at: {
+          type: 'string',
           format: 'date-time',
-          description: 'Ngày tạo (tự động)' 
+          description: 'Ngày tạo (tự động)',
         },
-        updated_at: { 
-          type: 'string', 
+        updated_at: {
+          type: 'string',
           format: 'date-time',
-          description: 'Ngày cập nhật (tự động)' 
+          description: 'Ngày cập nhật (tự động)',
         },
       },
       required: ['full_name', 'email', 'phone', 'username', 'password', 'role'],
     },
   })
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create a new user (Admin, Staff only)',
-    description: 'Tạo user mới với các trường khác nhau tùy theo role:\n' +
-                 '- admin: Tất cả trường\n' +
-                 '- staff: full_name, email, phone, username, password, role, position, qualification, join_date, address, notes\n' +
-                 '- family: full_name, email, phone, username, password, role, address, notes'
+    description:
+      'Tạo user mới với các trường khác nhau tùy theo role:\n' +
+      '- admin: Tất cả trường\n' +
+      '- staff: full_name, email, phone, username, password, role, position, qualification, join_date, address, notes\n' +
+      '- family: full_name, email, phone, username, password, role, address, notes',
   })
   @ApiResponse({ status: 201, description: 'User created successfully.' })
   @ApiResponse({ status: 400, description: 'Bad request - validation error.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden - admin or staff role required.' })
-  @ApiResponse({ status: 409, description: 'Conflict - username or email already exists.' })
-  create(@UploadedFile() file: Express.Multer.File, @Body() createUserDto: CreateUserDto, @Req() req: any) {
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - admin or staff role required.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - username or email already exists.',
+  })
+  create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() createUserDto: CreateUserDto,
+    @Req() req: any,
+  ) {
     try {
-      console.log('[USER][CONTROLLER][CREATE] Received request with file:', file?.filename);
-      console.log('[USER][CONTROLLER][CREATE] Current user role:', req.user?.role);
-      console.log('[USER][CONTROLLER][CREATE] Request body:', JSON.stringify(createUserDto, null, 2));
-      
+      console.log(
+        '[USER][CONTROLLER][CREATE] Received request with file:',
+        file?.filename,
+      );
+      console.log(
+        '[USER][CONTROLLER][CREATE] Current user role:',
+        req.user?.role,
+      );
+      console.log(
+        '[USER][CONTROLLER][CREATE] Request body:',
+        JSON.stringify(createUserDto, null, 2),
+      );
+
       // Staff chỉ có thể tạo family members
       if (req.user?.role === 'staff' && createUserDto.role !== 'family') {
         throw new BadRequestException('Staff can only create family members');
       }
-      
+
       if (file) {
         createUserDto.avatar = file.path || `uploads/${file.filename}`;
       }
       return this.usersService.create(createUserDto);
     } catch (error) {
       console.error('[USER][CONTROLLER][CREATE][ERROR]', error);
-      console.error('[USER][CONTROLLER][CREATE][ERROR] Message:', error.message);
-      console.error('[USER][CONTROLLER][CREATE][ERROR] Response:', error.response);
+      console.error(
+        '[USER][CONTROLLER][CREATE][ERROR] Message:',
+        error.message,
+      );
+      console.error(
+        '[USER][CONTROLLER][CREATE][ERROR] Response:',
+        error.response,
+      );
       throw error;
     }
   }
@@ -202,9 +233,11 @@ export class UsersController {
     // Validate role parameter
     const validRoles = ['admin', 'staff', 'family'];
     if (!validRoles.includes(role)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+      );
     }
-    
+
     return this.usersService.findAll(undefined, role);
   }
 
@@ -223,21 +256,26 @@ export class UsersController {
   findByRoles(@Query('roles') roles: string) {
     // Validate and parse roles parameter
     const validRoles = ['admin', 'staff', 'family'];
-    const roleList = roles.split(',').map(r => r.trim());
-    
+    const roleList = roles.split(',').map((r) => r.trim());
+
     for (const role of roleList) {
       if (!validRoles.includes(role)) {
-        throw new BadRequestException(`Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}`);
+        throw new BadRequestException(
+          `Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}`,
+        );
       }
     }
-    
+
     return this.usersService.findByRoles(roleList);
   }
 
   @Get('stats/by-role')
   @Roles('admin', 'staff')
   @ApiOperation({ summary: 'Get user statistics by role (Admin, Staff only)' })
-  @ApiResponse({ status: 200, description: 'User statistics retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'User statistics retrieved successfully.',
+  })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   getUserStatsByRole() {
     return this.usersService.getUserStatsByRole();
@@ -293,52 +331,69 @@ export class UsersController {
 
   @Patch(':id/reset-password')
   @Roles('admin')
-  @ApiOperation({ summary: 'Admin reset password for user (set new password directly)' })
+  @ApiOperation({
+    summary: 'Admin reset password for user (set new password directly)',
+  })
   async resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
     return this.usersService.resetPassword(id, dto.newPassword);
   }
 
   @Patch(':id')
   @Roles('admin', 'staff')
-  @ApiOperation({ summary: 'Update user by ID (Admin, Staff only) - Basic info only' })
+  @ApiOperation({
+    summary: 'Update user by ID (Admin, Staff only) - Basic info only',
+  })
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async updateUserById(
     @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
   ) {
     try {
       console.log('PATCH /users/:id - Input:', { id, updateUserDto });
-      
+
       // Validate input
       if (!id || id.trim() === '') {
         throw new BadRequestException('User ID is required');
       }
-      
+
       // Chỉ cho phép cập nhật các trường hợp lệ
-      const allowedFields = ['full_name', 'email', 'phone', 'notes', 'address', 'position', 'qualification', 'join_date'];
+      const allowedFields = [
+        'full_name',
+        'email',
+        'phone',
+        'notes',
+        'address',
+        'position',
+        'qualification',
+        'join_date',
+      ];
       const filteredDto: any = {};
       for (const key of allowedFields) {
-        if (updateUserDto[key] !== undefined && updateUserDto[key] !== null && updateUserDto[key] !== '') {
+        if (
+          updateUserDto[key] !== undefined &&
+          updateUserDto[key] !== null &&
+          updateUserDto[key] !== ''
+        ) {
           filteredDto[key] = updateUserDto[key];
         }
       }
-      
+
       // Kiểm tra xem có dữ liệu nào để cập nhật không
       if (Object.keys(filteredDto).length === 0) {
         throw new BadRequestException('No valid fields to update');
       }
-      
+
       filteredDto.updated_at = new Date();
-      
+
       console.log('PATCH /users/:id - Filtered DTO:', filteredDto);
-      
+
       const updated = await this.usersService.updateUserById(id, filteredDto);
       if (!updated) {
         throw new NotFoundException('User not found');
       }
-      
+
       const user: any = updated;
       const baseFields = {
         _id: user._id,
@@ -350,11 +405,16 @@ export class UsersController {
         address: user.address,
         role: user.role,
         status: user.status,
-        updated_at: user.updated_at
+        updated_at: user.updated_at,
       };
-      
+
       if (user.role === 'staff') {
-        return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
+        return {
+          ...baseFields,
+          position: user.position,
+          qualification: user.qualification,
+          join_date: user.join_date,
+        };
       }
       return baseFields;
     } catch (error) {
@@ -365,40 +425,55 @@ export class UsersController {
 
   @Patch(':id/with-avatar')
   @Roles('admin', 'staff')
-  @UseInterceptors(FileInterceptor('avatar', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + extname(file.originalname));
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
       },
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed'), false);
-      }
-    },
-    limits: { fileSize: 5 * 1024 * 1024 },
-  }))
-  @ApiOperation({ summary: 'Update user by ID with avatar (Admin, Staff only)' })
+  )
+  @ApiOperation({
+    summary: 'Update user by ID with avatar (Admin, Staff only)',
+  })
   @ApiResponse({ status: 200, description: 'User updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async updateUserByIdWithAvatar(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
   ) {
     try {
       // Xử lý file avatar nếu có
       if (file) {
         updateUserDto.avatar = file.path || `uploads/${file.filename}`;
       }
-      
+
       // Chỉ cho phép cập nhật các trường hợp lệ
-      const allowedFields = ['full_name', 'email', 'phone', 'avatar', 'notes', 'address', 'position', 'qualification', 'join_date'];
+      const allowedFields = [
+        'full_name',
+        'email',
+        'phone',
+        'avatar',
+        'notes',
+        'address',
+        'position',
+        'qualification',
+        'join_date',
+      ];
       const filteredDto: any = {};
       for (const key of allowedFields) {
         if (updateUserDto[key] !== undefined) {
@@ -406,12 +481,12 @@ export class UsersController {
         }
       }
       filteredDto.updated_at = new Date();
-      
+
       const updated = await this.usersService.updateUserById(id, filteredDto);
       if (!updated) {
         throw new NotFoundException('User not found');
       }
-      
+
       const user: any = updated;
       const baseFields = {
         _id: user._id,
@@ -423,11 +498,16 @@ export class UsersController {
         address: user.address,
         role: user.role,
         status: user.status,
-        updated_at: user.updated_at
+        updated_at: user.updated_at,
       };
-      
+
       if (user.role === 'staff') {
-        return { ...baseFields, position: user.position, qualification: user.qualification, join_date: user.join_date };
+        return {
+          ...baseFields,
+          position: user.position,
+          qualification: user.qualification,
+          join_date: user.join_date,
+        };
       }
       return baseFields;
     } catch (error) {
@@ -438,36 +518,46 @@ export class UsersController {
 
   @Patch(':id/avatar')
   @Roles('admin', 'staff', 'family')
-  @UseInterceptors(FileInterceptor('avatar', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + extname(file.originalname));
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
       },
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed'), false);
-      }
-    },
-    limits: { fileSize: 5 * 1024 * 1024 },
-  }))
+  )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Cập nhật avatar cho user',
     schema: {
       type: 'object',
       properties: {
-        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện mới' },
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'Ảnh đại diện mới',
+        },
       },
       required: ['avatar'],
     },
   })
   @ApiOperation({ summary: 'Update user avatar' })
-  @ApiResponse({ status: 200, description: 'User avatar updated successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'User avatar updated successfully.',
+  })
   @ApiResponse({ status: 400, description: 'Bad request.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -503,12 +593,18 @@ export class UsersController {
       updated_at: new Date(),
       avatar: avatarPath,
     };
-    if (typeof currentUser.is_super_admin !== 'undefined') updateUserDto.is_super_admin = currentUser.is_super_admin;
-    if (typeof currentUser.position !== 'undefined') updateUserDto.position = currentUser.position ?? null;
-    if (typeof currentUser.qualification !== 'undefined') updateUserDto.qualification = currentUser.qualification ?? null;
-    if (typeof currentUser.join_date !== 'undefined') updateUserDto.join_date = currentUser.join_date ?? null;
-    if (typeof currentUser.address !== 'undefined') updateUserDto.address = currentUser.address ?? null;
-    if (typeof currentUser.notes !== 'undefined') updateUserDto.notes = currentUser.notes ?? null;
+    if (typeof currentUser.is_super_admin !== 'undefined')
+      updateUserDto.is_super_admin = currentUser.is_super_admin;
+    if (typeof currentUser.position !== 'undefined')
+      updateUserDto.position = currentUser.position ?? null;
+    if (typeof currentUser.qualification !== 'undefined')
+      updateUserDto.qualification = currentUser.qualification ?? null;
+    if (typeof currentUser.join_date !== 'undefined')
+      updateUserDto.join_date = currentUser.join_date ?? null;
+    if (typeof currentUser.address !== 'undefined')
+      updateUserDto.address = currentUser.address ?? null;
+    if (typeof currentUser.notes !== 'undefined')
+      updateUserDto.notes = currentUser.notes ?? null;
     // Log dữ liệu gửi lên DB
     console.log('PATCH /users/:id/avatar - updateUserDto:', updateUserDto);
     try {
@@ -523,7 +619,10 @@ export class UsersController {
       if (err && err.errInfo) {
         console.error('errInfo:', JSON.stringify(err.errInfo, null, 2));
         if (err.errInfo.details) {
-          console.error('details:', JSON.stringify(err.errInfo.details, null, 2));
+          console.error(
+            'details:',
+            JSON.stringify(err.errInfo.details, null, 2),
+          );
         }
       }
       throw err;
@@ -536,13 +635,19 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User role updated successfully.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async updateUserRole(@Param('id') id: string, @Body() body: { role: string }) {
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body() body: { role: string },
+  ) {
     const validRoles = ['admin', 'staff', 'family'];
     if (!body.role || !validRoles.includes(body.role)) {
       throw new BadRequestException('Invalid role');
     }
     // Ép kiểu về UserRole
-    const updated = await this.usersService.updateUserById(id, { role: body.role as import('./schemas/user.schema').UserRole, updated_at: new Date() });
+    const updated = await this.usersService.updateUserById(id, {
+      role: body.role as import('./schemas/user.schema').UserRole,
+      updated_at: new Date(),
+    });
     const user: any = updated;
     return { _id: user._id, role: user.role, updated_at: user.updated_at };
   }
@@ -575,6 +680,4 @@ export class UsersController {
     const exists = await this.usersService.findByEmail(email);
     return { exists: !!exists };
   }
-
-
 }

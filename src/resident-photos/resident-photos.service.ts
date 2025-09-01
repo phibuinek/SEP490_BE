@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ResidentPhoto, ResidentPhotoDocument } from './resident-photo.schema';
-import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
+import {
+  Resident,
+  ResidentDocument,
+} from '../residents/schemas/resident.schema';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import * as fs from 'fs';
@@ -20,12 +23,12 @@ export class ResidentPhotosService {
   async uploadPhoto(data: any) {
     try {
       console.log('Upload photo data:', data);
-      
+
       // Validate resident_id
       if (!data.resident_id) {
         throw new Error('resident_id is required');
       }
-      
+
       if (!Types.ObjectId.isValid(data.resident_id)) {
         throw new Error('Invalid resident_id format');
       }
@@ -40,7 +43,7 @@ export class ResidentPhotosService {
       if (!data.uploaded_by) {
         throw new Error('uploaded_by is required');
       }
-      
+
       if (!Types.ObjectId.isValid(data.uploaded_by)) {
         throw new Error('Invalid uploaded_by format');
       }
@@ -58,10 +61,12 @@ export class ResidentPhotosService {
         upload_date: new Date(),
         taken_date: data.taken_date ? new Date(data.taken_date) : undefined,
         staff_notes: data.staff_notes,
-        related_activity_id: data.related_activity_id ? new Types.ObjectId(data.related_activity_id) : undefined,
+        related_activity_id: data.related_activity_id
+          ? new Types.ObjectId(data.related_activity_id)
+          : undefined,
         resident_id: new Types.ObjectId(data.resident_id),
       });
-      
+
       console.log('Photo object to save:', photo);
       const savedPhoto = await photo.save();
       console.log('Photo saved successfully:', savedPhoto);
@@ -79,18 +84,23 @@ export class ResidentPhotosService {
     }
 
     // Step 1: Find all residents that belong to this family member
-    const residents = await this.residentModel.find({
-      family_member_id: new Types.ObjectId(family_member_id)
-    }).select('_id');
+    const residents = await this.residentModel
+      .find({
+        family_member_id: new Types.ObjectId(family_member_id),
+      })
+      .select('_id');
 
     // Step 2: Extract resident IDs
-    const residentIds = residents.map(resident => resident._id);
+    const residentIds = residents.map((resident) => resident._id);
 
     // Step 3: Find all photos where resident_id is in the list of resident IDs
     return this.photoModel
       .find({ resident_id: { $in: residentIds } })
       .populate('resident_id', 'full_name date_of_birth gender')
-      .populate('related_activity_id', 'activity_name activity_type description location')
+      .populate(
+        'related_activity_id',
+        'activity_name activity_type description location',
+      )
       .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
@@ -100,7 +110,10 @@ export class ResidentPhotosService {
     return this.photoModel
       .find()
       .populate('resident_id', 'full_name date_of_birth gender')
-      .populate('related_activity_id', 'activity_name activity_type description location')
+      .populate(
+        'related_activity_id',
+        'activity_name activity_type description location',
+      )
       .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
@@ -122,7 +135,10 @@ export class ResidentPhotosService {
       const photos = await this.photoModel
         .find({ resident_id: new Types.ObjectId(resident_id) })
         .populate('resident_id', 'full_name date_of_birth gender')
-        .populate('related_activity_id', 'activity_name activity_type description location')
+        .populate(
+          'related_activity_id',
+          'activity_name activity_type description location',
+        )
         .populate('uploaded_by', 'full_name username position')
         .sort({ upload_date: -1 })
         .exec();
@@ -138,17 +154,18 @@ export class ResidentPhotosService {
     if (!Types.ObjectId.isValid(id)) {
       throw new Error('Invalid photo ID format');
     }
-    
-    const photo = await this.photoModel.findById(id)
+
+    const photo = await this.photoModel
+      .findById(id)
       .populate('resident_id')
       .populate('related_activity_id')
       .populate('uploaded_by')
       .exec();
-      
+
     if (!photo) {
       throw new NotFoundException('Photo not found');
     }
-    
+
     return photo;
   }
 

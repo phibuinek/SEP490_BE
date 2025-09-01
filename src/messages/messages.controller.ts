@@ -9,7 +9,12 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -32,8 +37,11 @@ export class MessagesController {
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async create(@Body() createMessageDto: CreateMessageDto, @Request() req) {
     const senderId = req.user.userId || req.user.sub;
-    const message = await this.messagesService.create(createMessageDto, senderId);
-    
+    const message = await this.messagesService.create(
+      createMessageDto,
+      senderId,
+    );
+
     // Populate the message before returning
     return this.messagesService.findOne((message as unknown as IMessage).id);
   }
@@ -49,7 +57,10 @@ export class MessagesController {
   @Get('conversations')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get user conversations' })
-  @ApiResponse({ status: 200, description: 'Conversations retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversations retrieved successfully.',
+  })
   async getUserConversations(@Request() req) {
     const userId = req.user.userId || req.user.sub;
     return this.messagesService.findUserConversations(userId);
@@ -58,7 +69,10 @@ export class MessagesController {
   @Get('conversation/:partnerId')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get conversation with specific user' })
-  @ApiResponse({ status: 200, description: 'Conversation retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversation retrieved successfully.',
+  })
   async getConversation(
     @Param('partnerId') partnerId: string,
     @Request() req,
@@ -66,15 +80,19 @@ export class MessagesController {
   ) {
     try {
       const userId = req.user.userId || req.user.sub;
-      
+
       // Validate partnerId format
       const objectIdRegex = /^[0-9a-fA-F]{24}$/;
       if (!objectIdRegex.test(partnerId)) {
         return [];
       }
-      
-      const messages = await this.messagesService.findConversation(userId, partnerId, residentId);
-      
+
+      const messages = await this.messagesService.findConversation(
+        userId,
+        partnerId,
+        residentId,
+      );
+
       // Mark messages as read when conversation is opened
       if (messages.length > 0) {
         try {
@@ -84,7 +102,7 @@ export class MessagesController {
           // Don't fail the request if marking as read fails
         }
       }
-      
+
       return messages;
     } catch (error) {
       console.error('Error in getConversation controller:', error);
@@ -95,7 +113,10 @@ export class MessagesController {
   @Get('unread-count')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get unread message count' })
-  @ApiResponse({ status: 200, description: 'Unread count retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Unread count retrieved successfully.',
+  })
   async getUnreadCount(@Request() req) {
     const userId = req.user.userId || req.user.sub;
     const count = await this.messagesService.getUnreadCount(userId);

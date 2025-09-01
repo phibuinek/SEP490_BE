@@ -34,9 +34,13 @@ export class BedAssignmentsService {
     // Convert to ObjectIds
     const createData = {
       ...dto,
-      resident_id: dto.resident_id ? new Types.ObjectId(dto.resident_id) : undefined,
+      resident_id: dto.resident_id
+        ? new Types.ObjectId(dto.resident_id)
+        : undefined,
       bed_id: dto.bed_id ? new Types.ObjectId(dto.bed_id) : undefined,
-      assigned_by: dto.assigned_by ? new Types.ObjectId(dto.assigned_by) : undefined,
+      assigned_by: dto.assigned_by
+        ? new Types.ObjectId(dto.assigned_by)
+        : undefined,
       assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
       unassigned_date: null, // luôn set null khi tạo mới
     };
@@ -46,28 +50,32 @@ export class BedAssignmentsService {
     return result;
   }
 
-  async findAll(bed_id?: string, resident_id?: string, activeOnly: boolean = true) {
+  async findAll(
+    bed_id?: string,
+    resident_id?: string,
+    activeOnly: boolean = true,
+  ) {
     const filter: any = {};
-    
+
     if (bed_id) {
       if (!Types.ObjectId.isValid(bed_id)) {
         throw new BadRequestException('Invalid bed_id format');
       }
       filter.bed_id = new Types.ObjectId(bed_id);
     }
-    
+
     if (resident_id) {
       if (!Types.ObjectId.isValid(resident_id)) {
         throw new BadRequestException('Invalid resident_id format');
       }
       filter.resident_id = new Types.ObjectId(resident_id);
     }
-    
+
     // Mặc định chỉ lấy những assignment đang hoạt động (unassigned_date = null)
     if (activeOnly) {
       filter.unassigned_date = null;
     }
-    
+
     return this.model
       .find(filter)
       .populate('resident_id', 'full_name date_of_birth gender')
@@ -93,9 +101,9 @@ export class BedAssignmentsService {
       throw new BadRequestException('Invalid resident ID format');
     }
     return this.model
-      .find({ 
+      .find({
         resident_id: new Types.ObjectId(resident_id),
-        unassigned_date: null // Chỉ lấy những assignment đang hoạt động (chưa unassign)
+        unassigned_date: null, // Chỉ lấy những assignment đang hoạt động (chưa unassign)
       })
       .populate({
         path: 'bed_id',
@@ -131,7 +139,10 @@ export class BedAssignmentsService {
 
   async updateBedAndRoomStatus(bed_id: Types.ObjectId) {
     // 1. Cập nhật trạng thái bed
-    const activeAssignment = await this.model.findOne({ bed_id, unassigned_date: null });
+    const activeAssignment = await this.model.findOne({
+      bed_id,
+      unassigned_date: null,
+    });
     const bedStatus = activeAssignment ? 'occupied' : 'available';
     await this.bedModel.findByIdAndUpdate(bed_id, { status: bedStatus });
 
@@ -140,13 +151,18 @@ export class BedAssignmentsService {
     if (bed) {
       const allBeds = await this.bedModel.find({ room_id: bed.room_id });
       const allOccupied = await Promise.all(
-        allBeds.map(async b => {
-          const a = await this.model.findOne({ bed_id: b._id, unassigned_date: null });
+        allBeds.map(async (b) => {
+          const a = await this.model.findOne({
+            bed_id: b._id,
+            unassigned_date: null,
+          });
           return !!a;
-        })
+        }),
       );
       const roomStatus = allOccupied.every(Boolean) ? 'occupied' : 'available';
-      await this.roomModel.findByIdAndUpdate(bed.room_id, { status: roomStatus });
+      await this.roomModel.findByIdAndUpdate(bed.room_id, {
+        status: roomStatus,
+      });
     }
   }
 

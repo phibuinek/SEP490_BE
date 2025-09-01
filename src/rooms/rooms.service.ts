@@ -50,17 +50,17 @@ export class RoomsService {
         });
         if (assignment) occupiedBeds++;
       }
-      
+
       // Sử dụng status từ database, không tính động nữa
-      result.push({ 
-        ...room, 
+      result.push({
+        ...room,
         status: room.status,
         bed_info: {
           total_beds: room.bed_count,
           current_beds: beds.length,
           occupied_beds: occupiedBeds,
-          available_beds: beds.length - occupiedBeds
-        }
+          available_beds: beds.length - occupiedBeds,
+        },
       });
     }
     return result;
@@ -80,7 +80,6 @@ export class RoomsService {
     return this.roomModel.findByIdAndDelete(id).exec();
   }
 
-
   async checkAndUpdateRoomStatus(roomId: string): Promise<void> {
     try {
       const room = await this.roomModel.findById(roomId);
@@ -91,19 +90,25 @@ export class RoomsService {
 
       // Chỉ kiểm tra nếu phòng đang ở trạng thái occupied
       if (room.status !== 'occupied') {
-        console.log(`[ROOMS] Room ${roomId} is not in occupied status (current: ${room.status})`);
+        console.log(
+          `[ROOMS] Room ${roomId} is not in occupied status (current: ${room.status})`,
+        );
         return;
       }
 
       // Đếm số giường trong phòng
       const bedCount = await this.bedModel.countDocuments({ room_id: roomId });
-      
-      console.log(`[ROOMS] Room ${roomId} has ${bedCount}/${room.bed_count} beds`);
+
+      console.log(
+        `[ROOMS] Room ${roomId} has ${bedCount}/${room.bed_count} beds`,
+      );
 
       // Nếu đủ số giường, chuyển sang available
       if (bedCount >= room.bed_count) {
         await this.roomModel.findByIdAndUpdate(roomId, { status: 'available' });
-        console.log(`[ROOMS] Room ${roomId} status updated from occupied to available`);
+        console.log(
+          `[ROOMS] Room ${roomId} status updated from occupied to available`,
+        );
       }
     } catch (error) {
       console.error(`[ROOMS] Error checking room status for ${roomId}:`, error);
@@ -123,19 +128,25 @@ export class RoomsService {
 
       // Chỉ kiểm tra nếu phòng đang ở trạng thái available
       if (room.status !== 'available') {
-        console.log(`[ROOMS] Room ${roomId} is not in available status (current: ${room.status})`);
+        console.log(
+          `[ROOMS] Room ${roomId} is not in available status (current: ${room.status})`,
+        );
         return;
       }
 
       // Đếm số giường trong phòng
       const bedCount = await this.bedModel.countDocuments({ room_id: roomId });
-      
-      console.log(`[ROOMS] Room ${roomId} has ${bedCount}/${room.bed_count} beds after deletion`);
+
+      console.log(
+        `[ROOMS] Room ${roomId} has ${bedCount}/${room.bed_count} beds after deletion`,
+      );
 
       // Nếu không đủ số giường, chuyển về occupied
       if (bedCount < room.bed_count) {
         await this.roomModel.findByIdAndUpdate(roomId, { status: 'occupied' });
-        console.log(`[ROOMS] Room ${roomId} status reset from available to occupied`);
+        console.log(
+          `[ROOMS] Room ${roomId} status reset from available to occupied`,
+        );
       }
     } catch (error) {
       console.error(`[ROOMS] Error checking room status for ${roomId}:`, error);
@@ -149,12 +160,14 @@ export class RoomsService {
     try {
       console.log('[ROOMS] Starting bulk room status update...');
       const rooms = await this.roomModel.find().lean();
-      
+
       for (const room of rooms) {
-        const bedCount = await this.bedModel.countDocuments({ room_id: room._id });
-        
+        const bedCount = await this.bedModel.countDocuments({
+          room_id: room._id,
+        });
+
         let newStatus = room.status;
-        
+
         // Nếu phòng đang available nhưng không đủ giường -> chuyển về occupied
         if (room.status === 'available' && bedCount < room.bed_count) {
           newStatus = 'occupied';
@@ -167,46 +180,59 @@ export class RoomsService {
         else if (room.status === 'maintenance' || room.status === 'reserved') {
           newStatus = room.status;
         }
-        
+
         if (newStatus !== room.status) {
-          await this.roomModel.findByIdAndUpdate(room._id, { status: newStatus });
-          console.log(`[ROOMS] Room ${room.room_number} status updated: ${room.status} -> ${newStatus} (${bedCount}/${room.bed_count} beds)`);
+          await this.roomModel.findByIdAndUpdate(room._id, {
+            status: newStatus,
+          });
+          console.log(
+            `[ROOMS] Room ${room.room_number} status updated: ${room.status} -> ${newStatus} (${bedCount}/${room.bed_count} beds)`,
+          );
         }
       }
-      
+
       console.log('[ROOMS] Bulk room status update completed');
     } catch (error) {
       console.error('[ROOMS] Error in bulk room status update:', error);
     }
   }
 
-  async filterRooms(room_type?: string, status?: string, main_care_plan_id?: string, gender?: string): Promise<any[]> {
+  async filterRooms(
+    room_type?: string,
+    status?: string,
+    main_care_plan_id?: string,
+    gender?: string,
+  ): Promise<any[]> {
     const filter: any = {};
     if (room_type) filter.room_type = room_type;
-    if (main_care_plan_id && Types.ObjectId.isValid(main_care_plan_id)) filter.main_care_plan_id = new Types.ObjectId(main_care_plan_id);
+    if (main_care_plan_id && Types.ObjectId.isValid(main_care_plan_id))
+      filter.main_care_plan_id = new Types.ObjectId(main_care_plan_id);
     if (gender) filter.gender = gender;
     if (status) filter.status = status; // Sử dụng status từ database
-    
+
     const rooms = await this.roomModel.find(filter).lean();
     const result: any[] = [];
-    
+
     for (const room of rooms) {
       const beds = await this.bedModel.find({ room_id: room._id }).lean();
       let occupiedBeds = 0;
       for (const bed of beds) {
-        const assignment = await this.bedAssignmentModel.findOne({ bed_id: bed._id, unassigned_date: null });
+        const assignment = await this.bedAssignmentModel.findOne({
+          bed_id: bed._id,
+          unassigned_date: null,
+        });
         if (assignment) occupiedBeds++;
       }
-      
-      result.push({ 
-        ...room, 
+
+      result.push({
+        ...room,
         status: room.status, // Sử dụng status từ database
         bed_info: {
           total_beds: room.bed_count,
           current_beds: beds.length,
           occupied_beds: occupiedBeds,
-          available_beds: beds.length - occupiedBeds
-        }
+          available_beds: beds.length - occupiedBeds,
+        },
       });
     }
     return result;

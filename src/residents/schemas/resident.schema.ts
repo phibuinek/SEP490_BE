@@ -24,18 +24,22 @@ export class EmergencyContact {
   @Prop({ required: true, match: /^[0-9]{10,15}$/ })
   phone: string;
 
-  @Prop({ required: true, enum: [
-    'con trai',
-    'con gái',
-    'cháu trai',
-    'cháu gái',
-    'anh em',
-    'vợ/chồng',
-    'khác',
-  ] })
+  @Prop({
+    required: true,
+    enum: [
+      'con trai',
+      'con gái',
+      'cháu trai',
+      'cháu gái',
+      'anh em',
+      'vợ/chồng',
+      'khác',
+    ],
+  })
   relationship: string;
 }
-export const EmergencyContactSchema = SchemaFactory.createForClass(EmergencyContact);
+export const EmergencyContactSchema =
+  SchemaFactory.createForClass(EmergencyContact);
 
 export type ResidentDocument = Resident & Document;
 
@@ -67,11 +71,15 @@ export class Resident {
   @Prop({ type: String, required: false, default: null })
   avatar?: string | null;
 
-  @Prop({ type: Date, required: true, default: () => {
-    const now = new Date();
-    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    return vietnamTime;
-  }})
+  @Prop({
+    type: Date,
+    required: true,
+    default: () => {
+      const now = new Date();
+      const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+      return vietnamTime;
+    },
+  })
   admission_date: Date;
 
   @Prop({ type: Date, default: null })
@@ -80,15 +88,18 @@ export class Resident {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
 
-  @Prop({ required: true, enum: [
-    'con trai',
-    'con gái',
-    'cháu trai',
-    'cháu gái',
-    'anh em',
-    'vợ/chồng',
-    'khác',
-  ] })
+  @Prop({
+    required: true,
+    enum: [
+      'con trai',
+      'con gái',
+      'cháu trai',
+      'cháu gái',
+      'anh em',
+      'vợ/chồng',
+      'khác',
+    ],
+  })
   relationship: string;
 
   @Prop({ type: String, required: false, default: null })

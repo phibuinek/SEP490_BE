@@ -21,4 +21,4 @@ import { User, UserSchema } from '../users/schemas/user.schema';
   providers: [StaffAssignmentsService],
   exports: [StaffAssignmentsService],
 })
-export class StaffAssignmentsModule {} 
+export class StaffAssignmentsModule {}

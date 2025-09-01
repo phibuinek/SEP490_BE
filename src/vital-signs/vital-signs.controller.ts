@@ -45,7 +45,7 @@ export class VitalSignsController {
     console.log('DTO resident_id type:', typeof dto.resident_id);
     console.log('User ID:', req.user.userId);
     console.log('User role:', req.user.role);
-    
+
     try {
       const result = await this.service.create(dto, req.user.userId);
       return result;
@@ -63,18 +63,18 @@ export class VitalSignsController {
   @ApiOperation({ summary: 'Get all vital sign records' })
   async findAll(@Req() req) {
     const user = req.user;
-    
+
     console.log('=== VITAL SIGNS FIND ALL ===');
     console.log('User:', user);
     console.log('User role:', user?.role);
     console.log('User ID:', user?.userId);
-    
+
     // If staff, only return vital signs for assigned residents
     if (user?.role === Role.STAFF) {
       console.log('Calling findAllByStaffId for staff user');
       return this.service.findAllByStaffId(user.userId);
     }
-    
+
     // If admin, return all vital signs
     console.log('Calling findAll for admin user');
     return this.service.findAll();
@@ -107,18 +107,21 @@ export class VitalSignsController {
     if (user?.role === Role.FAMILY) {
       // So sánh an toàn với nhiều cách khác nhau
       let familyMemberIdStr;
-      if (typeof resident.family_member_id === 'object' && resident.family_member_id?._id) {
+      if (
+        typeof resident.family_member_id === 'object' &&
+        resident.family_member_id?._id
+      ) {
         familyMemberIdStr = resident.family_member_id._id.toString();
       } else {
         familyMemberIdStr = resident.family_member_id?.toString();
       }
       const userIdStr = user.userId?.toString();
-      
+
       console.log('=== FAMILY ACCESS CHECK ===');
       console.log('Family member ID (string):', familyMemberIdStr);
       console.log('User ID (string):', userIdStr);
       console.log('Final comparison:', familyMemberIdStr === userIdStr);
-      
+
       if (familyMemberIdStr === userIdStr) {
         console.log('=== ACCESS GRANTED (FAMILY) ===');
         return this.service.findAllByResidentId(resident_id);
@@ -152,13 +155,16 @@ export class VitalSignsController {
     if (user?.role === Role.FAMILY) {
       // So sánh an toàn với nhiều cách khác nhau
       let familyMemberIdStr;
-      if (typeof resident.family_member_id === 'object' && resident.family_member_id?._id) {
+      if (
+        typeof resident.family_member_id === 'object' &&
+        resident.family_member_id?._id
+      ) {
         familyMemberIdStr = resident.family_member_id._id.toString();
       } else {
         familyMemberIdStr = resident.family_member_id?.toString();
       }
       const userIdStr = user.userId?.toString();
-      
+
       if (familyMemberIdStr === userIdStr) {
         return vitalSign;
       }
@@ -174,7 +180,7 @@ export class VitalSignsController {
     console.log('=== VITAL SIGNS CONTROLLER UPDATE ===');
     console.log('Vital Sign ID:', id);
     console.log('Update DTO:', JSON.stringify(dto, null, 2));
-    
+
     try {
       const result = await this.service.update(id, dto);
       console.log('Update successful:', result);
@@ -194,7 +200,7 @@ export class VitalSignsController {
       console.log('Vital Sign ID:', id);
       console.log('User role:', req.user?.role);
       console.log('User ID:', req.user?.userId);
-      
+
       const result = await this.service.remove(id);
       console.log('Vital sign deleted successfully:', id);
       return result;
@@ -205,30 +211,33 @@ export class VitalSignsController {
       }
       throw new HttpException(
         error.message || 'Lỗi xóa chỉ số sinh hiệu',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   // Debug endpoint để kiểm tra vital signs access
   @Get('debug/access/:residentId')
-  async debugVitalSignsAccess(@Param('residentId') residentId: string, @Req() req) {
+  async debugVitalSignsAccess(
+    @Param('residentId') residentId: string,
+    @Req() req,
+  ) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
-    
+
     console.log('=== DEBUG VITAL SIGNS ACCESS ===');
     console.log('User role:', userRole);
     console.log('User ID:', userId);
     console.log('Resident ID:', residentId);
-    
+
     try {
       const resident = await this.residentsService.findOne(residentId);
       if (!resident) {
         return { error: 'Resident not found' };
       }
-      
+
       const vitalSigns = await this.service.findAllByResidentId(residentId);
-      
+
       return {
         userRole,
         userId,
@@ -237,17 +246,27 @@ export class VitalSignsController {
           full_name: resident.full_name,
           family_member_id: resident.family_member_id,
           family_member_id_type: typeof resident.family_member_id,
-          family_member_id_str: typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
-            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString()
+          family_member_id_str:
+            typeof resident.family_member_id === 'object' &&
+            resident.family_member_id?._id
+              ? resident.family_member_id._id.toString()
+              : (resident.family_member_id as any)?.toString(),
         },
         vitalSignsCount: Array.isArray(vitalSigns) ? vitalSigns.length : 0,
         comparison: {
           userId: userId,
-          familyMemberId: typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
-            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString(),
-          isMatch: userId === (typeof resident.family_member_id === 'object' && resident.family_member_id?._id ? 
-            resident.family_member_id._id.toString() : (resident.family_member_id as any)?.toString())
-        }
+          familyMemberId:
+            typeof resident.family_member_id === 'object' &&
+            resident.family_member_id?._id
+              ? resident.family_member_id._id.toString()
+              : (resident.family_member_id as any)?.toString(),
+          isMatch:
+            userId ===
+            (typeof resident.family_member_id === 'object' &&
+            resident.family_member_id?._id
+              ? resident.family_member_id._id.toString()
+              : (resident.family_member_id as any)?.toString()),
+        },
       };
     } catch (error) {
       console.error('Error in debug vital signs access endpoint:', error);

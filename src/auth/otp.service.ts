@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Otp, OtpDocument } from './schemas/otp.schema';
@@ -20,13 +24,15 @@ export class OtpService {
   private async sendOtpViaSms(phone: string, otp: string): Promise<boolean> {
     // === DEVELOPMENT MODE (TẠM THỜI TẮT AWS SNS) ===
     console.log(`[DEVELOPMENT] Sending OTP ${otp} to phone ${phone}`);
-    console.log(`[DEVELOPMENT] In production, this would send an SMS via AWS SNS or Twilio`);
-    
+    console.log(
+      `[DEVELOPMENT] In production, this would send an SMS via AWS SNS or Twilio`,
+    );
+
     // Simulate SMS sending delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     return true;
-    
+
     // === TÍCH HỢP AWS SNS SMS (TẠM THỜI COMMENT) ===
     /*
     // Kiểm tra xem có cấu hình AWS SNS không
@@ -135,12 +141,16 @@ export class OtpService {
       // Kiểm tra xem có user nào với số điện thoại này không
       const user = await this.usersService.findByPhone(phone);
       if (!user) {
-        throw new NotFoundException('Số điện thoại chưa được đăng ký trong hệ thống');
+        throw new NotFoundException(
+          'Số điện thoại chưa được đăng ký trong hệ thống',
+        );
       }
 
       // Kiểm tra trạng thái tài khoản
       if (user.status !== 'active') {
-        throw new BadRequestException('Tài khoản đã bị khóa hoặc chưa được kích hoạt');
+        throw new BadRequestException(
+          'Tài khoản đã bị khóa hoặc chưa được kích hoạt',
+        );
       }
 
       // Xóa OTP cũ nếu có
@@ -167,18 +177,28 @@ export class OtpService {
           message: 'Mã OTP đã được gửi đến số điện thoại của bạn',
         };
       } else {
-        throw new BadRequestException('Không thể gửi mã OTP. Vui lòng thử lại sau.');
+        throw new BadRequestException(
+          'Không thể gửi mã OTP. Vui lòng thử lại sau.',
+        );
       }
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại sau.');
+      throw new BadRequestException(
+        'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại sau.',
+      );
     }
   }
 
   // Xác thực OTP
-  async verifyOtp(phone: string, otp: string): Promise<{ success: boolean; message: string; user?: any }> {
+  async verifyOtp(
+    phone: string,
+    otp: string,
+  ): Promise<{ success: boolean; message: string; user?: any }> {
     try {
       // Tìm OTP record
       const otpRecord = await this.otpModel.findOne({
@@ -190,24 +210,20 @@ export class OtpService {
 
       if (!otpRecord) {
         // Tăng số lần thử
-        await this.otpModel.updateOne(
-          { phone },
-          { $inc: { attemptCount: 1 } }
-        );
+        await this.otpModel.updateOne({ phone }, { $inc: { attemptCount: 1 } });
 
         throw new BadRequestException('Mã OTP không đúng hoặc đã hết hạn');
       }
 
       // Kiểm tra số lần thử
       if (otpRecord.attemptCount >= 3) {
-        throw new BadRequestException('Bạn đã nhập sai mã OTP quá nhiều lần. Vui lòng yêu cầu mã mới.');
+        throw new BadRequestException(
+          'Bạn đã nhập sai mã OTP quá nhiều lần. Vui lòng yêu cầu mã mới.',
+        );
       }
 
       // Đánh dấu OTP đã sử dụng
-      await this.otpModel.updateOne(
-        { _id: otpRecord._id },
-        { isUsed: true }
-      );
+      await this.otpModel.updateOne({ _id: otpRecord._id }, { isUsed: true });
 
       // Lấy thông tin user
       const user = await this.usersService.findByPhone(phone);
@@ -228,10 +244,15 @@ export class OtpService {
         },
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException('Có lỗi xảy ra khi xác thực OTP. Vui lòng thử lại sau.');
+      throw new BadRequestException(
+        'Có lỗi xảy ra khi xác thực OTP. Vui lòng thử lại sau.',
+      );
     }
   }
 
