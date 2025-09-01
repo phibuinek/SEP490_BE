@@ -24,18 +24,7 @@ export class EmergencyContact {
   @Prop({ required: true, match: /^[0-9]{10,15}$/ })
   phone: string;
 
-  @Prop({
-    required: true,
-    enum: [
-      'con trai',
-      'con gái',
-      'cháu trai',
-      'cháu gái',
-      'anh em',
-      'vợ/chồng',
-      'khác',
-    ],
-  })
+  @Prop({ required: true })
   relationship: string;
 }
 export const EmergencyContactSchema =
@@ -88,18 +77,7 @@ export class Resident {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   family_member_id: Types.ObjectId;
 
-  @Prop({
-    required: true,
-    enum: [
-      'con trai',
-      'con gái',
-      'cháu trai',
-      'cháu gái',
-      'anh em',
-      'vợ/chồng',
-      'khác',
-    ],
-  })
+  @Prop({ required: true })
   relationship: string;
 
   @Prop({ type: String, required: false, default: null })
