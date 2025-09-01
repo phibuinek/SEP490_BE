@@ -1,6 +1,11 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// Memory optimization for production
+if (process.env.NODE_ENV === 'production') {
+  require('../optimize-memory');
+}
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -55,8 +60,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(process.env.PORT ?? 8000);
-  console.log('Application is running on: http://localhost:8000');
-  console.log('Swagger documentation: http://localhost:8000/api');
+  const port = process.env.PORT ?? 8000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on port: ${port}`);
+  console.log(`Swagger documentation: http://localhost:${port}/api`);
 }
 bootstrap();
