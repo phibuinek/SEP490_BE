@@ -39,11 +39,11 @@ export class PaymentService {
     const returnUrl =
       platform === 'mobile' || platform === 'webview'
         ? `https://payos.vn/payment/success?billId=${bill._id}&orderCode=${orderCode}`
-        : 'https://carehome-system.vercel.app/success';
+        : 'https://carehome-system.vercel.app/payment/success';
     const cancelUrl =
       platform === 'mobile' || platform === 'webview'
         ? `https://payos.vn/payment/cancel?billId=${bill._id}&orderCode=${orderCode}`
-        : 'https://carehome-system.vercel.app/cancel';
+        : 'https://carehome-system.vercel.app/payment/cancel';
 
     const data = {
       orderCode,
