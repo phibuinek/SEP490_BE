@@ -14,6 +14,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 import {
   ApiTags,
   ApiBearerAuth,

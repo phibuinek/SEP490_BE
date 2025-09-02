@@ -35,6 +35,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { Express } from 'express';
 
 @ApiTags('users')
 @Controller('users')
