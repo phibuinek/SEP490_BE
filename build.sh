@@ -1,22 +1,16 @@
 #!/bin/bash
 
-# Build script for Render deployment with memory optimization
+# Build script for Render deployment
 echo "🚀 Starting build process..."
 
 # Set Node.js memory limit for build
 export NODE_OPTIONS="--max-old-space-size=400"
 
-# Install dependencies with production flag
+# Install dependencies (including dev for build)
 echo "📦 Installing dependencies..."
-npm ci --only=production
+npm ci
 
-# Check if nest CLI is available
-if ! command -v nest &> /dev/null; then
-    echo "🔧 Installing @nestjs/cli globally..."
-    npm install -g @nestjs/cli --max-old-space-size=400
-fi
-
-# Build the application with memory limit
+# Build the application
 echo "🔨 Building application..."
 npm run build
 
