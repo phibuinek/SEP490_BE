@@ -12,9 +12,9 @@ import {
 import { CarePlansService } from './care-plans.service';
 import { CreateCarePlanDto } from './dto/create-care-plan.dto';
 import { UpdateCarePlanDto } from './dto/update-care-plan.dto';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { Role } from 'src/common/enums/role.enum';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
+import { RolesGuard } from '../common/guards/roles.guard';
 import {
   ApiTags,
   ApiBearerAuth,
