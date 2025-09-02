@@ -1,16 +1,13 @@
 services:
   - type: web
-    name: nhms-backend
+    name: my-nestjs-app   # 👉 đặt tên app của bạn
     env: node
-    plan: free
-    buildCommand: chmod +x build.sh && ./build.sh
+    region: oregon        # bạn có thể đổi: frankfurt, singapore...
+    plan: free            # hoặc starter, standard, tùy nhu cầu
+    buildCommand: ./build.sh
     startCommand: npm run start:prod
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: NODE_VERSION
+        value: 20          # hoặc 18, miễn phù hợp với version bạn dùng
       - key: PORT
-        value: 8000
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=400
-      - key: UV_THREADPOOL_SIZE
-        value: 4
+        value: 10000       # Render sẽ override bằng PORT của họ
