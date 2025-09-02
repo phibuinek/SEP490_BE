@@ -1,5 +1,9 @@
 import * as dotenv from 'dotenv';
-dotenv.config();
+
+// Chỉ load .env khi chạy local
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // Memory optimization for production
 if (process.env.NODE_ENV === 'production') {
@@ -36,9 +40,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      // forbidNonWhitelisted: true, // Tạm thời tắt để cho phép confirmPassword
       transform: true,
-      // Tạm thời tắt để debug
       skipMissingProperties: true,
     }),
   );
