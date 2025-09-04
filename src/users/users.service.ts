@@ -77,7 +77,7 @@ export class UsersService {
       const userData = {
         ...createUserDto,
         password: hashedPassword,
-        status: createUserDto.status || UserStatus.ACTIVE, // Default to active
+        status: createUserDto.status || UserStatus.ACTIVE, // Admin tạo: ACTIVE mặc định
         role: createUserDto.role, // Ensure role is properly set
       };
 
@@ -122,7 +122,11 @@ export class UsersService {
 
       // Gửi email thông tin tài khoản nếu có email và có mật khẩu gốc trong DTO
       // Lưu ý: savedUser.password là hash; phải dùng mật khẩu plain từ DTO
-      if (createUserDto?.email && createUserDto?.password) {
+      if (
+        createUserDto?.email &&
+        createUserDto?.password &&
+        (savedUser as any).status === UserStatus.ACTIVE
+      ) {
         this.mailService
           .sendAccountCredentials({
             to: createUserDto.email,
@@ -279,6 +283,41 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async approveUser(user_id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(user_id))
+      throw new BadRequestException('Invalid user id');
+
+    const userBefore = await this.userModel
+      .findById(new Types.ObjectId(user_id))
+      .exec();
+    if (!userBefore) throw new NotFoundException('User not found');
+
+    const user = await this.userModel
+      .findByIdAndUpdate(
+        new Types.ObjectId(user_id),
+        { status: UserStatus.ACTIVE, updated_at: new Date() },
+        { new: true },
+      )
+      .select('-password')
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // gửi email thông báo kích hoạt nếu có email
+    if (userBefore.email) {
+      this.mailService
+        .sendAccountActivatedEmail({
+          to: userBefore.email,
+          username: userBefore.username,
+        })
+        .catch(() => {});
     }
 
     return user;

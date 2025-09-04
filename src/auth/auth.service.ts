@@ -22,6 +22,7 @@ import {
   UserStatus,
   UserDocument,
 } from '../users/schemas/user.schema';
+import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -162,6 +163,50 @@ export class AuthService {
 
   // Loại bỏ register vì người nhà không tự đăng ký
   // Chỉ admin tạo tài khoản sau khi đăng ký dịch vụ
+  async register(dto: RegisterDto) {
+    // Giới hạn chỉ cho phép role FAMILY tự đăng ký
+    if (dto.role && dto.role !== UserRole.FAMILY) {
+      throw new BadRequestException(
+        'Chỉ cho phép đăng ký tài khoản gia đình (FAMILY)'
+      );
+    }
+
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('Mật khẩu xác nhận không khớp');
+    }
+
+    // Ép role = FAMILY, status = active (hoặc pending nếu muốn duyệt)
+    const payload = {
+      ...dto,
+      role: UserRole.FAMILY,
+      status: UserStatus.PENDING,
+    } as any;
+
+    // Xóa confirmPassword trước khi chuyển xuống UsersService
+    delete payload.confirmPassword;
+
+    const user = await this.usersService.create(payload);
+
+    // Tự động đăng nhập sau đăng ký
+    const tokenPayload = {
+      email: user.email,
+      sub: (user as any)._id.toString(),
+      role: user.role,
+      username: user.username,
+    };
+
+    const userObj: any = (user as any)?.toObject ? (user as any).toObject() : user;
+    return {
+      success: true,
+      message:
+        'Đăng ký thành công. Tài khoản đang chờ duyệt. Bạn sẽ nhận email khi được kích hoạt.',
+      user: {
+        ...userObj,
+        id: (user as any)._id?.toString?.() || (user as any).id,
+        avatar: this.validateAndFormatAvatar(userObj.avatar || null),
+      },
+    };
+  }
 
   async logout(user: any) {
     // In a real application, you might want to blacklist the token

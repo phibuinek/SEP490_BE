@@ -57,40 +57,41 @@ export class ResidentPhotosController {
         },
       }),
       fileFilter: (req, file, cb) => {
-        // Chỉ cho phép upload ảnh
-        if (file.mimetype.startsWith('image/')) {
+        // Cho phép upload ảnh và video
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
           cb(null, true);
         } else {
-          cb(new Error('Only image files are allowed'), false);
+          cb(new Error('Only image and video files are allowed'), false);
         }
       },
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        // 5MB cho ảnh, tăng hạn mức chung để hỗ trợ video; middleware phía trước nên kiểm soát thêm nếu cần
+        fileSize: 100 * 1024 * 1024, // 100MB limit
       },
     }),
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Upload photo with metadata',
+    description: 'Upload photo/video with metadata',
     schema: {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
         resident_id: { type: 'string', description: 'ID của người cao tuổi' },
-        caption: { type: 'string', description: 'Mô tả về ảnh' },
+        caption: { type: 'string', description: 'Mô tả về media' },
         activity_type: {
           type: 'string',
-          description: 'Loại hoạt động trong ảnh',
+          description: 'Loại hoạt động trong media',
         },
         tags: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Các tag cho ảnh',
+          description: 'Các tag cho media',
         },
         taken_date: {
           type: 'string',
           format: 'date-time',
-          description: 'Ngày chụp ảnh',
+          description: 'Ngày chụp/quay',
         },
         staff_notes: { type: 'string', description: 'Ghi chú của nhân viên' },
         related_activity_id: {
@@ -101,7 +102,7 @@ export class ResidentPhotosController {
       required: ['file', 'resident_id'],
     },
   })
-  @ApiResponse({ status: 201, description: 'Photo uploaded successfully.' })
+  @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @ApiResponse({
     status: 400,
     description: 'Bad request - Invalid file or data.',
