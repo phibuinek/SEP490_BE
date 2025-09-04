@@ -164,20 +164,40 @@ export class AuthService {
   // Loại bỏ register vì người nhà không tự đăng ký
   // Chỉ admin tạo tài khoản sau khi đăng ký dịch vụ
   async register(dto: RegisterDto) {
-    // Giới hạn chỉ cho phép role FAMILY tự đăng ký
-    if (dto.role && dto.role !== UserRole.FAMILY) {
-      throw new BadRequestException(
-        'Chỉ cho phép đăng ký tài khoản gia đình (FAMILY)'
-      );
-    }
+    // Chỉ cho phép đăng ký FAMILY (DTO không nhận role; ép ở server)
 
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     }
 
-    // Ép role = FAMILY, status = active (hoặc pending nếu muốn duyệt)
+    // Tối giản input: chỉ cần email, password, confirmPassword
+    // Sinh tự động username và full_name từ email; phone tối thiểu theo schema
+    const emailLocal = (dto.email || '').split('@')[0] || 'user';
+    const baseUsername = emailLocal.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 30) || 'user';
+
+    // Tạo username duy nhất
+    let candidateUsername = baseUsername;
+    let suffix = 0;
+    // Giới hạn vòng lặp để tránh treo (trường hợp rất hiếm)
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const exists = await this.usersService.findByUsername(candidateUsername);
+      if (!exists) break;
+      suffix = Math.floor(Math.random() * 10000);
+      candidateUsername = `${baseUsername}_${suffix}`.slice(0, 30);
+    }
+
+    // Phone bắt buộc theo schema hiện tại: dùng placeholder hợp lệ
+    const placeholderPhone = '0000000000';
+
+    // Ép role = FAMILY, status = PENDING
     const payload = {
-      ...dto,
+      full_name: emailLocal,
+      email: dto.email,
+      phone: placeholderPhone,
+      username: candidateUsername,
+      password: dto.password,
+      avatar: dto['avatar'] || null,
+      address: dto['address'] || undefined,
       role: UserRole.FAMILY,
       status: UserStatus.PENDING,
     } as any;
