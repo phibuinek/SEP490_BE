@@ -268,6 +268,14 @@ export class ResidentsService {
     }).exec();
   }
 
+  // Admin/Staff: lấy tất cả residents đã được duyệt
+  async findAllAccepted(): Promise<Resident[]> {
+    return this.residentModel
+      .find({ status: ResidentStatus.ACCEPTED, is_deleted: false })
+      .populate('family_member_id', 'full_name email phone')
+      .exec();
+  }
+
 
   async findAll(): Promise<Resident[]> {
     return this.residentModel

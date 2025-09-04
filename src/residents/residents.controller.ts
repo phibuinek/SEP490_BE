@@ -489,6 +489,15 @@ findAcceptedResidentsByFamily(
 findPendingResidents() {
   return this.residentsService.findPendingResidents();
 }
+@Get('accepted')
+@Roles(Role.ADMIN, Role.STAFF)
+@ApiOperation({ summary: 'Get all accepted residents' })
+@ApiResponse({ status: 200, description: 'Accepted residents retrieved successfully.' })
+@ApiResponse({ status: 401, description: 'Unauthorized.' })
+@ApiResponse({ status: 403, description: 'Forbidden.' })
+findAllAccepted() {
+  return this.residentsService.findAllAccepted();
+}
 @Patch(':id/status')
 @Roles(Role.ADMIN, Role.STAFF)
 @ApiOperation({ summary: 'Update resident status (accept/reject)' })
