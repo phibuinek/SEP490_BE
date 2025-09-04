@@ -38,7 +38,10 @@ export enum Gender {
 }
 
 export enum ResidentStatus {
-  ACTIVE = 'active',
+  PENDING = 'pending',       // Chờ duyệt
+  ACCEPTED = 'accepted',     // Đã duyệt
+  REJECTED = 'rejected',     // Bị từ chối
+  ACTIVE = 'active',         // Có thể giữ nếu cần (ví dụ resident đang sinh hoạt bình thường)
   DISCHARGED = 'discharged',
   DECEASED = 'deceased',
 }
@@ -92,7 +95,7 @@ export class Resident {
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;
 
-  @Prop({ type: String, enum: ResidentStatus, required: true })
+  @Prop({ type: String, enum: ResidentStatus, required: true, default: ResidentStatus.PENDING })
   status: ResidentStatus;
 
   @Prop({ required: true })

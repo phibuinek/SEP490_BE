@@ -339,11 +339,12 @@ export class ResidentsController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() updateResidentDto: UpdateResidentDto,
+    @Req() req,
   ) {
     if (file) {
       updateResidentDto.avatar = file.path || `uploads/${file.filename}`;
     }
-    return this.residentsService.update(id, updateResidentDto);
+    return this.residentsService.update(id, updateResidentDto, req.user.role);
   }
 
   @Get(':id/avatar')
@@ -412,6 +413,7 @@ export class ResidentsController {
   async updateAvatar(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
+    @Req() req,
   ) {
     if (!file) {
       throw new BadRequestException('Avatar file is required');
@@ -419,18 +421,36 @@ export class ResidentsController {
     const updateResidentDto = {
       avatar: file.path || `uploads/${file.filename}`,
     };
-    return this.residentsService.update(id, updateResidentDto);
+    return this.residentsService.update(id, updateResidentDto, req.user.role);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Delete a resident' })
   @ApiResponse({ status: 200, description: 'Resident deleted successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'Resident not found.' })
-  remove(@Param('id') id: string) {
-    return this.residentsService.remove(id);
+  @ApiBody({
+    description: 'Lý do xóa resident (bắt buộc nếu role là STAFF)',
+    schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          example: 'Thông tin không chính xác',
+        },
+      },
+      required: ['reason'],
+    },
+  })
+  remove(
+    @Param('id') id: string,
+    @Req() req,
+    @Body('reason') reason: string, // hoặc @Query('reason') nếu muốn lấy từ query param
+  ) {
+    const userRole = req.user.role;
+    return this.residentsService.remove(id, userRole, reason);
   }
 
   @Post(':id/assign-bed/:bed_id')
