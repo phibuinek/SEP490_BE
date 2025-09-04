@@ -12,6 +12,7 @@ import {
   StaffAssignment,
   StaffAssignmentDocument,
 } from '../staff-assignments/schemas/staff-assignment.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 
 // Interface for assessment data
 interface AssessmentData {
@@ -30,6 +31,8 @@ export class CareNotesService {
     private careNoteModel: Model<AssessmentDocument>,
     @InjectModel(StaffAssignment.name)
     private staffAssignmentModel: Model<StaffAssignmentDocument>,
+    @InjectModel(Resident.name)
+    private residentModel: Model<ResidentDocument>,
   ) {}
 
   async create(createAssessmentDto: CreateAssessmentDto) {
@@ -209,13 +212,41 @@ export class CareNotesService {
   }
 
   async findAllByStaffId(staff_id: string) {
-    // Get all residents assigned to this staff
+    // Get all residents assigned to this staff through room assignments
     const assignments = await this.staffAssignmentModel.find({
       staff_id: new Types.ObjectId(staff_id),
       status: 'active',
     });
 
-    const residentIds = assignments.map((assignment) => assignment.resident_id);
+    if (assignments.length === 0) {
+      return [];
+    }
+
+    // Get all room IDs assigned to this staff
+    const roomIds = assignments.map(assignment => assignment.room_id);
+
+    // Find all residents in these rooms through bed assignments
+    const residents = await this.residentModel
+      .find({
+        is_deleted: false,
+        status: { $in: ['accepted', 'active'] },
+      })
+      .populate({
+        path: 'bed_id',
+        select: 'room_id',
+        match: { room_id: { $in: roomIds } }
+      })
+      .exec();
+
+    // Filter residents that are actually in the assigned rooms
+    const residentsInAssignedRooms = residents.filter(resident => {
+      const residentWithBed = resident as any;
+      return residentWithBed.bed_id && 
+             residentWithBed.bed_id.room_id && 
+             roomIds.some(roomId => roomId.toString() === residentWithBed.bed_id.room_id.toString());
+    });
+
+    const residentIds = residentsInAssignedRooms.map(resident => resident._id);
 
     if (residentIds.length === 0) {
       return [];
