@@ -34,6 +34,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Express } from 'express';
+import { ResidentStatus } from './schemas/resident.schema';
 
 @ApiTags('residents')
 @ApiBearerAuth()
@@ -465,7 +466,7 @@ export class ResidentsController {
   assignBed(@Param('id') id: string, @Param('bed_id') bed_id: string) {
     return this.residentsService.assignBed(id, bed_id);
   }
-  
+
   // Lấy resident đã được duyệt theo family member ID
 @Get('accepted/family-member/:familyMemberId')
 @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
@@ -487,6 +488,18 @@ findAcceptedResidentsByFamily(
 @ApiResponse({ status: 403, description: 'Forbidden.' })
 findPendingResidents() {
   return this.residentsService.findPendingResidents();
+}
+@Patch(':id/status')
+@Roles(Role.ADMIN, Role.STAFF)
+@ApiOperation({ summary: 'Update resident status (accept/reject)' })
+@ApiResponse({ status: 200, description: 'Resident status updated successfully.' })
+@ApiResponse({ status: 400, description: 'Invalid status.' })
+@ApiResponse({ status: 404, description: 'Resident not found.' })
+updateStatus(
+  @Param('id') id: string,
+  @Body('status') status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
+) {
+  return this.residentsService.updateStatus(id, status);
 }
 }
 
