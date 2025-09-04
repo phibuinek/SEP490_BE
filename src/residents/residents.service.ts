@@ -55,10 +55,12 @@ export class ResidentsService {
         JSON.stringify(residentData, null, 2),
       );
 
-      // Nếu không truyền status thì mặc định là 'active'
-      if (!residentData.status) {
-        residentData.status = ResidentStatus.ACTIVE;
-      }
+      // // Nếu không truyền status thì mặc định là 'active'
+      // if (!residentData.status) {
+      //   residentData.status = ResidentStatus.ACTIVE;
+      // }
+      // Mặc định status = pending (chờ duyệt)
+      residentData.status = ResidentStatus.PENDING;
 
       // Nếu không truyền admission_date thì mặc định là ngày hiện tại (GMT+7)
       if (!residentData.admission_date) {
@@ -230,17 +232,53 @@ export class ResidentsService {
     }
   }
 
+  // Admin lấy danh sách resident chờ duyệt
+  async findPendingResidents(): Promise<Resident[]> {
+    return this.residentModel.find({
+      status: ResidentStatus.PENDING,
+      is_deleted: false,
+    }).exec();
+  }
+  // Admin duyệt resident (accept hoặc reject)
+  async updateStatus(
+    id: string,
+    status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
+  ): Promise<Resident> {
+    const resident = await this.residentModel.findOne({
+      _id: id,
+      is_deleted: false,
+    });
+    if (!resident) {
+      throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+    if (![ResidentStatus.ACCEPTED, ResidentStatus.REJECTED].includes(status)) {
+      throw new BadRequestException('Invalid status for approval');
+    }
+    resident.status = status;
+    resident.updated_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // GMT+7
+    return resident.save();
+  }
+
+  // Family lấy resident đã được duyệt để hiển thị app
+  async findAcceptedResidentsByFamily(familyMemberId: string): Promise<Resident[]> {
+    return this.residentModel.find({
+      family_member_id: new Types.ObjectId(familyMemberId),
+      status: ResidentStatus.ACCEPTED,
+      is_deleted: false,
+    }).exec();
+  }
+
+
   async findAll(): Promise<Resident[]> {
-    const residents = await this.residentModel
-      .find()
+    return this.residentModel
+      .find({ is_deleted: false })
       .populate('family_member_id', 'full_name email phone')
       .exec();
-    return residents;
   }
 
   async findOne(id: string): Promise<Resident> {
     const resident = await this.residentModel
-      .findById(id)
+      .findOne({ _id: id, is_deleted: false })
       .populate('family_member_id', 'full_name email phone')
       .exec();
     if (!resident)
@@ -249,44 +287,225 @@ export class ResidentsService {
   }
 
   async findOneWithFamily(id: string): Promise<Resident> {
-    console.log('[RESIDENT][FIND_WITH_FAMILY] Looking up resident:', id);
     const resident = await this.residentModel
-      .findById(id)
+      .findOne({ _id: id, is_deleted: false })
       .populate('family_member_id', 'full_name email phone role _id')
       .exec();
-
     if (!resident) {
-      console.error('[RESIDENT][FIND_WITH_FAMILY] Resident not found:', id);
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
-
-    console.log('[RESIDENT][FIND_WITH_FAMILY] Found resident:', {
-      id: resident._id,
-      name: resident.full_name,
-      family_member_id: resident.family_member_id,
-      family_populated: resident.family_member_id ? true : false,
-    });
-
     return resident;
   }
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
     // Đảm bảo so sánh đúng kiểu ObjectId với trường family_member_id
     return this.residentModel
-      .find({ family_member_id: new Types.ObjectId(familyMemberId) })
+      .find({ family_member_id: new Types.ObjectId(familyMemberId), is_deleted: false })
       .exec();
   }
 
+  // async update(
+  //   id: string,
+  //   updateResidentDto: UpdateResidentDto,
+  // ): Promise<Resident> {
+  //   // Lấy dữ liệu cũ
+  //   const oldResident = await this.residentModel.findById(id);
+  //   if (!oldResident) {
+  //     throw new NotFoundException(`Resident with ID ${id} not found`);
+  //   }
+
+  //   // Chuẩn bị dữ liệu update, tự động điền các trường required nếu không truyền lên
+  //   // Hỗ trợ cả camelCase và snake_case cho discharge_date
+  //   const updateData: any = { ...updateResidentDto };
+  //   if (
+  //     typeof updateData.dischargeDate !== 'undefined' &&
+  //     typeof updateData.discharge_date === 'undefined'
+  //   ) {
+  //     updateData.discharge_date = updateData.dischargeDate;
+  //     delete updateData.dischargeDate;
+  //   }
+
+  //   // Các trường required cần giữ nguyên nếu không truyền lên (admission_date, created_at)
+  //   if (typeof updateData.admission_date === 'undefined') {
+  //     updateData.admission_date = oldResident.admission_date;
+  //   } else if (updateData.admission_date) {
+  //     updateData.admission_date = new Date(updateData.admission_date);
+  //   }
+  //   if (typeof updateData.created_at === 'undefined') {
+  //     updateData.created_at = oldResident.created_at;
+  //   } else if (updateData.created_at) {
+  //     updateData.created_at = new Date(updateData.created_at);
+  //   }
+  //   // updated_at luôn là giờ Việt Nam (GMT+7)
+  //   const now = new Date();
+  //   const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  //   updateData.updated_at = vietnamTime;
+
+  //   // discharge_date: nếu truyền lên thì ép kiểu, nếu không thì giữ nguyên
+  //   if (typeof updateData.discharge_date === 'undefined') {
+  //     updateData.discharge_date = oldResident.discharge_date;
+  //   } else if (
+  //     updateData.discharge_date !== null &&
+  //     updateData.discharge_date !== ''
+  //   ) {
+  //     updateData.discharge_date = new Date(updateData.discharge_date);
+  //     // Nếu có ngày xuất viện được cung cấp, tự động set trạng thái đã xuất viện
+  //     updateData.status = ResidentStatus.DISCHARGED;
+  //   }
+
+  //   // family_member_id: nếu truyền lên thì ép kiểu ObjectId, nếu không thì giữ nguyên
+  //   if (typeof updateData.family_member_id === 'undefined') {
+  //     updateData.family_member_id = oldResident.family_member_id;
+  //   } else if (updateData.family_member_id) {
+  //     updateData.family_member_id = new Types.ObjectId(
+  //       updateData.family_member_id,
+  //     );
+  //   }
+
+  //   // Nếu status được cập nhật thành 'discharged' hoặc 'deceased', tự động cập nhật discharge_date
+  //   if (
+  //     (updateData.status === 'discharged' ||
+  //       updateData.status === 'deceased') &&
+  //     oldResident.status !== updateData.status
+  //   ) {
+  //     updateData.discharge_date = vietnamTime;
+  //   }
+
+  //   // Nếu không truyền emergency_contact thì chỉ giữ nguyên emergency_contact cũ trong DB
+  //   if (
+  //     typeof updateData.emergency_contact === 'undefined' ||
+  //     updateData.emergency_contact === null
+  //   ) {
+  //     updateData.emergency_contact = oldResident.emergency_contact;
+  //   }
+
+  //   // Ép emergency_contact về plain object nếu là instance class
+  //   if (
+  //     updateData.emergency_contact &&
+  //     typeof updateData.emergency_contact === 'object' &&
+  //     updateData.emergency_contact.name
+  //   ) {
+  //     updateData.emergency_contact = {
+  //       name: updateData.emergency_contact.name,
+  //       phone: updateData.emergency_contact.phone,
+  //       relationship: updateData.emergency_contact.relationship,
+  //     };
+  //   }
+
+  //   // Các trường required khác nếu không truyền lên thì giữ nguyên và clone đúng kiểu
+  //   const requiredFields = [
+  //     'full_name',
+  //     'date_of_birth',
+  //     'gender',
+  //     'relationship',
+  //     'medical_history',
+  //     'current_medications',
+  //     'allergies',
+  //     'emergency_contact',
+  //     'status',
+  //     'admission_date',
+  //     'created_at',
+  //     'updated_at',
+  //   ];
+  //   for (const field of requiredFields) {
+  //     if (typeof updateData[field] === 'undefined') {
+  //       updateData[field] = oldResident[field];
+  //     }
+  //     // Nếu là trường date, ép lại thành Date nếu là string, nếu không hợp lệ thì lấy từ DB hoặc new Date()
+  //     if (
+  //       [
+  //         'date_of_birth',
+  //         'admission_date',
+  //         'created_at',
+  //         'updated_at',
+  //         'discharge_date',
+  //       ].includes(field)
+  //     ) {
+  //       if (typeof updateData[field] === 'string') {
+  //         const d = new Date(updateData[field]);
+  //         updateData[field] = isNaN(d.getTime())
+  //           ? oldResident[field] || new Date()
+  //           : d;
+  //       }
+  //       if (!(updateData[field] instanceof Date)) {
+  //         updateData[field] = oldResident[field] || new Date();
+  //       }
+  //     }
+  //   }
+
+  //   // Ép family_member_id về ObjectId nếu cần
+  //   if (
+  //     updateData.family_member_id &&
+  //     typeof updateData.family_member_id !== 'object'
+  //   ) {
+  //     updateData.family_member_id = new Types.ObjectId(
+  //       updateData.family_member_id,
+  //     );
+  //   }
+  //   // Ép các trường date về Date instance nếu cần và xử lý timezone
+  //   [
+  //     'admission_date',
+  //     'created_at',
+  //     'updated_at',
+  //     'date_of_birth',
+  //     'discharge_date',
+  //   ].forEach((field) => {
+  //     if (updateData[field] && !(updateData[field] instanceof Date)) {
+  //       // Tạo Date object và điều chỉnh timezone về GMT+7
+  //       const date = new Date(updateData[field]);
+  //       const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  //       updateData[field] = vietnamTime;
+  //     }
+  //   });
+
+  //   // Log lại dữ liệu updateData để debug (JSON)
+  //   console.log(
+  //     'Resident updateData (JSON):',
+  //     JSON.stringify(updateData, null, 2),
+  //   );
+
+  //   // Tiến hành update, log lỗi chi tiết nếu có
+  //   try {
+  //     const updatedResident = await this.residentModel
+  //       .findByIdAndUpdate(id, updateData, { new: true })
+  //       .exec();
+  //     if (!updatedResident) {
+  //       throw new NotFoundException(`Resident with ID ${id} not found`);
+  //     }
+  //     return updatedResident;
+  //   } catch (error) {
+  //     // Log chi tiết lỗi validation
+  //     console.error(
+  //       'Resident update validation error:',
+  //       error?.errInfo?.details?.schemaRulesNotSatisfied || error,
+  //     );
+  //     throw error;
+  //   }
+  // }
   async update(
     id: string,
     updateResidentDto: UpdateResidentDto,
+    userRole: Role,
   ): Promise<Resident> {
     // Lấy dữ liệu cũ
-    const oldResident = await this.residentModel.findById(id);
+    const oldResident = await this.residentModel.findOne({
+      _id: id,
+      is_deleted: false,
+    });
     if (!oldResident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
-
+  
+    // Kiểm tra quyền: family chỉ được update resident chưa được duyệt (status khác accepted)
+    if (
+      userRole === Role.FAMILY &&
+      oldResident.status === ResidentStatus.ACCEPTED
+    ) {
+      throw new ForbiddenException(
+        'Family không được phép cập nhật resident đã được duyệt',
+      );
+    }
+  
     // Chuẩn bị dữ liệu update, tự động điền các trường required nếu không truyền lên
     // Hỗ trợ cả camelCase và snake_case cho discharge_date
     const updateData: any = { ...updateResidentDto };
@@ -297,7 +516,7 @@ export class ResidentsService {
       updateData.discharge_date = updateData.dischargeDate;
       delete updateData.dischargeDate;
     }
-
+  
     // Các trường required cần giữ nguyên nếu không truyền lên (admission_date, created_at)
     if (typeof updateData.admission_date === 'undefined') {
       updateData.admission_date = oldResident.admission_date;
@@ -313,7 +532,7 @@ export class ResidentsService {
     const now = new Date();
     const vietnamTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
     updateData.updated_at = vietnamTime;
-
+  
     // discharge_date: nếu truyền lên thì ép kiểu, nếu không thì giữ nguyên
     if (typeof updateData.discharge_date === 'undefined') {
       updateData.discharge_date = oldResident.discharge_date;
@@ -325,25 +544,23 @@ export class ResidentsService {
       // Nếu có ngày xuất viện được cung cấp, tự động set trạng thái đã xuất viện
       updateData.status = ResidentStatus.DISCHARGED;
     }
-
+  
     // family_member_id: nếu truyền lên thì ép kiểu ObjectId, nếu không thì giữ nguyên
     if (typeof updateData.family_member_id === 'undefined') {
       updateData.family_member_id = oldResident.family_member_id;
     } else if (updateData.family_member_id) {
-      updateData.family_member_id = new Types.ObjectId(
-        updateData.family_member_id,
-      );
+      updateData.family_member_id = new Types.ObjectId(updateData.family_member_id);
     }
-
+  
     // Nếu status được cập nhật thành 'discharged' hoặc 'deceased', tự động cập nhật discharge_date
     if (
-      (updateData.status === 'discharged' ||
-        updateData.status === 'deceased') &&
+      (updateData.status === ResidentStatus.DISCHARGED ||
+        updateData.status === ResidentStatus.DECEASED) &&
       oldResident.status !== updateData.status
     ) {
       updateData.discharge_date = vietnamTime;
     }
-
+  
     // Nếu không truyền emergency_contact thì chỉ giữ nguyên emergency_contact cũ trong DB
     if (
       typeof updateData.emergency_contact === 'undefined' ||
@@ -351,7 +568,7 @@ export class ResidentsService {
     ) {
       updateData.emergency_contact = oldResident.emergency_contact;
     }
-
+  
     // Ép emergency_contact về plain object nếu là instance class
     if (
       updateData.emergency_contact &&
@@ -364,7 +581,7 @@ export class ResidentsService {
         relationship: updateData.emergency_contact.relationship,
       };
     }
-
+  
     // Các trường required khác nếu không truyền lên thì giữ nguyên và clone đúng kiểu
     const requiredFields = [
       'full_name',
@@ -405,15 +622,13 @@ export class ResidentsService {
         }
       }
     }
-
+  
     // Ép family_member_id về ObjectId nếu cần
     if (
       updateData.family_member_id &&
       typeof updateData.family_member_id !== 'object'
     ) {
-      updateData.family_member_id = new Types.ObjectId(
-        updateData.family_member_id,
-      );
+      updateData.family_member_id = new Types.ObjectId(updateData.family_member_id);
     }
     // Ép các trường date về Date instance nếu cần và xử lý timezone
     [
@@ -430,13 +645,10 @@ export class ResidentsService {
         updateData[field] = vietnamTime;
       }
     });
-
+  
     // Log lại dữ liệu updateData để debug (JSON)
-    console.log(
-      'Resident updateData (JSON):',
-      JSON.stringify(updateData, null, 2),
-    );
-
+    console.log('Resident updateData (JSON):', JSON.stringify(updateData, null, 2));
+  
     // Tiến hành update, log lỗi chi tiết nếu có
     try {
       const updatedResident = await this.residentModel
@@ -455,37 +667,85 @@ export class ResidentsService {
       throw error;
     }
   }
+  
 
-  async remove(id: string): Promise<any> {
-    // First, unassign bed if any
-    await this.unassignBedFromResident(id);
+  // async remove(id: string): Promise<any> {
+  //   // First, unassign bed if any
+  //   await this.unassignBedFromResident(id);
 
-    // Find the resident to get family_member_id before deletion
-    const resident = await this.residentModel.findById(id);
+  //   // Find the resident to get family_member_id before deletion
+  //   const resident = await this.residentModel.findById(id);
+  //   if (!resident) {
+  //     throw new NotFoundException(`Resident with ID ${id} not found`);
+  //   }
+
+  //   // Store family_member_id for reference (but don't delete the user account)
+  //   const familyMemberId = resident.family_member_id;
+
+  //   // Delete only the resident record, NOT the associated family member account
+  //   const deletedResident = await this.residentModel
+  //     .findByIdAndDelete(id)
+  //     .exec();
+
+  //   console.log(
+  //     `[RESIDENT][DELETE] Deleted resident ${id}. Family member account ${familyMemberId} remains intact.`,
+  //   );
+
+  //   return {
+  //     deleted: true,
+  //     _id: id,
+  //     message:
+  //       'Resident deleted successfully. Family member account remains active.',
+  //     family_member_id: familyMemberId,
+  //   };
+  // }
+
+  async remove(
+    id: string,
+    userRole: Role,
+    reason?: string,
+  ): Promise<any> {
+    // Kiểm tra resident tồn tại
+    const resident = await this.residentModel.findOne({ _id: id, is_deleted: false });
     if (!resident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
+  
+    // Nếu là staff thì bắt buộc phải có lý do
+    if (userRole === Role.STAFF && (!reason || reason.trim() === '')) {
+      throw new BadRequestException('Staff phải cung cấp lý do khi xóa resident');
+    }
+  
+    // Nếu là staff, ghi log hoặc lưu lý do xóa
+    if (userRole === Role.STAFF) {
+      // Ví dụ ghi log console (bạn có thể thay bằng lưu DB hoặc gửi notification)
+      console.log(`[RESIDENT][DELETE] Staff xóa resident ${id} với lý do: ${reason}`);
+      // Nếu bạn có collection logs, có thể lưu ở đây
+      // await this.logModel.create({ residentId: id, userRole, reason, timestamp: new Date() });
+    }
 
-    // Store family_member_id for reference (but don't delete the user account)
-    const familyMemberId = resident.family_member_id;
+    resident.is_deleted = true;
+  resident.deleted_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // GMT+7
+  resident.deleted_reason = reason || null;
 
-    // Delete only the resident record, NOT the associated family member account
-    const deletedResident = await this.residentModel
-      .findByIdAndDelete(id)
-      .exec();
-
-    console.log(
-      `[RESIDENT][DELETE] Deleted resident ${id}. Family member account ${familyMemberId} remains intact.`,
-    );
-
+  await resident.save();
+  
+    // Unassign bed nếu có
+    await this.unassignBedFromResident(id);
+  
+    // Xóa resident
+    // await this.residentModel.findByIdAndDelete(id).exec();
+  
     return {
       deleted: true,
       _id: id,
-      message:
-        'Resident deleted successfully. Family member account remains active.',
-      family_member_id: familyMemberId,
+      message: 'Resident soft deleted successfully. Family member account remains active.',
+      family_member_id: resident.family_member_id,
+      deletedBy: userRole,
+      reason: reason || null,
     };
   }
+  
 
   async assignBed(resident_id: string, bed_id: string): Promise<Bed> {
     const resident = await this.residentModel.findById(resident_id);
