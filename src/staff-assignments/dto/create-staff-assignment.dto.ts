@@ -14,9 +14,9 @@ export class CreateStaffAssignmentDto {
   @IsMongoId()
   staff_id: string;
 
-  @ApiProperty({ description: 'ID của cư dân' })
+  @ApiProperty({ description: 'ID của phòng' })
   @IsMongoId()
-  resident_id: string;
+  room_id: string;
 
   @ApiProperty({ description: 'Ngày phân công' })
   @IsDateString()

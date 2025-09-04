@@ -42,10 +42,10 @@ export class StaffAssignmentsController {
     description: 'Staff assignment created successfully.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({ status: 404, description: 'Staff or resident not found.' })
+  @ApiResponse({ status: 404, description: 'Staff or room not found.' })
   @ApiResponse({
     status: 409,
-    description: 'Staff is already assigned to this resident.',
+    description: 'Staff is already assigned to this room.',
   })
   create(
     @Body() createStaffAssignmentDto: CreateStaffAssignmentDto,
@@ -90,38 +90,134 @@ export class StaffAssignmentsController {
     return this.staffAssignmentsService.findByStaff(staffId);
   }
 
-  @Get('by-resident/:residentId')
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
-  @ApiOperation({ summary: 'Get staff assignments by resident ID' })
+  @Get('by-staff/:staffId/residents')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get all residents in rooms assigned to specific staff' })
+  @ApiResponse({
+    status: 200,
+    description: 'Residents retrieved successfully, grouped by room.',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          room: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+              room_number: { type: 'string', example: '101' },
+              room_type: { type: 'string', example: 'single' },
+              status: { type: 'string', example: 'occupied' },
+              bed_count: { type: 'number', example: 1 }
+            }
+          },
+          residents: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '507f1f77bcf86cd799439012' },
+                full_name: { type: 'string', example: 'Nguyễn Văn A' },
+                date_of_birth: { type: 'string', example: '1950-01-01' },
+                gender: { type: 'string', example: 'male' },
+                bed_id: {
+                  type: 'object',
+                  properties: {
+                    bed_number: { type: 'string', example: '1' },
+                    bed_type: { type: 'string', example: 'single' },
+                    room_id: { type: 'string', example: '507f1f77bcf86cd799439011' }
+                  }
+                },
+                family_member_id: {
+                  type: 'object',
+                  properties: {
+                    full_name: { type: 'string', example: 'Nguyễn Văn B' },
+                    email: { type: 'string', example: 'family@example.com' },
+                    phone: { type: 'string', example: '0123456789' }
+                  }
+                }
+              }
+            }
+          },
+          assignment: {
+            type: 'object',
+            properties: {
+              assigned_date: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+              responsibilities: { 
+                type: 'array', 
+                items: { type: 'string' },
+                example: ['vital_signs', 'care_notes', 'activities']
+              },
+              notes: { type: 'string', example: 'Chăm sóc đặc biệt cho bệnh nhân cao tuổi' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  getResidentsByStaff(@Param('staffId') staffId: string) {
+    return this.staffAssignmentsService.findResidentsByStaff(staffId);
+  }
+
+  @Get('by-room/:roomId')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get staff assignments by room ID' })
   @ApiResponse({
     status: 200,
     description: 'Staff assignments retrieved successfully.',
-  })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Forbidden - Family members can only access their own residents.',
-  })
-  async findByResident(
-    @Param('residentId') residentId: string,
-    @Req() req: any,
-  ) {
-    const userRole = req.user?.role;
-    const userId = req.user?.userId;
-
-    if (userRole === Role.FAMILY) {
-      // Verify that the family member has access to this resident
-      const resident =
-        await this.staffAssignmentsService.findResidentById(residentId);
-      if (!resident || resident.family_member_id?.toString() !== userId) {
-        throw new ForbiddenException(
-          'Bạn không có quyền xem thông tin nhân viên phụ trách cho cư dân này',
-        );
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '507f1f77bcf86cd799439013' },
+          staff_id: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string', example: '507f1f77bcf86cd799439014' },
+              full_name: { type: 'string', example: 'Nguyễn Thị C' },
+              email: { type: 'string', example: 'staff@example.com' },
+              role: { type: 'string', example: 'staff' },
+              avatar: { type: 'string', example: 'avatar.jpg' },
+              position: { type: 'string', example: 'Y tá' },
+              qualification: { type: 'string', example: 'Cử nhân Điều dưỡng' }
+            }
+          },
+          room_id: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+              room_number: { type: 'string', example: '101' },
+              room_type: { type: 'string', example: 'single' },
+              status: { type: 'string', example: 'occupied' },
+              bed_count: { type: 'number', example: 1 }
+            }
+          },
+          assigned_by: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string', example: '507f1f77bcf86cd799439015' },
+              full_name: { type: 'string', example: 'Admin User' },
+              email: { type: 'string', example: 'admin@example.com' }
+            }
+          },
+          assigned_date: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+          end_date: { type: 'string', example: null },
+          status: { type: 'string', example: 'active' },
+          notes: { type: 'string', example: 'Phụ trách chăm sóc phòng 101' },
+          responsibilities: { 
+            type: 'array', 
+            items: { type: 'string' },
+            example: ['vital_signs', 'care_notes', 'activities']
+          }
+        }
       }
     }
-
-    return this.staffAssignmentsService.findByResident(residentId);
+  })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  async findByRoom(@Param('roomId') roomId: string) {
+    return this.staffAssignmentsService.findByRoom(roomId);
   }
 
   @Get('my-assignments')
@@ -137,6 +233,79 @@ export class StaffAssignmentsController {
   getMyAssignments(@Req() req: any) {
     const staffId = req.user.userId;
     return this.staffAssignmentsService.findByStaff(staffId);
+  }
+
+  @Get('my-residents')
+  @Roles(Role.STAFF)
+  @ApiOperation({
+    summary: 'Get all residents in rooms assigned to logged-in staff',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Residents retrieved successfully, grouped by room.',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          room: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+              room_number: { type: 'string', example: '101' },
+              room_type: { type: 'string', example: 'single' },
+              status: { type: 'string', example: 'occupied' },
+              bed_count: { type: 'number', example: 1 }
+            }
+          },
+          residents: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '507f1f77bcf86cd799439012' },
+                full_name: { type: 'string', example: 'Nguyễn Văn A' },
+                date_of_birth: { type: 'string', example: '1950-01-01' },
+                gender: { type: 'string', example: 'male' },
+                bed_id: {
+                  type: 'object',
+                  properties: {
+                    bed_number: { type: 'string', example: '1' },
+                    bed_type: { type: 'string', example: 'single' },
+                    room_id: { type: 'string', example: '507f1f77bcf86cd799439011' }
+                  }
+                },
+                family_member_id: {
+                  type: 'object',
+                  properties: {
+                    full_name: { type: 'string', example: 'Nguyễn Văn B' },
+                    email: { type: 'string', example: 'family@example.com' },
+                    phone: { type: 'string', example: '0123456789' }
+                  }
+                }
+              }
+            }
+          },
+          assignment: {
+            type: 'object',
+            properties: {
+              assigned_date: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+              responsibilities: { 
+                type: 'array', 
+                items: { type: 'string' },
+                example: ['vital_signs', 'care_notes', 'activities']
+              },
+              notes: { type: 'string', example: 'Chăm sóc đặc biệt cho bệnh nhân cao tuổi' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  getMyResidents(@Req() req: any) {
+    const staffId = req.user.userId;
+    return this.staffAssignmentsService.findResidentsByStaff(staffId);
   }
 
   @Get(':id')
@@ -163,7 +332,7 @@ export class StaffAssignmentsController {
   @ApiResponse({ status: 404, description: 'Staff assignment not found.' })
   @ApiResponse({
     status: 409,
-    description: 'Staff is already assigned to this resident.',
+    description: 'Staff is already assigned to this room.',
   })
   update(
     @Param('id') id: string,

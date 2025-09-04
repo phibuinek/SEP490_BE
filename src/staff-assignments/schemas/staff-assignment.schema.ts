@@ -16,8 +16,8 @@ export class StaffAssignment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   staff_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Resident', required: true })
-  resident_id: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Room', required: true })
+  room_id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   assigned_by: Types.ObjectId; // Admin who made the assignment
@@ -50,5 +50,5 @@ export class StaffAssignment {
 export const StaffAssignmentSchema =
   SchemaFactory.createForClass(StaffAssignment);
 
-// Create compound index to ensure unique staff-resident assignments
-StaffAssignmentSchema.index({ staff_id: 1, resident_id: 1 }, { unique: true });
+// Create compound index to ensure unique staff-room assignments
+StaffAssignmentSchema.index({ staff_id: 1, room_id: 1 }, { unique: true });
