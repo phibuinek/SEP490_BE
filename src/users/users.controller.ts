@@ -106,7 +106,7 @@ export class UsersController {
         },
         status: {
           type: 'string',
-          enum: ['active', 'inactive', 'suspended', 'deleted'],
+          enum: ['active', 'inactive', 'pending', 'suspended', 'deleted'],
           description: 'Trạng thái tài khoản (mặc định: active)',
         },
         is_super_admin: {
@@ -328,6 +328,16 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   activateUser(@Param('id') id: string) {
     return this.usersService.activateUser(id);
+  }
+
+  @Patch(':id/approve')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Approve pending user (Admin only)' })
+  @ApiResponse({ status: 200, description: 'User approved successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  approveUser(@Param('id') id: string) {
+    return this.usersService.approveUser(id);
   }
 
   @Patch(':id/reset-password')

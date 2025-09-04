@@ -172,4 +172,46 @@ Trân trọng,
       return { error: true };
     }
   }
+
+  async sendAccountActivatedEmail(params: { to: string; username: string }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Tài khoản của bạn đã được kích hoạt';
+    const text = `Xin chào ${params.username},\n\nTài khoản của bạn đã được admin phê duyệt và kích hoạt.\nBạn có thể đăng nhập tại: ${appUrl}/login\n\nTrân trọng,\nĐội ngũ CareHome`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #2c3e50; margin-bottom: 20px;">Tài khoản đã được kích hoạt</h2>
+          <p>Xin chào <strong>${params.username}</strong>,</p>
+          <p>Tài khoản của bạn đã được admin phê duyệt và kích hoạt.</p>
+          <p>Bạn có thể đăng nhập tại: <a href="${appUrl}/login" target="_blank" style="color: #3498db;">${appUrl}/login</a></p>
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Username: ${params.username}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Activation email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send activation email', err);
+      return { error: true };
+    }
+  }
 }
