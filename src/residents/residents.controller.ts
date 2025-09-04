@@ -465,4 +465,29 @@ export class ResidentsController {
   assignBed(@Param('id') id: string, @Param('bed_id') bed_id: string) {
     return this.residentsService.assignBed(id, bed_id);
   }
+  
+  // Lấy resident đã được duyệt theo family member ID
+@Get('accepted/family-member/:familyMemberId')
+@Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
+@ApiOperation({ summary: 'Get accepted residents by family member ID' })
+@ApiResponse({ status: 200, description: 'Accepted residents retrieved successfully.' })
+@ApiResponse({ status: 401, description: 'Unauthorized.' })
+@ApiResponse({ status: 403, description: 'Forbidden.' })
+findAcceptedResidentsByFamily(
+  @Param('familyMemberId') familyMemberId: string,
+) {
+  return this.residentsService.findAcceptedResidentsByFamily(familyMemberId);
 }
+// Lấy resident đang ở trạng thái pending (chờ duyệt)
+@Get('pending')
+@Roles(Role.ADMIN, Role.STAFF)
+@ApiOperation({ summary: 'Get all pending residents' })
+@ApiResponse({ status: 200, description: 'Pending residents retrieved successfully.' })
+@ApiResponse({ status: 401, description: 'Unauthorized.' })
+@ApiResponse({ status: 403, description: 'Forbidden.' })
+findPendingResidents() {
+  return this.residentsService.findPendingResidents();
+}
+}
+
+
