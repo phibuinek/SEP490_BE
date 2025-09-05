@@ -192,6 +192,50 @@ export class ResidentsController {
     return this.residentsService.findAllByFamilyMemberId(familyMemberId);
   }
 
+  // // Static routes must come before dynamic ':id' to avoid conflicts
+  // // Lấy resident đã được duyệt theo family member ID
+  // @Get('accepted/family-member/:familyMemberId')
+  // @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
+  // @ApiOperation({ summary: 'Get accepted residents by family member ID' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Accepted residents retrieved successfully.',
+  // })
+  // @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  // @ApiResponse({ status: 403, description: 'Forbidden.' })
+  // findAcceptedResidentsByFamily(
+  //   @Param('familyMemberId') familyMemberId: string,
+  // ) {
+  //   return this.residentsService.findAcceptedResidentsByFamily(familyMemberId);
+  // }
+
+  // // Lấy resident đang ở trạng thái pending (chờ duyệt)
+  // @Get('pending')
+  // @Roles(Role.ADMIN, Role.STAFF)
+  // @ApiOperation({ summary: 'Get all pending residents' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Pending residents retrieved successfully.',
+  // })
+  // @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  // @ApiResponse({ status: 403, description: 'Forbidden.' })
+  // findPendingResidents() {
+  //   return this.residentsService.findPendingResidents();
+  // }
+
+  // @Get('accepted')
+  // @Roles(Role.ADMIN, Role.STAFF)
+  // @ApiOperation({ summary: 'Get all accepted residents' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Accepted residents retrieved successfully.',
+  // })
+  // @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  // @ApiResponse({ status: 403, description: 'Forbidden.' })
+  // findAllAccepted() {
+  //   return this.residentsService.findAllAccepted();
+  // }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })
