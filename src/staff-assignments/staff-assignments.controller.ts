@@ -41,7 +41,7 @@ export class StaffAssignmentsController {
     status: 201,
     description: 'Staff assignment created successfully.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Staff has reached maximum 3 room assignments.' })
   @ApiResponse({ status: 404, description: 'Staff or room not found.' })
   @ApiResponse({
     status: 409,
@@ -328,7 +328,7 @@ export class StaffAssignmentsController {
     status: 200,
     description: 'Staff assignment updated successfully.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Staff has reached maximum 3 room assignments.' })
   @ApiResponse({ status: 404, description: 'Staff assignment not found.' })
   @ApiResponse({
     status: 409,

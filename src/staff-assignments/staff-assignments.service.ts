@@ -56,7 +56,19 @@ export class StaffAssignmentsService {
         throw new NotFoundException('Không tìm thấy thông tin phòng');
       }
 
-      // Check if active assignment already exists
+      // Check if staff already has maximum 3 active room assignments
+      const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
+        staff_id: new Types.ObjectId(staff_id),
+        status: AssignmentStatus.ACTIVE,
+      });
+
+      if (activeAssignmentsCount >= 3) {
+        throw new BadRequestException(
+          'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+        );
+      }
+
+      // Check if active assignment already exists for this specific room
       const existingActiveAssignment = await this.staffAssignmentModel.findOne({
         staff_id: new Types.ObjectId(staff_id),
         room_id: new Types.ObjectId(room_id),
@@ -459,6 +471,19 @@ export class StaffAssignmentsService {
         const room_id =
           updateStaffAssignmentDto.room_id ||
           assignment.room_id.toString();
+
+        // Check if staff already has maximum 3 active room assignments (excluding current assignment)
+        const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
+          staff_id: new Types.ObjectId(staff_id),
+          status: AssignmentStatus.ACTIVE,
+          _id: { $ne: new Types.ObjectId(id) }, // Exclude current assignment being updated
+        });
+
+        if (activeAssignmentsCount >= 3) {
+          throw new BadRequestException(
+            'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+          );
+        }
 
         const existingAssignment = await this.staffAssignmentModel.findOne({
           staff_id: new Types.ObjectId(staff_id),
