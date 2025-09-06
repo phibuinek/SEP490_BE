@@ -7,12 +7,14 @@ import {
   StaffAssignment,
   StaffAssignmentSchema,
 } from '../staff-assignments/schemas/staff-assignment.schema';
+import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Assessment.name, schema: AssessmentSchema },
       { name: StaffAssignment.name, schema: StaffAssignmentSchema },
+      { name: Resident.name, schema: ResidentSchema },
     ]),
   ],
   controllers: [AssessmentsController],

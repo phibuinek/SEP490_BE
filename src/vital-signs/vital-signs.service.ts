@@ -12,6 +12,7 @@ import {
   StaffAssignment,
   StaffAssignmentDocument,
 } from '../staff-assignments/schemas/staff-assignment.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 
 @Injectable()
 export class VitalSignsService {
@@ -20,6 +21,8 @@ export class VitalSignsService {
     private vitalSignModel: Model<VitalSignDocument>,
     @InjectModel(StaffAssignment.name)
     private staffAssignmentModel: Model<StaffAssignmentDocument>,
+    @InjectModel(Resident.name)
+    private residentModel: Model<ResidentDocument>,
   ) {}
 
   async create(
@@ -287,7 +290,7 @@ export class VitalSignsService {
     console.log('=== FIND ALL BY STAFF ID ===');
     console.log('Staff ID:', staff_id);
 
-    // Get all residents assigned to this staff
+    // Get all residents assigned to this staff through room assignments
     const assignments = await this.staffAssignmentModel.find({
       staff_id: new Types.ObjectId(staff_id),
       status: 'active',
@@ -296,8 +299,38 @@ export class VitalSignsService {
     console.log('Staff assignments found:', assignments.length);
     console.log('Assignments:', assignments);
 
-    const residentIds = assignments.map((assignment) => assignment.resident_id);
-    console.log('Resident IDs from assignments:', residentIds);
+    if (assignments.length === 0) {
+      console.log('No room assignments for this staff');
+      return [];
+    }
+
+    // Get all room IDs assigned to this staff
+    const roomIds = assignments.map(assignment => assignment.room_id);
+    console.log('Room IDs from assignments:', roomIds);
+
+    // Find all residents in these rooms through bed assignments
+    const residents = await this.residentModel
+      .find({
+        is_deleted: false,
+        status: { $in: ['accepted', 'active'] },
+      })
+      .populate({
+        path: 'bed_id',
+        select: 'room_id',
+        match: { room_id: { $in: roomIds } }
+      })
+      .exec();
+
+    // Filter residents that are actually in the assigned rooms
+    const residentsInAssignedRooms = residents.filter(resident => {
+      const residentWithBed = resident as any;
+      return residentWithBed.bed_id && 
+             residentWithBed.bed_id.room_id && 
+             roomIds.some(roomId => roomId.toString() === residentWithBed.bed_id.room_id.toString());
+    });
+
+    const residentIds = residentsInAssignedRooms.map(resident => resident._id);
+    console.log('Resident IDs from room assignments:', residentIds);
 
     if (residentIds.length === 0) {
       console.log('No residents assigned to this staff');

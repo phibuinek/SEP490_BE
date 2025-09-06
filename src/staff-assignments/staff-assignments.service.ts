@@ -18,6 +18,7 @@ import {
   ResidentDocument,
 } from '../residents/schemas/resident.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 
 @Injectable()
 export class StaffAssignmentsService {
@@ -28,6 +29,8 @@ export class StaffAssignmentsService {
     private residentModel: Model<ResidentDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+    @InjectModel(Room.name)
+    private roomModel: Model<RoomDocument>,
   ) {}
 
   async create(
@@ -35,7 +38,7 @@ export class StaffAssignmentsService {
     req: any,
   ): Promise<StaffAssignment> {
     try {
-      const { staff_id, resident_id, assigned_date, assigned_by } =
+      const { staff_id, room_id, assigned_date, assigned_by } =
         createStaffAssignmentDto;
 
       // Validate staff exists and is actually a staff
@@ -47,22 +50,22 @@ export class StaffAssignmentsService {
         throw new BadRequestException('Người dùng này không phải là nhân viên');
       }
 
-      // Validate resident exists
-      const resident = await this.residentModel.findById(resident_id);
-      if (!resident) {
-        throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
+      // Validate room exists
+      const room = await this.roomModel.findById(room_id);
+      if (!room) {
+        throw new NotFoundException('Không tìm thấy thông tin phòng');
       }
 
       // Check if active assignment already exists
       const existingActiveAssignment = await this.staffAssignmentModel.findOne({
         staff_id: new Types.ObjectId(staff_id),
-        resident_id: new Types.ObjectId(resident_id),
+        room_id: new Types.ObjectId(room_id),
         status: AssignmentStatus.ACTIVE,
       });
 
       if (existingActiveAssignment) {
         throw new ConflictException(
-          'Nhân viên đã được phân công cho người cao tuổi này',
+          'Nhân viên đã được phân công cho phòng này',
         );
       }
 
@@ -70,7 +73,7 @@ export class StaffAssignmentsService {
       const existingExpiredAssignment = await this.staffAssignmentModel.findOne(
         {
           staff_id: new Types.ObjectId(staff_id),
-          resident_id: new Types.ObjectId(resident_id),
+          room_id: new Types.ObjectId(room_id),
           status: AssignmentStatus.EXPIRED,
         },
       );
@@ -85,7 +88,7 @@ export class StaffAssignmentsService {
       // Create new assignment
       const assignment = new this.staffAssignmentModel({
         staff_id: new Types.ObjectId(staff_id),
-        resident_id: new Types.ObjectId(resident_id),
+        room_id: new Types.ObjectId(room_id),
         assigned_by: new Types.ObjectId(assigned_by),
         assigned_date: new Date(assigned_date),
         end_date: createStaffAssignmentDto.end_date
@@ -105,6 +108,82 @@ export class StaffAssignmentsService {
       throw error;
     }
   }
+
+  // async create(
+  //   createStaffAssignmentDto: CreateStaffAssignmentDto,
+  //   req: any,
+  // ): Promise<StaffAssignment> {
+  //   try {
+  //     const { staff_id, resident_id, assigned_date, assigned_by } =
+  //       createStaffAssignmentDto;
+
+  //     // Validate staff exists and is actually a staff
+  //     const staff = await this.userModel.findById(staff_id);
+  //     if (!staff) {
+  //       throw new NotFoundException('Không tìm thấy thông tin nhân viên');
+  //     }
+  //     if (staff.role !== 'staff') {
+  //       throw new BadRequestException('Người dùng này không phải là nhân viên');
+  //     }
+
+  //     // Validate resident exists
+  //     const resident = await this.residentModel.findById(resident_id);
+  //     if (!resident) {
+  //       throw new NotFoundException('Không tìm thấy thông tin người cao tuổi');
+  //     }
+
+  //     // Check if active assignment already exists
+  //     const existingActiveAssignment = await this.staffAssignmentModel.findOne({
+  //       staff_id: new Types.ObjectId(staff_id),
+  //       resident_id: new Types.ObjectId(resident_id),
+  //       status: AssignmentStatus.ACTIVE,
+  //     });
+
+  //     if (existingActiveAssignment) {
+  //       throw new ConflictException(
+  //         'Nhân viên đã được phân công cho người cao tuổi này',
+  //       );
+  //     }
+
+  //     // If there's an expired assignment, update it instead of creating a new one
+  //     const existingExpiredAssignment = await this.staffAssignmentModel.findOne(
+  //       {
+  //         staff_id: new Types.ObjectId(staff_id),
+  //         resident_id: new Types.ObjectId(resident_id),
+  //         status: AssignmentStatus.EXPIRED,
+  //       },
+  //     );
+
+  //     if (existingExpiredAssignment) {
+  //       // Update the expired assignment to active
+  //       existingExpiredAssignment.status = AssignmentStatus.ACTIVE;
+  //       existingExpiredAssignment.updated_at = new Date();
+  //       return await existingExpiredAssignment.save();
+  //     }
+
+  //     // Create new assignment
+  //     const assignment = new this.staffAssignmentModel({
+  //       staff_id: new Types.ObjectId(staff_id),
+  //       resident_id: new Types.ObjectId(resident_id),
+  //       assigned_by: new Types.ObjectId(assigned_by),
+  //       assigned_date: new Date(assigned_date),
+  //       end_date: createStaffAssignmentDto.end_date
+  //         ? new Date(createStaffAssignmentDto.end_date)
+  //         : null,
+  //       status: createStaffAssignmentDto.status || AssignmentStatus.ACTIVE,
+  //       notes: createStaffAssignmentDto.notes || null,
+  //       responsibilities: createStaffAssignmentDto.responsibilities || [],
+  //       created_at: new Date(),
+  //       updated_at: new Date(),
+  //     });
+
+  //     const savedAssignment = await assignment.save();
+  //     return savedAssignment;
+  //   } catch (error) {
+  //     console.error('Error creating staff assignment:', error);
+  //     throw error;
+  //   }
+  // }
 
   async findAll(): Promise<StaffAssignment[]> {
     try {
@@ -129,7 +208,7 @@ export class StaffAssignmentsService {
           'staff_id',
           'full_name email role avatar position qualification',
         )
-        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
     } catch (error: any) {
@@ -162,7 +241,7 @@ export class StaffAssignmentsService {
           'staff_id',
           'full_name email role avatar position qualification',
         )
-        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
     } catch (error: any) {
@@ -184,7 +263,7 @@ export class StaffAssignmentsService {
           'staff_id',
           'full_name email role avatar position qualification',
         )
-        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
 
@@ -221,10 +300,7 @@ export class StaffAssignmentsService {
           'staff_id',
           'full_name email role avatar position qualification',
         )
-        .populate(
-          'resident_id',
-          'full_name date_of_birth gender phone emergency_contact medical_conditions allergies avatar',
-        )
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
     } catch (error: any) {
@@ -237,22 +313,22 @@ export class StaffAssignmentsService {
     }
   }
 
-  async findByResident(resident_id: string): Promise<StaffAssignment[]> {
+  async findByRoom(room_id: string): Promise<StaffAssignment[]> {
     try {
-      if (!Types.ObjectId.isValid(resident_id)) {
-        throw new BadRequestException('Invalid resident ID format');
+      if (!Types.ObjectId.isValid(room_id)) {
+        throw new BadRequestException('Invalid room ID format');
       }
 
       return await this.staffAssignmentModel
         .find({
-          resident_id: new Types.ObjectId(resident_id),
+          room_id: new Types.ObjectId(room_id),
           status: AssignmentStatus.ACTIVE,
         })
         .populate(
           'staff_id',
           'full_name email role avatar position qualification',
         )
-        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
     } catch (error: any) {
@@ -260,7 +336,7 @@ export class StaffAssignmentsService {
         throw error;
       }
       throw new BadRequestException(
-        `Failed to fetch staff assignments for resident: ${error.message}`,
+        `Failed to fetch staff assignments for room: ${error.message}`,
       );
     }
   }
@@ -282,6 +358,83 @@ export class StaffAssignmentsService {
     }
   }
 
+  async findResidentsByStaff(staff_id: string): Promise<any[]> {
+    try {
+      if (!Types.ObjectId.isValid(staff_id)) {
+        throw new BadRequestException('Invalid staff ID format');
+      }
+
+      // Get all room assignments for this staff
+      const staffAssignments = await this.staffAssignmentModel
+        .find({
+          staff_id: new Types.ObjectId(staff_id),
+          status: AssignmentStatus.ACTIVE,
+        })
+        .populate('room_id', 'room_number room_type status bed_count')
+        .exec();
+
+      if (staffAssignments.length === 0) {
+        return [];
+      }
+
+      // Get all room IDs assigned to this staff
+      const roomIds = staffAssignments.map(assignment => assignment.room_id._id);
+
+      // Find all residents in these rooms through bed assignments
+      const residents = await this.residentModel
+        .find({
+          is_deleted: false,
+          status: { $in: ['accepted', 'active'] }, // Only active residents
+        })
+        .populate({
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number room_type',
+            match: { _id: { $in: roomIds } }
+          }
+        })
+        .populate('family_member_id', 'full_name email phone')
+        .exec();
+
+      // Filter residents that are actually in the assigned rooms
+      const residentsInAssignedRooms = residents.filter(resident => {
+        const residentWithBed = resident as any;
+        return residentWithBed.bed_id && 
+               residentWithBed.bed_id.room_id && 
+               roomIds.some(roomId => roomId.toString() === residentWithBed.bed_id.room_id._id.toString());
+      });
+
+      // Group residents by room for better organization
+      const residentsByRoom = staffAssignments.map(assignment => {
+        const roomResidents = residentsInAssignedRooms.filter(resident => {
+          const residentWithBed = resident as any;
+          return residentWithBed.bed_id.room_id._id.toString() === assignment.room_id._id.toString();
+        });
+
+        return {
+          room: assignment.room_id,
+          residents: roomResidents,
+          assignment: {
+            assigned_date: assignment.assigned_date,
+            responsibilities: assignment.responsibilities,
+            notes: assignment.notes
+          }
+        };
+      });
+
+      return residentsByRoom;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to fetch residents for staff: ${error.message}`,
+      );
+    }
+  }
+
   async update(
     id: string,
     updateStaffAssignmentDto: UpdateStaffAssignmentDto,
@@ -296,27 +449,27 @@ export class StaffAssignmentsService {
         throw new NotFoundException('Staff assignment not found');
       }
 
-      // If updating staff_id or resident_id, check for conflicts
+      // If updating staff_id or room_id, check for conflicts
       if (
         updateStaffAssignmentDto.staff_id ||
-        updateStaffAssignmentDto.resident_id
+        updateStaffAssignmentDto.room_id
       ) {
         const staff_id =
           updateStaffAssignmentDto.staff_id || assignment.staff_id.toString();
-        const resident_id =
-          updateStaffAssignmentDto.resident_id ||
-          assignment.resident_id.toString();
+        const room_id =
+          updateStaffAssignmentDto.room_id ||
+          assignment.room_id.toString();
 
         const existingAssignment = await this.staffAssignmentModel.findOne({
           staff_id: new Types.ObjectId(staff_id),
-          resident_id: new Types.ObjectId(resident_id),
+          room_id: new Types.ObjectId(room_id),
           _id: { $ne: new Types.ObjectId(id) },
           status: AssignmentStatus.ACTIVE,
         });
 
         if (existingAssignment) {
           throw new ConflictException(
-            'Staff is already assigned to this resident',
+            'Staff is already assigned to this room',
           );
         }
       }
@@ -329,8 +482,8 @@ export class StaffAssignmentsService {
             staff_id: updateStaffAssignmentDto.staff_id
               ? new Types.ObjectId(updateStaffAssignmentDto.staff_id)
               : undefined,
-            resident_id: updateStaffAssignmentDto.resident_id
-              ? new Types.ObjectId(updateStaffAssignmentDto.resident_id)
+            room_id: updateStaffAssignmentDto.room_id
+              ? new Types.ObjectId(updateStaffAssignmentDto.room_id)
               : undefined,
             end_date: updateStaffAssignmentDto.end_date
               ? new Date(updateStaffAssignmentDto.end_date)
@@ -340,7 +493,7 @@ export class StaffAssignmentsService {
           { new: true },
         )
         .populate('staff_id', 'full_name email role avatar')
-        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
         .populate('assigned_by', 'full_name email')
         .exec();
 

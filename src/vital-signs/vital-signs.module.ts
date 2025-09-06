@@ -8,12 +8,14 @@ import {
   StaffAssignment,
   StaffAssignmentSchema,
 } from '../staff-assignments/schemas/staff-assignment.schema';
+import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: VitalSign.name, schema: VitalSignSchema },
       { name: StaffAssignment.name, schema: StaffAssignmentSchema },
+      { name: Resident.name, schema: ResidentSchema },
     ]),
     ResidentsModule,
   ],

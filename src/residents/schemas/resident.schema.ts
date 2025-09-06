@@ -103,6 +103,15 @@ export class Resident {
 
   @Prop({ required: true })
   updated_at: Date;
+
+   @Prop({ type: Boolean, default: false })
+  is_deleted: boolean;
+
+  @Prop({ type: Date, default: null })
+  deleted_at?: Date | null;
+  
+  @Prop({ type: String, default: null })
+  deleted_reason?: string | null;
 }
 
 export const ResidentSchema = SchemaFactory.createForClass(Resident);
