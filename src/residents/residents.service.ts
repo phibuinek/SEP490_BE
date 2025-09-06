@@ -11,6 +11,7 @@ import {
   Resident,
   ResidentDocument,
   ResidentStatus,
+  Gender,
 } from './schemas/resident.schema';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
@@ -59,8 +60,20 @@ export class ResidentsService {
       // if (!residentData.status) {
       //   residentData.status = ResidentStatus.ACTIVE;
       // }
-      // Mặc định status = pending (chờ duyệt)
-      residentData.status = ResidentStatus.PENDING;
+      // Mặc định status = active
+      residentData.status = ResidentStatus.ACTIVE;
+
+      // Xử lý date_of_birth: ép về Date object
+      if (residentData.date_of_birth) {
+        if (typeof residentData.date_of_birth === 'string') {
+          residentData.date_of_birth = new Date(residentData.date_of_birth);
+        }
+        if (!(residentData.date_of_birth instanceof Date) || isNaN(residentData.date_of_birth.getTime())) {
+          throw new BadRequestException('Invalid date_of_birth format');
+        }
+      } else {
+        throw new BadRequestException('date_of_birth is required');
+      }
 
       // Nếu không truyền admission_date thì mặc định là ngày hiện tại (GMT+7)
       if (!residentData.admission_date) {
@@ -94,11 +107,12 @@ export class ResidentsService {
         residentData.admission_date = vietnamTime;
       }
 
-      // Ép family_member_id về ObjectId nếu là string
-      if (
-        residentData.family_member_id &&
-        typeof residentData.family_member_id === 'string'
-      ) {
+      // Ép family_member_id về ObjectId nếu là string - REQUIRED FIELD
+      if (!residentData.family_member_id) {
+        throw new BadRequestException('family_member_id is required');
+      }
+      
+      if (typeof residentData.family_member_id === 'string') {
         try {
           residentData.family_member_id = new Types.ObjectId(
             residentData.family_member_id,
@@ -150,23 +164,7 @@ export class ResidentsService {
         residentData.admission_date = vietnamTime;
       }
 
-      // family_member_id: ép về ObjectId nếu là string
-      if (
-        residentData.family_member_id &&
-        typeof residentData.family_member_id === 'string'
-      ) {
-        try {
-          residentData.family_member_id = new Types.ObjectId(
-            residentData.family_member_id,
-          );
-        } catch (error) {
-          console.error(
-            '[RESIDENT][CREATE] Invalid family_member_id format:',
-            residentData.family_member_id,
-          );
-          throw new BadRequestException('Invalid family_member_id format');
-        }
-      }
+      // family_member_id đã được xử lý ở trên
 
       // Xử lý medical_history: nếu rỗng hoặc undefined thì gán null
       if (
@@ -186,6 +184,15 @@ export class ResidentsService {
         console.log(
           '[RESIDENT][CREATE] Set current_medications to empty array',
         );
+      } else {
+        // Filter out empty objects and ensure proper structure
+        residentData.current_medications = residentData.current_medications.filter(med => {
+          return med && typeof med === 'object' && Object.keys(med).length > 0;
+        });
+        console.log(
+          '[RESIDENT][CREATE] Filtered current_medications:',
+          residentData.current_medications,
+        );
       }
 
       // Xử lý allergies: nếu không có hoặc rỗng thì gán mảng rỗng
@@ -194,10 +201,89 @@ export class ResidentsService {
         console.log('[RESIDENT][CREATE] Set allergies to empty array');
       }
 
+      // Xử lý emergency_contact: chỉ reset nếu thực sự không có dữ liệu
+      console.log('[RESIDENT][CREATE] Emergency contact debug:');
+      console.log('- emergency_contact exists:', !!residentData.emergency_contact);
+      console.log('- emergency_contact type:', typeof residentData.emergency_contact);
+      console.log('- emergency_contact value:', residentData.emergency_contact);
+      
+      if (!residentData.emergency_contact) {
+        // Chỉ tạo object rỗng nếu hoàn toàn không có emergency_contact
+        residentData.emergency_contact = {
+          name: "",
+          phone: "0000000000", // 10 digits to match pattern ^[0-9]{10,15}$
+          relationship: ""
+        };
+        console.log('[RESIDENT][CREATE] Set emergency_contact to empty object (no data provided)');
+      } else if (typeof residentData.emergency_contact === 'object' && residentData.emergency_contact !== null) {
+        // Validate emergency contact structure - chỉ validate phone, không reset toàn bộ object
+        const ec = residentData.emergency_contact;
+        console.log('[RESIDENT][CREATE] Validating emergency contact:', ec);
+        
+        // Chỉ validate phone nếu có phone, không reset toàn bộ object
+        if (ec.phone && !/^[0-9]{10,15}$/.test(ec.phone)) {
+          console.warn('[RESIDENT][CREATE] Invalid emergency contact phone format:', ec.phone);
+          // Chỉ reset phone, giữ nguyên name và relationship
+          ec.phone = "0000000000";
+          console.log('[RESIDENT][CREATE] Fixed phone number, kept other fields:', ec);
+        }
+        
+        // Đảm bảo các trường cần thiết tồn tại
+        if (!ec.name) ec.name = "";
+        if (!ec.phone) ec.phone = "0000000000";
+        if (!ec.relationship) ec.relationship = "";
+        
+        console.log('[RESIDENT][CREATE] Final emergency contact after validation:', ec);
+      }
+
       console.log(
         '[RESIDENT][CREATE] Final residentData before save:',
         JSON.stringify(residentData, null, 2),
       );
+
+      // Debug từng trường quan trọng
+      console.log('[RESIDENT][CREATE] Debug fields:');
+      console.log('- emergency_contact:', residentData.emergency_contact);
+      console.log('- current_medications:', residentData.current_medications);
+      console.log('- allergies:', residentData.allergies);
+      console.log('- cccd_id:', residentData.cccd_id);
+      console.log('- user_cccd_id:', residentData.user_cccd_id);
+      
+      // Debug validation fields
+      console.log('[RESIDENT][CREATE] Validation debug:');
+      console.log('- full_name type:', typeof residentData.full_name, 'value:', residentData.full_name);
+      console.log('- date_of_birth type:', typeof residentData.date_of_birth, 'value:', residentData.date_of_birth);
+      console.log('- gender type:', typeof residentData.gender, 'value:', residentData.gender);
+      console.log('- relationship type:', typeof residentData.relationship, 'value:', residentData.relationship);
+      console.log('- status type:', typeof residentData.status, 'value:', residentData.status);
+      console.log('- admission_date type:', typeof residentData.admission_date, 'value:', residentData.admission_date);
+      console.log('- family_member_id type:', typeof residentData.family_member_id, 'value:', residentData.family_member_id);
+      
+      // Xử lý CCCD fields: nếu không có thì gán null
+      if (!residentData.cccd_id) {
+        residentData.cccd_id = null;
+        console.log('[RESIDENT][CREATE] Set cccd_id to null');
+      }
+      if (!residentData.cccd_front) {
+        residentData.cccd_front = null;
+        console.log('[RESIDENT][CREATE] Set cccd_front to null');
+      }
+      if (!residentData.cccd_back) {
+        residentData.cccd_back = null;
+        console.log('[RESIDENT][CREATE] Set cccd_back to null');
+      }
+      if (!residentData.user_cccd_id) {
+        residentData.user_cccd_id = null;
+        console.log('[RESIDENT][CREATE] Set user_cccd_id to null');
+      }
+      if (!residentData.user_cccd_front) {
+        residentData.user_cccd_front = null;
+        console.log('[RESIDENT][CREATE] Set user_cccd_front to null');
+      }
+      if (!residentData.user_cccd_back) {
+        residentData.user_cccd_back = null;
+        console.log('[RESIDENT][CREATE] Set user_cccd_back to null');
+      }
 
       // Kiểm tra xem family_member_id có tồn tại trong DB không
       if (residentData.family_member_id) {
@@ -217,32 +303,231 @@ export class ResidentsService {
         );
       }
 
-      const createdResident = new this.residentModel(residentData);
-      const savedResident = await createdResident.save();
+      // Validate all required fields before creating model
+      console.log('[RESIDENT][CREATE] Validating required fields...');
+      const requiredFields = ['full_name', 'date_of_birth', 'gender', 'relationship', 'family_member_id', 'status', 'admission_date', 'created_at', 'updated_at'];
+      const missingFields = requiredFields.filter(field => {
+        const value = residentData[field];
+        return value === undefined || value === null || value === '';
+      });
+      
+      if (missingFields.length > 0) {
+        console.error('[RESIDENT][CREATE] Missing required fields:', missingFields);
+        throw new BadRequestException(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+      
+      // Additional validation for string fields
+      if (typeof residentData.full_name !== 'string' || residentData.full_name.trim() === '') {
+        throw new BadRequestException('full_name must be a non-empty string');
+      }
+      
+      if (typeof residentData.relationship !== 'string' || residentData.relationship.trim() === '') {
+        throw new BadRequestException('relationship must be a non-empty string');
+      }
+      
+      // Validate gender enum
+      if (!Object.values(Gender).includes(residentData.gender)) {
+        throw new BadRequestException(`Invalid gender. Must be one of: ${Object.values(Gender).join(', ')}`);
+      }
+      
+      // Validate status enum
+      if (!Object.values(ResidentStatus).includes(residentData.status)) {
+        throw new BadRequestException(`Invalid status. Must be one of: ${Object.values(ResidentStatus).join(', ')}`);
+      }
 
-      console.log(
-        '[RESIDENT][CREATE] Successfully created resident:',
-        savedResident._id,
-      );
+      console.log('[RESIDENT][CREATE] All validations passed, creating model instance...');
+      
+      // Check if there are any MongoDB collection validation rules
+      console.log('[RESIDENT][CREATE] Checking MongoDB collection validation rules...');
+      try {
+        const collection = this.residentModel.collection;
+        console.log('[RESIDENT][CREATE] Collection name:', collection.collectionName);
+      } catch (statsError) {
+        console.log('[RESIDENT][CREATE] Could not get collection info:', statsError.message);
+      }
+      
+      // Final data structure validation
+      const finalData = {
+        ...residentData,
+        // Ensure all dates are Date objects
+        date_of_birth: residentData.date_of_birth instanceof Date ? residentData.date_of_birth : new Date(residentData.date_of_birth),
+        admission_date: residentData.admission_date instanceof Date ? residentData.admission_date : new Date(residentData.admission_date),
+        created_at: residentData.created_at instanceof Date ? residentData.created_at : new Date(residentData.created_at),
+        updated_at: residentData.updated_at instanceof Date ? residentData.updated_at : new Date(residentData.updated_at),
+        // Ensure family_member_id is ObjectId
+        family_member_id: residentData.family_member_id instanceof Types.ObjectId ? residentData.family_member_id : new Types.ObjectId(residentData.family_member_id),
+        // Ensure soft delete fields are set
+        is_deleted: residentData.is_deleted !== undefined ? residentData.is_deleted : false,
+        deleted_at: residentData.deleted_at || null,
+        deleted_reason: residentData.deleted_reason || null,
+        // Ensure discharge_date is properly handled
+        discharge_date: residentData.discharge_date || null,
+        // Ensure all optional fields are properly set
+        avatar: residentData.avatar || null,
+        cccd_id: residentData.cccd_id || null,
+        cccd_front: residentData.cccd_front || null,
+        cccd_back: residentData.cccd_back || null,
+        user_cccd_id: residentData.user_cccd_id || null,
+        user_cccd_front: residentData.user_cccd_front || null,
+        user_cccd_back: residentData.user_cccd_back || null,
+        medical_history: residentData.medical_history || null,
+        current_medications: residentData.current_medications || [],
+        allergies: residentData.allergies || [],
+        emergency_contact: residentData.emergency_contact || {
+          name: "",
+          phone: "0000000000", // 10 digits to match pattern ^[0-9]{10,15}$
+          relationship: ""
+        },
+      };
+      
+      console.log('[RESIDENT][CREATE] Final processed data:', JSON.stringify(finalData, null, 2));
+      
+      // Debug each field type and value
+      console.log('[RESIDENT][CREATE] Field type debugging:');
+      Object.keys(finalData).forEach(key => {
+        const value = finalData[key];
+        console.log(`- ${key}: type=${typeof value}, value=${value}, isDate=${value instanceof Date}, isObjectId=${value instanceof Types.ObjectId}`);
+      });
+      
+      const createdResident = new this.residentModel(finalData);
+      
+      console.log('[RESIDENT][CREATE] Model instance created, attempting to save...');
+      const validationErrors = createdResident.validateSync();
+      if (validationErrors) {
+        console.error('[RESIDENT][CREATE] Model validation errors:', validationErrors);
+        console.error('[RESIDENT][CREATE] Validation error details:');
+        Object.keys(validationErrors.errors).forEach(key => {
+          console.error(`  - ${key}: ${validationErrors.errors[key].message}`);
+        });
+        throw new BadRequestException(`Validation failed: ${validationErrors.message}`);
+      }
+      console.log('[RESIDENT][CREATE] Model validation passed');
+      
+      // Log the actual document that will be saved
+      console.log('[RESIDENT][CREATE] Document to be saved:', JSON.stringify(createdResident.toObject(), null, 2));
+      
+      // Try to save with detailed error handling
+      try {
+        const savedResident = await createdResident.save();
+        console.log('[RESIDENT][CREATE] Save successful');
       return savedResident;
+      } catch (saveError) {
+        console.error('[RESIDENT][CREATE] Save error details:');
+        console.error('- Error name:', saveError.name);
+        console.error('- Error message:', saveError.message);
+        console.error('- Error code:', saveError.code);
+        
+        if (saveError.name === 'MongoServerError') {
+          console.error('- MongoDB error code:', saveError.code);
+          console.error('- MongoDB error message:', saveError.message);
+          if (saveError.errInfo) {
+            console.error('- MongoDB error info:', JSON.stringify(saveError.errInfo, null, 2));
+          }
+          if (saveError.writeErrors) {
+            console.error('- MongoDB write errors:', JSON.stringify(saveError.writeErrors, null, 2));
+          }
+        }
+        
+        // Try to identify which field is causing the issue
+        console.log('[RESIDENT][CREATE] Attempting to identify problematic field...');
+        const testFields = ['full_name', 'date_of_birth', 'gender', 'relationship', 'family_member_id', 'status', 'admission_date', 'created_at', 'updated_at'];
+        
+        for (const field of testFields) {
+          try {
+            const testDoc = new this.residentModel({ [field]: finalData[field] });
+            testDoc.validateSync();
+            console.log(`✓ Field ${field} is valid`);
+          } catch (fieldError) {
+            console.error(`✗ Field ${field} is invalid:`, fieldError.message);
+          }
+        }
+        
+        // Try to create a minimal valid document
+        console.log('[RESIDENT][CREATE] Attempting to create minimal valid document...');
+        try {
+          const minimalDoc = new this.residentModel({
+            full_name: 'Test Resident',
+            date_of_birth: new Date('1950-01-01'),
+            gender: 'male',
+            relationship: 'test',
+            family_member_id: finalData.family_member_id,
+            status: 'active',
+            admission_date: new Date(),
+            created_at: new Date(),
+            updated_at: new Date(),
+            emergency_contact: {
+              name: "",
+              phone: "0000000000",
+              relationship: ""
+            },
+            current_medications: [],
+            allergies: [],
+            medical_history: null,
+            avatar: null,
+            cccd_id: null,
+            cccd_front: null,
+            cccd_back: null,
+            user_cccd_id: null,
+            user_cccd_front: null,
+            user_cccd_back: null,
+            discharge_date: null,
+            is_deleted: false,
+            deleted_at: null,
+            deleted_reason: null,
+          });
+          minimalDoc.validateSync();
+          console.log('✓ Minimal document is valid');
+          
+          // Try to save minimal document
+          console.log('[RESIDENT][CREATE] Attempting to save minimal document...');
+          const savedMinimal = await minimalDoc.save();
+          console.log('✓ Minimal document saved successfully:', savedMinimal._id);
+        } catch (minimalError) {
+          console.error('✗ Minimal document error:', minimalError.message);
+          if (minimalError.name === 'MongoServerError') {
+            console.error('✗ Minimal document MongoDB error:', JSON.stringify(minimalError.errInfo, null, 2));
+          }
+        }
+        
+        throw saveError;
+      }
     } catch (error) {
       console.error('[RESIDENT][CREATE][ERROR]', error);
       console.error('[RESIDENT][CREATE][ERROR] Stack:', error.stack);
+      
+      // Log detailed validation error information
+      if (error.name === 'ValidationError') {
+        console.error('[RESIDENT][CREATE][VALIDATION_ERROR] Details:');
+        Object.keys(error.errors).forEach(key => {
+          console.error(`- ${key}:`, error.errors[key].message);
+        });
+      }
+      
+      // Log MongoDB specific errors
+      if (error.name === 'MongoServerError') {
+        console.error('[RESIDENT][CREATE][MONGO_ERROR] Code:', error.code);
+        console.error('[RESIDENT][CREATE][MONGO_ERROR] Message:', error.message);
+        if (error.errInfo) {
+          console.error('[RESIDENT][CREATE][MONGO_ERROR] Error Info:', JSON.stringify(error.errInfo, null, 2));
+        }
+      }
+      
       throw error;
     }
   }
 
-  // Admin lấy danh sách resident chờ duyệt
-  async findPendingResidents(): Promise<Resident[]> {
+  // Admin lấy danh sách resident active
+  async findActiveResidents(): Promise<Resident[]> {
     return this.residentModel.find({
-      status: ResidentStatus.PENDING,
+      status: ResidentStatus.ACTIVE,
       is_deleted: false,
     }).exec();
   }
-  // Admin duyệt resident (accept hoặc reject)
+  
+  // Admin cập nhật status resident
   async updateStatus(
     id: string,
-    status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
+    status: ResidentStatus,
   ): Promise<Resident> {
     const resident = await this.residentModel.findOne({
       _id: id,
@@ -251,34 +536,36 @@ export class ResidentsService {
     if (!resident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
-    if (![ResidentStatus.ACCEPTED, ResidentStatus.REJECTED].includes(status)) {
-      throw new BadRequestException('Invalid status for approval');
+    if (!Object.values(ResidentStatus).includes(status)) {
+      throw new BadRequestException('Invalid status');
     }
     resident.status = status;
     resident.updated_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // GMT+7
     return resident.save();
   }
 
-  // Family lấy resident đã được duyệt để hiển thị app
-  async findAcceptedResidentsByFamily(familyMemberId: string): Promise<Resident[]> {
+  // Family lấy resident active để hiển thị app
+  async findActiveResidentsByFamily(familyMemberId: string): Promise<Resident[]> {
     return this.residentModel.find({
       family_member_id: new Types.ObjectId(familyMemberId),
-      status: ResidentStatus.ACCEPTED,
+      status: ResidentStatus.ACTIVE,
       is_deleted: false,
     }).exec();
   }
 
 
   async findAll(): Promise<Resident[]> {
+    const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     return this.residentModel
-      .find({ is_deleted: false })
+      .find(notDeleted)
       .populate('family_member_id', 'full_name email phone')
       .exec();
   }
 
   async findOne(id: string): Promise<Resident> {
+    const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     const resident = await this.residentModel
-      .findOne({ _id: id, is_deleted: false })
+      .findOne({ _id: id, ...notDeleted })
       .populate('family_member_id', 'full_name email phone')
       .exec();
     if (!resident)
@@ -287,8 +574,9 @@ export class ResidentsService {
   }
 
   async findOneWithFamily(id: string): Promise<Resident> {
+    const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     const resident = await this.residentModel
-      .findOne({ _id: id, is_deleted: false })
+      .findOne({ _id: id, ...notDeleted })
       .populate('family_member_id', 'full_name email phone role _id')
       .exec();
     if (!resident) {
@@ -299,8 +587,9 @@ export class ResidentsService {
 
   async findAllByFamilyMemberId(familyMemberId: string): Promise<Resident[]> {
     // Đảm bảo so sánh đúng kiểu ObjectId với trường family_member_id
+    const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     return this.residentModel
-      .find({ family_member_id: new Types.ObjectId(familyMemberId), is_deleted: false })
+      .find({ family_member_id: new Types.ObjectId(familyMemberId), ...notDeleted })
       .exec();
   }
 
@@ -496,13 +785,13 @@ export class ResidentsService {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
   
-    // Kiểm tra quyền: family chỉ được update resident chưa được duyệt (status khác accepted)
+    // Kiểm tra quyền: family chỉ được update resident active
     if (
       userRole === Role.FAMILY &&
-      oldResident.status === ResidentStatus.ACCEPTED
+      oldResident.status !== ResidentStatus.ACTIVE
     ) {
       throw new ForbiddenException(
-        'Family không được phép cập nhật resident đã được duyệt',
+        'Family chỉ được phép cập nhật resident đang active',
       );
     }
   
@@ -647,18 +936,50 @@ export class ResidentsService {
     });
   
     // Log lại dữ liệu updateData để debug (JSON)
-    console.log('Resident updateData (JSON):', JSON.stringify(updateData, null, 2));
+    console.log('[RESIDENT][UPDATE] updateData (JSON):', JSON.stringify(updateData, null, 2));
+    
+    // Debug validation fields for update
+    console.log('[RESIDENT][UPDATE] Validation debug:');
+    console.log('- full_name type:', typeof updateData.full_name, 'value:', updateData.full_name);
+    console.log('- date_of_birth type:', typeof updateData.date_of_birth, 'value:', updateData.date_of_birth);
+    console.log('- gender type:', typeof updateData.gender, 'value:', updateData.gender);
+    console.log('- relationship type:', typeof updateData.relationship, 'value:', updateData.relationship);
+    console.log('- status type:', typeof updateData.status, 'value:', updateData.status);
+    console.log('- admission_date type:', typeof updateData.admission_date, 'value:', updateData.admission_date);
+    console.log('- family_member_id type:', typeof updateData.family_member_id, 'value:', updateData.family_member_id);
   
     // Tiến hành update, log lỗi chi tiết nếu có
     try {
+      console.log('[RESIDENT][UPDATE] Attempting to update resident...');
       const updatedResident = await this.residentModel
         .findByIdAndUpdate(id, updateData, { new: true })
         .exec();
       if (!updatedResident) {
         throw new NotFoundException(`Resident with ID ${id} not found`);
       }
+      console.log('[RESIDENT][UPDATE] Successfully updated resident:', updatedResident._id);
       return updatedResident;
     } catch (error) {
+      console.error('[RESIDENT][UPDATE][ERROR]', error);
+      console.error('[RESIDENT][UPDATE][ERROR] Stack:', error.stack);
+      
+      // Log detailed validation error information
+      if (error.name === 'ValidationError') {
+        console.error('[RESIDENT][UPDATE][VALIDATION_ERROR] Details:');
+        Object.keys(error.errors).forEach(key => {
+          console.error(`- ${key}:`, error.errors[key].message);
+        });
+      }
+      
+      // Log MongoDB specific errors
+      if (error.name === 'MongoServerError') {
+        console.error('[RESIDENT][UPDATE][MONGO_ERROR] Code:', error.code);
+        console.error('[RESIDENT][UPDATE][MONGO_ERROR] Message:', error.message);
+        if (error.errInfo) {
+          console.error('[RESIDENT][UPDATE][MONGO_ERROR] Error Info:', JSON.stringify(error.errInfo, null, 2));
+        }
+      }
+      
       // Log chi tiết lỗi validation
       console.error(
         'Resident update validation error:',
