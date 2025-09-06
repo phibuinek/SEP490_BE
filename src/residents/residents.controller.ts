@@ -276,6 +276,22 @@ export class ResidentsController {
   @Patch(':id/status')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Update resident status (accept/reject)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['accepted', 'rejected'],
+          description: 'Status to update (accepted or rejected)'
+        }
+      },
+      required: ['status']
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Resident status updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid status.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
