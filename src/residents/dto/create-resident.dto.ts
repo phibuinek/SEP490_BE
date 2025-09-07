@@ -239,12 +239,12 @@ export class CreateResidentDto {
 
   @ApiProperty({
     type: 'string',
-    description: 'Care plan ID (required)',
+    description: 'Care plan assignment ID (required)',
     example: '507f1f77bcf86cd799439011'
   })
   @IsString()
   @IsNotEmpty()
-  care_plan_id: string;
+  care_plan_assignment_id: string;
 
   @ApiHideProperty()
   @IsOptional()

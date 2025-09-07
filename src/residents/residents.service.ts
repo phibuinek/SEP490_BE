@@ -63,18 +63,18 @@ export class ResidentsService {
       // Mặc định status = pending (chờ duyệt)
       residentData.status = ResidentStatus.PENDING;
 
-      // Xử lý care_plan_id: ép về ObjectId
-      if (residentData.care_plan_id) {
-        if (typeof residentData.care_plan_id === 'string') {
+      // Xử lý care_plan_assignment_id: ép về ObjectId
+      if (residentData.care_plan_assignment_id) {
+        if (typeof residentData.care_plan_assignment_id === 'string') {
           try {
-            residentData.care_plan_id = new Types.ObjectId(residentData.care_plan_id);
-            console.log('[RESIDENT][CREATE] Converted care_plan_id to ObjectId:', residentData.care_plan_id);
+            residentData.care_plan_assignment_id = new Types.ObjectId(residentData.care_plan_assignment_id);
+            console.log('[RESIDENT][CREATE] Converted care_plan_assignment_id to ObjectId:', residentData.care_plan_assignment_id);
           } catch (error) {
-            throw new BadRequestException('Invalid care_plan_id format');
+            throw new BadRequestException('Invalid care_plan_assignment_id format');
           }
         }
       } else {
-        throw new BadRequestException('care_plan_id is required');
+        throw new BadRequestException('care_plan_assignment_id is required');
       }
 
       // Xử lý date_of_birth: ép về Date object
