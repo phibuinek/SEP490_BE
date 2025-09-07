@@ -60,7 +60,7 @@ export class CarePlanAssignmentsController {
   }
 
   @Get()
-  @Roles(Role.STAFF, Role.ADMIN)
+  @Roles(Role.STAFF, Role.ADMIN, Role.FAMILY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all care plan assignments' })
   @ApiResponse({ status: 200, description: 'Return all care plan assignments' })

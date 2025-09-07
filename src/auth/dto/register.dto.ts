@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'user@email.com' })
+  @ApiProperty({ example: 'user@gmail.com' })
   @IsEmail()
   email: string;
 
@@ -40,13 +40,13 @@ export class RegisterDto {
   @Matches(/^[0-9]{10,11}$/, { message: 'Phone number must be 10-11 digits' })
   phone: string;
 
-  @ApiProperty({ 
+  @ApiPropertyOptional({ 
     example: 'family_user',
-    description: 'Tên đăng nhập'
+    description: 'Tên đăng nhập (tùy chọn; nếu bỏ trống sẽ tự sinh)'
   })
   @IsString()
-  @IsNotEmpty()
-  username: string;
+  @IsOptional()
+  username?: string;
 
   @ApiPropertyOptional({ 
     example: '123 Đường ABC, Quận 1, TP.HCM',

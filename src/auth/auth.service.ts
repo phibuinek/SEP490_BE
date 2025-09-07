@@ -170,12 +170,28 @@ export class AuthService {
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     }
 
-    // Sử dụng dữ liệu từ DTO
+    // Sử dụng dữ liệu từ DTO; nếu không có username thì tự sinh
+    const baseFromEmail = (dto.email || '').split('@')[0] || 'user';
+    const sanitizedBase = baseFromEmail
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .slice(0, 24) || 'user';
+
+    let finalUsername = dto.username?.trim();
+    if (!finalUsername) {
+      // sinh username ngẫu nhiên tránh trùng
+      const randomSuffix = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, '0');
+      finalUsername = `${sanitizedBase}_${randomSuffix}`;
+    }
+
     const payload = {
       full_name: dto.full_name,
       email: dto.email,
       phone: dto.phone,
-      username: dto.username,
+      username: finalUsername,
       password: dto.password,
       address: dto.address || undefined,
       role: UserRole.FAMILY,

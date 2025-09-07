@@ -140,6 +140,13 @@ export class UsersService {
       return savedUser;
     } catch (error) {
       console.error('[USER][CREATE][ERROR]', error);
+      // Log chi tiết validation từ MongoDB (errInfo.details)
+      try {
+        const details = (error as any)?.errInfo?.details;
+        if (details) {
+          console.error('[USER][CREATE][ERROR] MongoDB errInfo.details:', JSON.stringify(details, null, 2));
+        }
+      } catch {}
       console.error('[USER][CREATE][ERROR] Stack:', error.stack);
       throw error;
     }

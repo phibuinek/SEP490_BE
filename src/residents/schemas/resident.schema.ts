@@ -98,8 +98,9 @@ export class Resident {
   @Prop({ type: String, enum: ResidentStatus, required: true, default: ResidentStatus.PENDING })
   status: ResidentStatus;
 
-  @Prop({ type: Types.ObjectId, ref: 'CarePlan', required: true })
-  care_plan_id: Types.ObjectId;
+  // Liên kết bản ghi gán gói dịch vụ (CarePlanAssignment)
+  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', required: true })
+  care_plan_assignment_id: Types.ObjectId;
 
   @Prop({ required: true })
   created_at: Date;

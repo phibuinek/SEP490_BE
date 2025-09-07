@@ -104,9 +104,9 @@ export class ResidentsController {
           description: 'Liên hệ khẩn cấp (bắt buộc) - JSON string',
           example: '{"name":"John Doe","phone":"0123456789","relationship":"Son"}'
         },
-        care_plan_id: {
+        care_plan_assignment_id: {
           type: 'string',
-          description: 'ID gói dịch vụ chăm sóc (bắt buộc)',
+          description: 'ID bản ghi gán gói dịch vụ (bắt buộc)',
           example: '507f1f77bcf86cd799439011'
         },
       },
@@ -123,7 +123,7 @@ export class ResidentsController {
         'family_member_id',
         'relationship',
         'emergency_contact',
-        'care_plan_id',
+        'care_plan_assignment_id',
       ],
     },
   })
