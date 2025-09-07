@@ -541,6 +541,65 @@ export class StaffAssignmentsService {
     }
   }
 
+  async findStaffByResident(resident_id: string): Promise<any[]> {
+    try {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Invalid resident ID format');
+      }
+
+      // Find resident and its current room via bed assignment reference on resident
+      const resident = await this.residentModel
+        .findOne({ _id: new Types.ObjectId(resident_id), is_deleted: false })
+        .populate({
+          path: 'bed_id',
+          select: 'room_id',
+        })
+        .exec();
+
+      if (!resident) {
+        throw new NotFoundException('Resident not found');
+      }
+
+      const residentWithBed: any = resident as any;
+      const roomId = residentWithBed?.bed_id?.room_id;
+
+      if (!roomId) {
+        // Resident has no bed/room assigned
+        return [];
+      }
+
+      // Find active staff assignments for this room
+      const assignments = await this.staffAssignmentModel
+        .find({
+          room_id: new Types.ObjectId(roomId),
+          status: AssignmentStatus.ACTIVE,
+        })
+        .populate('staff_id', 'full_name email phone role avatar')
+        .populate('assigned_by', 'full_name email')
+        .exec();
+
+      // Map to staff info with assignment metadata
+      return assignments.map((a: any) => ({
+        staff: a.staff_id,
+        assignment: {
+          _id: a._id,
+          assigned_date: a.assigned_date,
+          end_date: a.end_date,
+          status: a.status,
+          notes: a.notes,
+        },
+      }));
+    } catch (error: any) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error?.message || 'Failed to find staff by resident');
+    }
+  }
+
   async remove(id: string): Promise<void> {
     try {
       if (!Types.ObjectId.isValid(id)) {
