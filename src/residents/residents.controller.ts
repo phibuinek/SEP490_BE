@@ -11,6 +11,7 @@ import {
   ForbiddenException,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
@@ -28,7 +29,7 @@ import {
   ApiBody,
   ApiConsumes,
 } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Express } from 'express';
@@ -42,9 +43,15 @@ export class ResidentsController {
   constructor(private readonly residentsService: ResidentsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.STAFF)
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @UseInterceptors(
-    FileInterceptor('avatar', {
+    FileFieldsInterceptor([
+      { name: 'avatar', maxCount: 1 },
+      { name: 'cccd_front', maxCount: 1 },
+      { name: 'cccd_back', maxCount: 1 },
+      { name: 'user_cccd_front', maxCount: 1 },
+      { name: 'user_cccd_back', maxCount: 1 },
+    ], {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
@@ -65,48 +72,110 @@ export class ResidentsController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Tạo resident mới, có thể upload avatar',
+    description: 'Tạo resident mới, có thể upload avatar và CCCD',
     schema: {
       type: 'object',
       properties: {
-        avatar: { type: 'string', format: 'binary' },
-        full_name: { type: 'string' },
-        gender: { type: 'string' },
-        date_of_birth: { type: 'string', format: 'date' },
-        family_member_id: { type: 'string' },
-        relationship: { type: 'string' },
-        medical_history: { type: 'string' },
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
+        cccd_front: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt trước của resident (bắt buộc)' },
+        cccd_back: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt sau của resident (bắt buộc)' },
+        user_cccd_front: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt trước của family member (bắt buộc)' },
+        user_cccd_back: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt sau của family member (bắt buộc)' },
+        full_name: { type: 'string', description: 'Họ tên đầy đủ' },
+        gender: { type: 'string', description: 'Giới tính' },
+        date_of_birth: { type: 'string', format: 'date', description: 'Ngày sinh' },
+        cccd_id: { type: 'string', description: 'Mã số CCCD của resident (12 chữ số)', pattern: '^[0-9]{12}$' },
+        user_cccd_id: { type: 'string', description: 'Mã số CCCD của family member (12 chữ số)', pattern: '^[0-9]{12}$' },
+        family_member_id: { type: 'string', description: 'ID thành viên gia đình' },
+        relationship: { type: 'string', description: 'Mối quan hệ với thành viên gia đình' },
+        medical_history: { type: 'string', description: 'Tiền sử bệnh' },
         current_medications: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              medication_name: { type: 'string' },
-              dosage: { type: 'string' },
-              frequency: { type: 'string' },
-            },
-          },
+          type: 'string',
+          description: 'Danh sách thuốc đang dùng (JSON array string, tùy chọn)',
+          example: '[{"medication_name":"Aspirin","dosage":"81mg","frequency":"Sáng"}]',
         },
-        allergies: { type: 'array', items: { type: 'string' } },
+        allergies: {
+          type: 'string',
+          description: 'Dị ứng (JSON array string, tùy chọn)',
+          example: '["Hải sản","Thuốc kháng sinh"]',
+        },
         emergency_contact: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            phone: { type: 'string' },
-            relationship: { type: 'string' },
-          },
+          type: 'string',
+          description: 'Liên hệ khẩn cấp (bắt buộc) - JSON string',
+          example: '{"name":"John Doe","phone":"0123456789","relationship":"Son"}'
+        },
+        care_plan_id: {
+          type: 'string',
+          description: 'ID gói dịch vụ chăm sóc (bắt buộc)',
+          example: '507f1f77bcf86cd799439011'
         },
       },
+      required: [
+        'full_name',
+        'gender',
+        'date_of_birth',
+        'cccd_id',
+        'cccd_front',
+        'cccd_back',
+        'user_cccd_id',
+        'user_cccd_front',
+        'user_cccd_back',
+        'family_member_id',
+        'relationship',
+        'emergency_contact',
+        'care_plan_id',
+      ],
     },
   })
   @ApiOperation({ summary: 'Create a new resident' })
   create(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: {
+      avatar?: Express.Multer.File[];
+      cccd_front?: Express.Multer.File[];
+      cccd_back?: Express.Multer.File[];
+      user_cccd_front?: Express.Multer.File[];
+      user_cccd_back?: Express.Multer.File[];
+    },
     @Body() createResidentDto: CreateResidentDto,
   ) {
-    if (file) {
-      createResidentDto.avatar = file.path || `uploads/${file.filename}`;
+    // Map uploaded files to DTO fields
+    if (files?.avatar?.[0]) {
+      createResidentDto.avatar = files.avatar[0].path || `uploads/${files.avatar[0].filename}`;
     }
+    if (files?.cccd_front?.[0]) {
+      createResidentDto.cccd_front = files.cccd_front[0].path || `uploads/${files.cccd_front[0].filename}`;
+    }
+    if (files?.cccd_back?.[0]) {
+      createResidentDto.cccd_back = files.cccd_back[0].path || `uploads/${files.cccd_back[0].filename}`;
+    }
+    if (files?.user_cccd_front?.[0]) {
+      createResidentDto.user_cccd_front = files.user_cccd_front[0].path || `uploads/${files.user_cccd_front[0].filename}`;
+    }
+    if (files?.user_cccd_back?.[0]) {
+      createResidentDto.user_cccd_back = files.user_cccd_back[0].path || `uploads/${files.user_cccd_back[0].filename}`;
+    }
+
+    // Debug all data
+    console.log('[CONTROLLER] Full createResidentDto:', JSON.stringify(createResidentDto, null, 2));
+    console.log('[CONTROLLER] emergency_contact type:', typeof createResidentDto.emergency_contact);
+    console.log('[CONTROLLER] emergency_contact value:', createResidentDto.emergency_contact);
+    
+    // Parse emergency_contact string to object
+    if (typeof createResidentDto.emergency_contact === 'string') {
+      try {
+        const parsed = JSON.parse(createResidentDto.emergency_contact);
+        console.log('[CONTROLLER] Parsed emergency_contact:', parsed);
+        createResidentDto.emergency_contact = parsed;
+      } catch (error) {
+        console.log('[CONTROLLER] Failed to parse emergency_contact:', createResidentDto.emergency_contact, error);
+        createResidentDto.emergency_contact = {
+          name: "Chưa cập nhật",
+          phone: "0000000000",
+          relationship: "Chưa cập nhật"
+        };
+      }
+    }
+
     return this.residentsService.create(createResidentDto);
   }
 
@@ -131,7 +200,7 @@ export class ResidentsController {
   findAcceptedResidentsByFamily(
     @Param('familyMemberId') familyMemberId: string,
   ) {
-    return this.residentsService.findAcceptedResidentsByFamily(familyMemberId);
+    return this.residentsService.findActiveResidentsByFamily(familyMemberId);
   }
 
   @Get('pending')
@@ -274,7 +343,7 @@ export class ResidentsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.ADMIN, Role.STAFF)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update resident status (accept/reject)' })
   @ApiBody({
     schema: {
@@ -284,18 +353,25 @@ export class ResidentsController {
           type: 'string',
           enum: ['accepted', 'rejected'],
           description: 'Status to update (accepted or rejected)'
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for rejection (optional)',
+          example: 'Thiếu giấy tờ cần thiết'
         }
       },
       required: ['status']
     }
   })
   @ApiResponse({ status: 200, description: 'Resident status updated successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid status.' })
+  @ApiResponse({ status: 400, description: 'Invalid status or resident not in pending status.' })
   @ApiResponse({ status: 404, description: 'Resident not found.' })
-  updateStatus(
+  async updateStatus(
     @Param('id') id: string,
     @Body('status') status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
+    @Body('reason') reason?: string,
   ) {
-    return this.residentsService.updateStatus(id, status);
+    console.log(`[CONTROLLER] Updating resident ${id} status to ${status}`);
+    return this.residentsService.updateStatus(id, status, reason);
   }
 }

@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CarePlansService } from './care-plans.service';
 import { CreateCarePlanDto } from './dto/create-care-plan.dto';
 import { UpdateCarePlanDto } from './dto/update-care-plan.dto';
@@ -26,6 +27,7 @@ import { AssignCarePlanDto } from './dto/assign-care-plan.dto';
 @ApiTags('CarePlans')
 @ApiBearerAuth()
 @Controller('care-plans')
+@UseGuards(JwtAuthGuard)
 export class CarePlansController {
   constructor(private readonly carePlansService: CarePlansService) {}
 
