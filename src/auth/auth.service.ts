@@ -170,36 +170,16 @@ export class AuthService {
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     }
 
-    // Tối giản input: chỉ cần email, password, confirmPassword
-    // Sinh tự động username và full_name từ email; phone tối thiểu theo schema
-    const emailLocal = (dto.email || '').split('@')[0] || 'user';
-    const baseUsername = emailLocal.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 30) || 'user';
-
-    // Tạo username duy nhất
-    let candidateUsername = baseUsername;
-    let suffix = 0;
-    // Giới hạn vòng lặp để tránh treo (trường hợp rất hiếm)
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const exists = await this.usersService.findByUsername(candidateUsername);
-      if (!exists) break;
-      suffix = Math.floor(Math.random() * 10000);
-      candidateUsername = `${baseUsername}_${suffix}`.slice(0, 30);
-    }
-
-    // Phone bắt buộc theo schema hiện tại: dùng placeholder hợp lệ
-    const placeholderPhone = '0000000000';
-
-    // Ép role = FAMILY, status = PENDING
+    // Sử dụng dữ liệu từ DTO
     const payload = {
-      full_name: emailLocal,
+      full_name: dto.full_name,
       email: dto.email,
-      phone: placeholderPhone,
-      username: candidateUsername,
+      phone: dto.phone,
+      username: dto.username,
       password: dto.password,
-      avatar: dto['avatar'] || null,
-      address: dto['address'] || undefined,
+      address: dto.address || undefined,
       role: UserRole.FAMILY,
-      status: UserStatus.PENDING,
+      status: UserStatus.PENDING, // Chờ duyệt như message
     } as any;
 
     // Xóa confirmPassword trước khi chuyển xuống UsersService

@@ -60,8 +60,22 @@ export class ResidentsService {
       // if (!residentData.status) {
       //   residentData.status = ResidentStatus.ACTIVE;
       // }
-      // Mặc định status = active
-      residentData.status = ResidentStatus.ACTIVE;
+      // Mặc định status = pending (chờ duyệt)
+      residentData.status = ResidentStatus.PENDING;
+
+      // Xử lý care_plan_id: ép về ObjectId
+      if (residentData.care_plan_id) {
+        if (typeof residentData.care_plan_id === 'string') {
+          try {
+            residentData.care_plan_id = new Types.ObjectId(residentData.care_plan_id);
+            console.log('[RESIDENT][CREATE] Converted care_plan_id to ObjectId:', residentData.care_plan_id);
+          } catch (error) {
+            throw new BadRequestException('Invalid care_plan_id format');
+          }
+        }
+      } else {
+        throw new BadRequestException('care_plan_id is required');
+      }
 
       // Xử lý date_of_birth: ép về Date object
       if (residentData.date_of_birth) {
@@ -228,10 +242,10 @@ export class ResidentsService {
           console.log('[RESIDENT][CREATE] Fixed phone number, kept other fields:', ec);
         }
         
-        // Đảm bảo các trường cần thiết tồn tại
-        if (!ec.name) ec.name = "";
+        // Đảm bảo có đủ 3 trường required cho MongoDB
+        if (!ec.name || ec.name.trim() === "") ec.name = "Chưa cập nhật";
         if (!ec.phone) ec.phone = "0000000000";
-        if (!ec.relationship) ec.relationship = "";
+        if (!ec.relationship || ec.relationship.trim() === "") ec.relationship = "Chưa cập nhật";
         
         console.log('[RESIDENT][CREATE] Final emergency contact after validation:', ec);
       }
@@ -524,24 +538,54 @@ export class ResidentsService {
     }).exec();
   }
   
-  // Admin cập nhật status resident
+  // Admin cập nhật status resident (accept/reject)
   async updateStatus(
     id: string,
-    status: ResidentStatus,
+    status: ResidentStatus.ACCEPTED | ResidentStatus.REJECTED,
+    reason?: string,
   ): Promise<Resident> {
+    console.log(`[SERVICE] Updating resident ${id} status to ${status}`);
+    
+    // Kiểm tra ID resident có tồn tại không
     const resident = await this.residentModel.findOne({
       _id: id,
       is_deleted: false,
     });
+    
     if (!resident) {
+      console.log(`[SERVICE] Resident with ID ${id} not found`);
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
-    if (!Object.values(ResidentStatus).includes(status)) {
-      throw new BadRequestException('Invalid status');
+    
+    console.log(`[SERVICE] Found resident: ${resident.full_name}, current status: ${resident.status}`);
+    
+    // Chỉ cho phép cập nhật status nếu resident đang ở trạng thái pending
+    if (resident.status !== ResidentStatus.PENDING) {
+      console.log(`[SERVICE] Resident ${id} is not in pending status, current: ${resident.status}`);
+      throw new BadRequestException(`Resident is not in pending status. Current status: ${resident.status}`);
     }
+    
+    // Validate status
+    if (status !== ResidentStatus.ACCEPTED && status !== ResidentStatus.REJECTED) {
+      console.log(`[SERVICE] Invalid status: ${status}`);
+      throw new BadRequestException('Status must be either "accepted" or "rejected"');
+    }
+    
+    // Cập nhật status
     resident.status = status;
     resident.updated_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // GMT+7
-    return resident.save();
+    
+    // Nếu reject thì lưu lý do
+    if (status === ResidentStatus.REJECTED && reason) {
+      resident.deleted_reason = reason;
+      console.log(`[SERVICE] Rejection reason: ${reason}`);
+    }
+    
+    console.log(`[SERVICE] Updating resident ${id} to status: ${status}`);
+    const updatedResident = await resident.save();
+    console.log(`[SERVICE] Resident ${id} status updated successfully to: ${updatedResident.status}`);
+    
+    return updatedResident;
   }
 
   // Family lấy resident active để hiển thị app
@@ -551,6 +595,14 @@ export class ResidentsService {
       status: ResidentStatus.ACTIVE,
       is_deleted: false,
     }).exec();
+  }
+
+  // Admin/Staff: lấy tất cả residents đang chờ duyệt
+  async findPendingResidents(): Promise<Resident[]> {
+    return this.residentModel
+      .find({ status: ResidentStatus.PENDING, is_deleted: false })
+      .populate('family_member_id', 'full_name email phone')
+      .exec();
   }
 
   // Admin/Staff: lấy tất cả residents đã được duyệt
