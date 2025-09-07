@@ -160,6 +160,15 @@ export class StaffAssignmentsController {
     return this.staffAssignmentsService.findResidentsByStaff(staffId);
   }
 
+  @Get('by-resident/:residentId/staff')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get staff assigned to the resident\'s current room' })
+  @ApiResponse({ status: 200, description: 'Staff retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  findStaffByResident(@Param('residentId') residentId: string) {
+    return this.staffAssignmentsService.findStaffByResident(residentId);
+  }
+
   @Get('by-room/:roomId')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get staff assignments by room ID' })
