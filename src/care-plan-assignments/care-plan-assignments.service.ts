@@ -27,9 +27,15 @@ export class CarePlanAssignmentsService {
     _req?: any,
   ): Promise<CarePlanAssignment> {
     // 1. Lấy thông tin CarePlan
-    const carePlan = await this.carePlanModel.findById(
-      createCarePlanAssignmentDto.care_plan_id,
-    );
+    // Hỗ trợ cả care_plan_id (single) và care_plan_ids (array) để tương thích
+    const carePlanId: any = (createCarePlanAssignmentDto as any).care_plan_id ||
+      (Array.isArray((createCarePlanAssignmentDto as any).care_plan_ids)
+        ? (createCarePlanAssignmentDto as any).care_plan_ids[0]
+        : undefined);
+    if (!carePlanId) {
+      throw new NotFoundException('care_plan_id hoặc care_plan_ids[0] là bắt buộc');
+    }
+    const carePlan = await this.carePlanModel.findById(carePlanId);
     if (!carePlan) throw new NotFoundException('CarePlan not found');
 
     // 2. Lấy thông tin Resident
@@ -47,9 +53,9 @@ export class CarePlanAssignmentsService {
 
     // 4. Tạo Bill tương ứng
     await this.billsService.create({
-      resident_id: new Types.ObjectId(resident._id),
-      care_plan_assignment_id: new Types.ObjectId(savedAssignment._id),
-      staff_id: new Types.ObjectId(createCarePlanAssignmentDto.staff_id),
+      resident_id: new Types.ObjectId(resident._id.toString()),
+      care_plan_assignment_id: new Types.ObjectId(savedAssignment._id.toString()),
+      staff_id: new Types.ObjectId((createCarePlanAssignmentDto as any).staff_id?.toString()),
       amount: carePlan.monthly_price,
       due_date: new Date(createCarePlanAssignmentDto.start_date),
       title: `Hóa đơn gói dịch vụ: ${carePlan.plan_name}`,
