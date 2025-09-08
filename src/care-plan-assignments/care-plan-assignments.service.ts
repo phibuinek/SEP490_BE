@@ -53,9 +53,9 @@ export class CarePlanAssignmentsService {
 
     // 4. Tạo Bill tương ứng
     await this.billsService.create({
-      resident_id: new Types.ObjectId(resident._id.toString()),
-      care_plan_assignment_id: new Types.ObjectId(savedAssignment._id.toString()),
-      staff_id: new Types.ObjectId((createCarePlanAssignmentDto as any).staff_id?.toString()),
+      resident_id: new Types.ObjectId(String((resident as any)._id)),
+      care_plan_assignment_id: new Types.ObjectId(String((savedAssignment as any)._id)),
+      staff_id: new Types.ObjectId(String((createCarePlanAssignmentDto as any).staff_id)),
       amount: carePlan.monthly_price,
       due_date: new Date(createCarePlanAssignmentDto.start_date),
       title: `Hóa đơn gói dịch vụ: ${carePlan.plan_name}`,
