@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CarePlanAssignmentsService } from './care-plan-assignments.service';
 import { CreateCarePlanAssignmentDto } from './dto/create-care-plan-assignment.dto';
@@ -28,8 +29,14 @@ export class CarePlanAssignmentsController {
 
   @Post()
   @Roles(Role.FAMILY, Role.ADMIN, Role.STAFF)
-  create(@Body() createCarePlanAssignmentDto: CreateCarePlanAssignmentDto) {
-    return this.carePlanAssignmentsService.create(createCarePlanAssignmentDto);
+  create(
+    @Body() createCarePlanAssignmentDto: CreateCarePlanAssignmentDto,
+    @Req() req: any,
+  ) {
+    return this.carePlanAssignmentsService.create(
+      createCarePlanAssignmentDto,
+      req,
+    );
   }
 
   @Get()
