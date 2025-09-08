@@ -27,35 +27,34 @@ export class CarePlanAssignmentsService {
     _req?: any,
   ): Promise<CarePlanAssignment> {
     // 1. Lấy thông tin CarePlan
-    const carePlan = await this.carePlanModel.findById(createCarePlanAssignmentDto.care_plan_id);
+    const carePlan = await this.carePlanModel.findById(
+      createCarePlanAssignmentDto.care_plan_id,
+    );
     if (!carePlan) throw new NotFoundException('CarePlan not found');
 
     // 2. Lấy thông tin Resident
-    const resident = await this.residentModel.findById(createCarePlanAssignmentDto.resident_id);
+    const resident = await this.residentModel.findById(
+      createCarePlanAssignmentDto.resident_id,
+    );
     if (!resident) throw new NotFoundException('Resident not found');
 
     // 3. Tạo assignment
     const createdCarePlanAssignment = new this.carePlanAssignmentModel({
       ...createCarePlanAssignmentDto,
-      care_plan_name: carePlan.planName,
+      care_plan_name: carePlan.plan_name,
     });
     const savedAssignment = await createdCarePlanAssignment.save();
 
     // 4. Tạo Bill tương ứng
     await this.billsService.create({
-      family_member_id: resident.familyMemberId
-        ? new Types.ObjectId(resident.familyMemberId) as Schema.Types.ObjectId
-        : undefined,
-      resident_id: new Types.ObjectId(resident._id) as Schema.Types.ObjectId,
-      care_plan_assignment_id: new Types.ObjectId(savedAssignment._id) as Schema.Types.ObjectId,
-      staff_id: new Types.ObjectId(createCarePlanAssignmentDto.staff_id) as Schema.Types.ObjectId,
-      amount: carePlan.monthlyPrice,
+      resident_id: new Types.ObjectId(resident._id),
+      care_plan_assignment_id: new Types.ObjectId(savedAssignment._id),
+      staff_id: new Types.ObjectId(createCarePlanAssignmentDto.staff_id),
+      amount: carePlan.monthly_price,
       due_date: new Date(createCarePlanAssignmentDto.start_date),
-      paid_date: '',
-      payment_method: PaymentMethod.BANK_TRANSFER,
-      status: BillStatus.UNPAID,
-      notes: `Thanh toán cho gói dịch vụ: ${carePlan.planName}`,
-    });
+      title: `Hóa đơn gói dịch vụ: ${carePlan.plan_name}`,
+      notes: `Thanh toán cho gói dịch vụ: ${carePlan.plan_name}`,
+    } as any);
 
     return savedAssignment;
   }
@@ -95,5 +94,14 @@ export class CarePlanAssignmentsService {
       throw new NotFoundException(`CarePlanAssignment #${id} not found`);
     }
     return carePlanAssignment;
+  }
+
+  async findByResident(resident_id: string): Promise<CarePlanAssignment[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new NotFoundException('Invalid resident ID');
+    }
+    return this.carePlanAssignmentModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .exec();
   }
 } 
