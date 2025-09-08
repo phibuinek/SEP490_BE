@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BillsService } from './bills.service';
 import { BillsController } from './bills.controller';
@@ -14,7 +14,7 @@ import { RoomTypesModule } from '../room_types/room-types.module';
     MongooseModule.forFeature([{ name: Bill.name, schema: BillSchema }]),
     CarePlansModule,
     ResidentsModule,
-    CarePlanAssignmentsModule,
+    forwardRef(() => CarePlanAssignmentsModule),
     BedAssignmentsModule,
     RoomTypesModule,
   ],
