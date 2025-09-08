@@ -8,13 +8,17 @@ import {
   CarePlanAssignmentSchema,
 } from './schemas/care-plan-assignment.schema';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
+import { CarePlan, CarePlanSchema } from '../care-plans/schemas/care-plan.schema';
+import { BillsModule } from '../bills/bills.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: CarePlanAssignment.name, schema: CarePlanAssignmentSchema },
       { name: Resident.name, schema: ResidentSchema },
+      { name: CarePlan.name, schema: CarePlanSchema },
     ]),
+    BillsModule,
   ],
   controllers: [CarePlanAssignmentsController],
   providers: [CarePlanAssignmentsService, CarePlanAssignmentsSchedulerService],
