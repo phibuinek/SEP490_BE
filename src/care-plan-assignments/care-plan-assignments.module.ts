@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CarePlanAssignmentsService } from './care-plan-assignments.service';
 import { CarePlanAssignmentsController } from './care-plan-assignments.controller';
@@ -9,7 +9,6 @@ import {
 } from './schemas/care-plan-assignment.schema';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 import { CarePlan, CarePlanSchema } from '../care-plans/schemas/care-plan.schema';
-import { BillsModule } from '../bills/bills.module';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { BillsModule } from '../bills/bills.module';
       { name: Resident.name, schema: ResidentSchema },
       { name: CarePlan.name, schema: CarePlanSchema },
     ]),
-    forwardRef(() => BillsModule),
   ],
   controllers: [CarePlanAssignmentsController],
   providers: [CarePlanAssignmentsService, CarePlanAssignmentsSchedulerService],
