@@ -98,9 +98,9 @@ export class Resident {
   @Prop({ type: String, enum: ResidentStatus, required: true, default: ResidentStatus.PENDING })
   status: ResidentStatus;
 
-  // Liên kết bản ghi gán gói dịch vụ (CarePlanAssignment)
-  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', required: true })
-  care_plan_assignment_id: Types.ObjectId;
+  // Deprecated: Care plan assignment reference removed from Resident
+  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', required: false, default: null })
+  care_plan_assignment_id?: Types.ObjectId | null;
 
   @Prop({ required: true })
   created_at: Date;

@@ -42,8 +42,125 @@ import { ResidentStatus } from './schemas/resident.schema';
 export class ResidentsController {
   constructor(private readonly residentsService: ResidentsService) {}
 
+  @Post('my-resident')
+  @Roles(Role.FAMILY)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'avatar', maxCount: 1 },
+      { name: 'cccd_front', maxCount: 1 },
+      { name: 'cccd_back', maxCount: 1 },
+    ], {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Family tạo resident cho chính mình (tự động lấy family_member_id từ token)',
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: { type: 'string', format: 'binary', description: 'Ảnh đại diện (tùy chọn)' },
+        cccd_front: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt trước của resident (bắt buộc)' },
+        cccd_back: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt sau của resident (bắt buộc)' },
+        full_name: { type: 'string', description: 'Họ tên đầy đủ' },
+        gender: { type: 'string', description: 'Giới tính' },
+        date_of_birth: { type: 'string', format: 'date', description: 'Ngày sinh' },
+        cccd_id: { type: 'string', description: 'Mã số CCCD của resident (12 chữ số)', pattern: '^[0-9]{12}$' },
+        relationship: { type: 'string', description: 'Mối quan hệ với thành viên gia đình' },
+        medical_history: { type: 'string', description: 'Tiền sử bệnh' },
+        current_medications: {
+          type: 'string',
+          description: 'Danh sách thuốc đang dùng (JSON array string, tùy chọn)',
+          example: '[{"medication_name":"Aspirin","dosage":"81mg","frequency":"Sáng"}]',
+        },
+        allergies: {
+          type: 'string',
+          description: 'Dị ứng (JSON array string, tùy chọn)',
+          example: '["Hải sản","Thuốc kháng sinh"]',
+        },
+        emergency_contact: {
+          type: 'string',
+          description: 'Liên hệ khẩn cấp (bắt buộc) - JSON string',
+          example: '{"name":"John Doe","phone":"0123456789","relationship":"Son"}'
+        },
+      },
+      required: [
+        'full_name',
+        'gender',
+        'date_of_birth',
+        'cccd_id',
+        'cccd_front',
+        'cccd_back',
+        'relationship',
+        'emergency_contact',
+      ],
+    },
+  })
+  @ApiOperation({ summary: 'Family create resident for themselves (auto family_member_id from token)' })
+  createMyResident(
+    @UploadedFiles() files: {
+      avatar?: Express.Multer.File[];
+      cccd_front?: Express.Multer.File[];
+      cccd_back?: Express.Multer.File[];
+    },
+    @Body() createResidentDto: CreateResidentDto,
+    @Req() req,
+  ) {
+    // Tự động lấy family_member_id từ token
+    createResidentDto.family_member_id = req.user.userId;
+
+    // Map uploaded files to DTO fields
+    if (files?.avatar?.[0]) {
+      createResidentDto.avatar = files.avatar[0].path || `uploads/${files.avatar[0].filename}`;
+    }
+    if (files?.cccd_front?.[0]) {
+      createResidentDto.cccd_front = files.cccd_front[0].path || `uploads/${files.cccd_front[0].filename}`;
+    }
+    if (files?.cccd_back?.[0]) {
+      createResidentDto.cccd_back = files.cccd_back[0].path || `uploads/${files.cccd_back[0].filename}`;
+    }
+
+    // Debug all data
+    console.log('[CONTROLLER] Full createResidentDto:', JSON.stringify(createResidentDto, null, 2));
+    console.log('[CONTROLLER] emergency_contact type:', typeof createResidentDto.emergency_contact);
+    console.log('[CONTROLLER] emergency_contact value:', createResidentDto.emergency_contact);
+    
+    // Parse emergency_contact string to object
+    if (typeof createResidentDto.emergency_contact === 'string') {
+      try {
+        const parsed = JSON.parse(createResidentDto.emergency_contact);
+        console.log('[CONTROLLER] Parsed emergency_contact:', parsed);
+        createResidentDto.emergency_contact = parsed;
+      } catch (error) {
+        console.log('[CONTROLLER] Failed to parse emergency_contact:', createResidentDto.emergency_contact, error);
+        createResidentDto.emergency_contact = {
+          name: "Chưa cập nhật",
+          phone: "0000000000",
+          relationship: "Chưa cập nhật"
+        };
+      }
+    }
+
+    return this.residentsService.create(createResidentDto);
+  }
+
   @Post()
-  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
+  @Roles(Role.ADMIN, Role.STAFF)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'avatar', maxCount: 1 },
@@ -72,7 +189,7 @@ export class ResidentsController {
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Tạo resident mới, có thể upload avatar và CCCD',
+    description: 'Admin/Staff tạo resident cho family member khác',
     schema: {
       type: 'object',
       properties: {
@@ -104,11 +221,6 @@ export class ResidentsController {
           description: 'Liên hệ khẩn cấp (bắt buộc) - JSON string',
           example: '{"name":"John Doe","phone":"0123456789","relationship":"Son"}'
         },
-        care_plan_assignment_id: {
-          type: 'string',
-          description: 'ID bản ghi gán gói dịch vụ (bắt buộc)',
-          example: '507f1f77bcf86cd799439011'
-        },
       },
       required: [
         'full_name',
@@ -123,11 +235,10 @@ export class ResidentsController {
         'family_member_id',
         'relationship',
         'emergency_contact',
-        'care_plan_assignment_id',
       ],
     },
   })
-  @ApiOperation({ summary: 'Create a new resident' })
+  @ApiOperation({ summary: 'Admin/Staff create resident for family member' })
   create(
     @UploadedFiles() files: {
       avatar?: Express.Multer.File[];

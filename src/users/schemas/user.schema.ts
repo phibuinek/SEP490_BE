@@ -68,6 +68,16 @@ export class User {
   @Prop()
   notes?: string;
 
+  // CCCD Information for family members
+  @Prop({ required: false })
+  cccd_id?: string;
+
+  @Prop({ required: false })
+  cccd_front?: string;
+
+  @Prop({ required: false })
+  cccd_back?: string;
+
   // created_at and updated_at are automatically managed by timestamps
   created_at?: Date;
   updated_at?: Date;

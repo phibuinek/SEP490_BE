@@ -63,18 +63,19 @@ export class ResidentsService {
       // Mặc định status = pending (chờ duyệt)
       residentData.status = ResidentStatus.PENDING;
 
-      // Xử lý care_plan_assignment_id: ép về ObjectId
+      // Bỏ bắt buộc care_plan_assignment_id. Resident có thể được tạo trước,
+      // care plan assignment sẽ được tạo ở API riêng.
       if (residentData.care_plan_assignment_id) {
-        if (typeof residentData.care_plan_assignment_id === 'string') {
-          try {
-            residentData.care_plan_assignment_id = new Types.ObjectId(residentData.care_plan_assignment_id);
-            console.log('[RESIDENT][CREATE] Converted care_plan_assignment_id to ObjectId:', residentData.care_plan_assignment_id);
-          } catch (error) {
-            throw new BadRequestException('Invalid care_plan_assignment_id format');
-          }
+        try {
+          residentData.care_plan_assignment_id = new Types.ObjectId(
+            residentData.care_plan_assignment_id,
+          );
+        } catch (error) {
+          // Nếu không hợp lệ thì set null thay vì throw để không chặn tạo resident
+          residentData.care_plan_assignment_id = null;
         }
       } else {
-        throw new BadRequestException('care_plan_assignment_id is required');
+        residentData.care_plan_assignment_id = null;
       }
 
       // Xử lý date_of_birth: ép về Date object
@@ -601,7 +602,7 @@ export class ResidentsService {
   async findPendingResidents(): Promise<Resident[]> {
     return this.residentModel
       .find({ status: ResidentStatus.PENDING, is_deleted: false })
-      .populate('family_member_id', 'full_name email phone')
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
       .exec();
   }
 
@@ -609,7 +610,7 @@ export class ResidentsService {
   async findAllAccepted(): Promise<Resident[]> {
     return this.residentModel
       .find({ status: ResidentStatus.ACCEPTED, is_deleted: false })
-      .populate('family_member_id', 'full_name email phone')
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
       .exec();
   }
 
@@ -618,7 +619,7 @@ export class ResidentsService {
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     return this.residentModel
       .find(notDeleted)
-      .populate('family_member_id', 'full_name email phone')
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
       .exec();
   }
 
@@ -626,7 +627,7 @@ export class ResidentsService {
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     const resident = await this.residentModel
       .findOne({ _id: id, ...notDeleted })
-      .populate('family_member_id', 'full_name email phone')
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
       .exec();
     if (!resident)
       throw new NotFoundException(`Resident with ID ${id} not found`);
@@ -637,7 +638,7 @@ export class ResidentsService {
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     const resident = await this.residentModel
       .findOne({ _id: id, ...notDeleted })
-      .populate('family_member_id', 'full_name email phone role _id')
+      .populate('family_member_id', 'full_name email phone role _id cccd_id cccd_front cccd_back')
       .exec();
     if (!resident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
