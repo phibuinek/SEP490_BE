@@ -485,4 +485,57 @@ export class UsersService {
 
     return user;
   }
+
+  async uploadCccd(
+    userId: string,
+    cccdId: string,
+    cccdFront?: Express.Multer.File,
+    cccdBack?: Express.Multer.File,
+  ): Promise<User> {
+    try {
+      // Find user
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check if user is family member
+      if (user.role !== 'family') {
+        throw new BadRequestException('Only family members can upload CCCD');
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        cccd_id: cccdId,
+        updated_at: new Date(),
+      };
+
+      // Handle file uploads
+      if (cccdFront) {
+        updateData.cccd_front = cccdFront.path || `uploads/${cccdFront.filename}`;
+      }
+
+      if (cccdBack) {
+        updateData.cccd_back = cccdBack.path || `uploads/${cccdBack.filename}`;
+      }
+
+      // Update user
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(userId, updateData, { new: true })
+        .exec();
+
+      if (!updatedUser) {
+        throw new NotFoundException('Failed to update user CCCD information');
+      }
+
+      console.log('[USER][UPLOAD_CCCD] Successfully updated CCCD for user:', userId);
+      return updatedUser;
+    } catch (error) {
+      console.error('[USER][UPLOAD_CCCD] Error:', error);
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to upload CCCD: ${error.message}`);
+    }
+  }
 }

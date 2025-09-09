@@ -239,12 +239,13 @@ export class CreateResidentDto {
 
   @ApiProperty({
     type: 'string',
-    description: 'Care plan assignment ID (required)',
-    example: '507f1f77bcf86cd799439011'
+    description: 'Deprecated: Care plan assignment is created via its own API',
+    example: '',
   })
+  @ApiHideProperty()
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  care_plan_assignment_id: string;
+  care_plan_assignment_id?: string;
 
   @ApiHideProperty()
   @IsOptional()

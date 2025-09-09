@@ -13,6 +13,7 @@ import {
   NotFoundException,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -32,7 +33,7 @@ import { Role } from '../common/enums/role.enum';
 import { Public } from '../common/decorators/public.decorator';
 import { ResetPasswordDto } from './dto/change-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Express } from 'express';
@@ -690,5 +691,153 @@ export class UsersController {
   async checkEmailExists(@Param('email') email: string) {
     const exists = await this.usersService.findByEmail(email);
     return { exists: !!exists };
+  }
+
+  @Post('upload-cccd')
+  @Roles(Role.FAMILY)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'cccd_front', maxCount: 1 },
+      { name: 'cccd_back', maxCount: 1 },
+    ], {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Family upload CCCD for themselves (auto ID from token)' })
+  @ApiResponse({ status: 200, description: 'CCCD uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBody({
+    description: 'Upload CCCD information and images',
+    schema: {
+      type: 'object',
+      properties: {
+        cccd_id: {
+          type: 'string',
+          description: 'CCCD ID (12 digits)',
+          example: '123456789012'
+        },
+        cccd_front: {
+          type: 'string',
+          format: 'binary',
+          description: 'CCCD front image (optional)'
+        },
+        cccd_back: {
+          type: 'string',
+          format: 'binary',
+          description: 'CCCD back image (optional)'
+        }
+      },
+      required: ['cccd_id']
+    }
+  })
+  async uploadMyCccd(
+    @Body('cccd_id') cccdId: string,
+    @UploadedFiles() files: {
+      cccd_front?: Express.Multer.File[];
+      cccd_back?: Express.Multer.File[];
+    },
+    @Req() req,
+  ) {
+    const userId = req.user.userId; // Tự động lấy ID từ token
+
+    if (!cccdId) {
+      throw new BadRequestException('CCCD ID is required');
+    }
+
+    return this.usersService.uploadCccd(
+      userId,
+      cccdId,
+      files?.cccd_front?.[0],
+      files?.cccd_back?.[0],
+    );
+  }
+
+  @Post(':id/upload-cccd')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'cccd_front', maxCount: 1 },
+      { name: 'cccd_back', maxCount: 1 },
+    ], {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Admin/Staff upload CCCD for specific user' })
+  @ApiResponse({ status: 200, description: 'CCCD uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiBody({
+    description: 'Upload CCCD information and images',
+    schema: {
+      type: 'object',
+      properties: {
+        cccd_id: {
+          type: 'string',
+          description: 'CCCD ID (12 digits)',
+          example: '123456789012'
+        },
+        cccd_front: {
+          type: 'string',
+          format: 'binary',
+          description: 'CCCD front image (optional)'
+        },
+        cccd_back: {
+          type: 'string',
+          format: 'binary',
+          description: 'CCCD back image (optional)'
+        }
+      },
+      required: ['cccd_id']
+    }
+  })
+  async uploadCccdForUser(
+    @Param('id') userId: string,
+    @Body('cccd_id') cccdId: string,
+    @UploadedFiles() files: {
+      cccd_front?: Express.Multer.File[];
+      cccd_back?: Express.Multer.File[];
+    },
+  ) {
+    if (!cccdId) {
+      throw new BadRequestException('CCCD ID is required');
+    }
+
+    return this.usersService.uploadCccd(
+      userId,
+      cccdId,
+      files?.cccd_front?.[0],
+      files?.cccd_back?.[0],
+    );
   }
 }
