@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -544,7 +545,7 @@ export class StaffAssignmentsService {
     }
   }
 
-  async findStaffByResident(resident_id: string): Promise<any[]> {
+  async findStaffByResident(resident_id: string, req?: any): Promise<any[]> {
     try {
       if (!Types.ObjectId.isValid(resident_id)) {
         throw new BadRequestException('Invalid resident ID format');
@@ -557,6 +558,17 @@ export class StaffAssignmentsService {
 
       if (!resident) {
         throw new NotFoundException('Resident not found');
+      }
+
+      // Check if FAMILY user can access this resident
+      if (req?.user?.role === 'FAMILY') {
+        const familyMemberIdStr = typeof resident.family_member_id === 'object' && resident.family_member_id?._id
+          ? resident.family_member_id._id.toString()
+          : resident.family_member_id?.toString();
+        
+        if (familyMemberIdStr !== req.user.userId?.toString()) {
+          throw new ForbiddenException('Bạn không có quyền xem thông tin staff của resident này!');
+        }
       }
 
       // Find current bed assignment for this resident
