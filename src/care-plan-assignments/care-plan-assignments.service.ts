@@ -4,8 +4,8 @@ import { Model, Types } from 'mongoose';
 import { CarePlanAssignment } from './schemas/care-plan-assignment.schema';
 import { CreateCarePlanAssignmentDto } from './dto/create-care-plan-assignment.dto';
 import { UpdateCarePlanAssignmentDto } from './dto/update-care-plan-assignment.dto';
-import { BillsService } from '../bills/bills.service';
-import { BillStatus, PaymentMethod } from '../bills/schemas/bill.schema';
+// import { BillsService } from '../bills/bills.service';
+// import { BillStatus, PaymentMethod } from '../bills/schemas/bill.schema';
 import { CarePlan, CarePlanDocument } from '../care-plans/schemas/care-plan.schema';
 import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 // import { Schema } from 'mongoose'; // phải import cả Schema
@@ -19,7 +19,7 @@ export class CarePlanAssignmentsService {
     private carePlanModel: Model<CarePlanDocument>,
     @InjectModel(Resident.name)
     private residentModel: Model<ResidentDocument>,
-    private readonly billsService: BillsService,
+    // private readonly billsService: BillsService,
   ) {}
 
   async create(
@@ -51,16 +51,16 @@ export class CarePlanAssignmentsService {
     });
     const savedAssignment = await createdCarePlanAssignment.save();
 
-    // 4. Tạo Bill tương ứng
-    await this.billsService.create({
-      resident_id: new Types.ObjectId(String((resident as any)._id)),
-      care_plan_assignment_id: new Types.ObjectId(String((savedAssignment as any)._id)),
-      staff_id: new Types.ObjectId(String((createCarePlanAssignmentDto as any).staff_id)),
-      amount: carePlan.monthly_price,
-      due_date: new Date(createCarePlanAssignmentDto.start_date),
-      title: `Hóa đơn gói dịch vụ: ${carePlan.plan_name}`,
-      notes: `Thanh toán cho gói dịch vụ: ${carePlan.plan_name}`,
-    } as any);
+    // TODO: Tạo Bill tương ứng (tạm thời comment để tránh circular dependency)
+    // await this.billsService.create({
+    //   resident_id: new Types.ObjectId(String((resident as any)._id)),
+    //   care_plan_assignment_id: new Types.ObjectId(String((savedAssignment as any)._id)),
+    //   staff_id: new Types.ObjectId(String((createCarePlanAssignmentDto as any).staff_id)),
+    //   amount: carePlan.monthly_price,
+    //   due_date: new Date(createCarePlanAssignmentDto.start_date),
+    //   title: `Hóa đơn gói dịch vụ: ${carePlan.plan_name}`,
+    //   notes: `Thanh toán cho gói dịch vụ: ${carePlan.plan_name}`,
+    // } as any);
 
     return savedAssignment;
   }
