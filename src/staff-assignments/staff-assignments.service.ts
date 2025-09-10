@@ -19,6 +19,7 @@ import {
 } from '../residents/schemas/resident.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Room, RoomDocument } from '../rooms/schemas/room.schema';
+import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Injectable()
 export class StaffAssignmentsService {
@@ -31,6 +32,8 @@ export class StaffAssignmentsService {
     private userModel: Model<UserDocument>,
     @InjectModel(Room.name)
     private roomModel: Model<RoomDocument>,
+    @InjectModel(BedAssignment.name)
+    private bedAssignmentModel: Model<BedAssignmentDocument>,
   ) {}
 
   async create(
@@ -547,21 +550,33 @@ export class StaffAssignmentsService {
         throw new BadRequestException('Invalid resident ID format');
       }
 
-      // Find resident and its current room via bed assignment reference on resident
+      // Find resident first
       const resident = await this.residentModel
         .findOne({ _id: new Types.ObjectId(resident_id), is_deleted: false })
-        .populate({
-          path: 'bed_id',
-          select: 'room_id',
-        })
         .exec();
 
       if (!resident) {
         throw new NotFoundException('Resident not found');
       }
 
-      const residentWithBed: any = resident as any;
-      const roomId = residentWithBed?.bed_id?.room_id;
+      // Find current bed assignment for this resident
+      const bedAssignment = await this.bedAssignmentModel
+        .findOne({ 
+          resident_id: new Types.ObjectId(resident_id),
+          unassigned_date: null // Only active assignments
+        })
+        .populate({
+          path: 'bed_id',
+          select: 'room_id',
+        })
+        .exec();
+
+      if (!bedAssignment) {
+        throw new NotFoundException('Resident is not assigned to any bed');
+      }
+
+      const bedWithRoom: any = bedAssignment.bed_id as any;
+      const roomId = bedWithRoom?.room_id;
 
       if (!roomId) {
         // Resident has no bed/room assigned
