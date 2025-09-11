@@ -41,7 +41,7 @@ export class StaffAssignmentsController {
     status: 201,
     description: 'Staff assignment created successfully.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Staff has reached maximum 3 room assignments.' })
   @ApiResponse({ status: 404, description: 'Staff or room not found.' })
   @ApiResponse({
     status: 409,
@@ -158,6 +158,15 @@ export class StaffAssignmentsController {
   @ApiResponse({ status: 400, description: 'Bad request.' })
   getResidentsByStaff(@Param('staffId') staffId: string) {
     return this.staffAssignmentsService.findResidentsByStaff(staffId);
+  }
+
+  @Get('by-resident/:residentId/staff')
+  @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
+  @ApiOperation({ summary: 'Get staff assigned to the resident\'s current room' })
+  @ApiResponse({ status: 200, description: 'Staff retrieved successfully.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  findStaffByResident(@Param('residentId') residentId: string, @Req() req: any) {
+    return this.staffAssignmentsService.findStaffByResident(residentId, req);
   }
 
   @Get('by-room/:roomId')
@@ -328,7 +337,7 @@ export class StaffAssignmentsController {
     status: 200,
     description: 'Staff assignment updated successfully.',
   })
-  @ApiResponse({ status: 400, description: 'Bad request.' })
+  @ApiResponse({ status: 400, description: 'Bad request - Staff has reached maximum 3 room assignments.' })
   @ApiResponse({ status: 404, description: 'Staff assignment not found.' })
   @ApiResponse({
     status: 409,

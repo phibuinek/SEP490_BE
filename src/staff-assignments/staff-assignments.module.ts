@@ -9,6 +9,7 @@ import {
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Room, RoomSchema } from '../rooms/schemas/room.schema';
+import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Room, RoomSchema } from '../rooms/schemas/room.schema';
       { name: Resident.name, schema: ResidentSchema },
       { name: User.name, schema: UserSchema },
       { name: Room.name, schema: RoomSchema },
+      { name: BedAssignment.name, schema: BedAssignmentSchema },
     ]),
   ],
   controllers: [StaffAssignmentsController],

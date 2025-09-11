@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -19,6 +20,7 @@ import {
 } from '../residents/schemas/resident.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Room, RoomDocument } from '../rooms/schemas/room.schema';
+import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Injectable()
 export class StaffAssignmentsService {
@@ -31,6 +33,8 @@ export class StaffAssignmentsService {
     private userModel: Model<UserDocument>,
     @InjectModel(Room.name)
     private roomModel: Model<RoomDocument>,
+    @InjectModel(BedAssignment.name)
+    private bedAssignmentModel: Model<BedAssignmentDocument>,
   ) {}
 
   async create(
@@ -56,7 +60,19 @@ export class StaffAssignmentsService {
         throw new NotFoundException('Không tìm thấy thông tin phòng');
       }
 
-      // Check if active assignment already exists
+      // Check if staff already has maximum 3 active room assignments
+      const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
+        staff_id: new Types.ObjectId(staff_id),
+        status: AssignmentStatus.ACTIVE,
+      });
+
+      if (activeAssignmentsCount >= 3) {
+        throw new BadRequestException(
+          'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+        );
+      }
+
+      // Check if active assignment already exists for this specific room
       const existingActiveAssignment = await this.staffAssignmentModel.findOne({
         staff_id: new Types.ObjectId(staff_id),
         room_id: new Types.ObjectId(room_id),
@@ -460,6 +476,19 @@ export class StaffAssignmentsService {
           updateStaffAssignmentDto.room_id ||
           assignment.room_id.toString();
 
+        // Check if staff already has maximum 3 active room assignments (excluding current assignment)
+        const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
+          staff_id: new Types.ObjectId(staff_id),
+          status: AssignmentStatus.ACTIVE,
+          _id: { $ne: new Types.ObjectId(id) }, // Exclude current assignment being updated
+        });
+
+        if (activeAssignmentsCount >= 3) {
+          throw new BadRequestException(
+            'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+          );
+        }
+
         const existingAssignment = await this.staffAssignmentModel.findOne({
           staff_id: new Types.ObjectId(staff_id),
           room_id: new Types.ObjectId(room_id),
@@ -513,6 +542,88 @@ export class StaffAssignmentsService {
       throw new BadRequestException(
         `Failed to update staff assignment: ${error.message}`,
       );
+    }
+  }
+
+  async findStaffByResident(resident_id: string, req?: any): Promise<any[]> {
+    try {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Invalid resident ID format');
+      }
+
+      // Find resident first
+      const resident = await this.residentModel
+        .findOne({ _id: new Types.ObjectId(resident_id), is_deleted: false })
+        .exec();
+
+      if (!resident) {
+        throw new NotFoundException('Resident not found');
+      }
+
+      // Check if FAMILY user can access this resident
+      if (req?.user?.role === 'FAMILY') {
+        const familyMemberIdStr = typeof resident.family_member_id === 'object' && resident.family_member_id?._id
+          ? resident.family_member_id._id.toString()
+          : resident.family_member_id?.toString();
+        
+        if (familyMemberIdStr !== req.user.userId?.toString()) {
+          throw new ForbiddenException('Bạn không có quyền xem thông tin staff của resident này!');
+        }
+      }
+
+      // Find current bed assignment for this resident
+      const bedAssignment = await this.bedAssignmentModel
+        .findOne({ 
+          resident_id: new Types.ObjectId(resident_id),
+          unassigned_date: null // Only active assignments
+        })
+        .populate({
+          path: 'bed_id',
+          select: 'room_id',
+        })
+        .exec();
+
+      if (!bedAssignment) {
+        throw new NotFoundException('Resident is not assigned to any bed');
+      }
+
+      const bedWithRoom: any = bedAssignment.bed_id as any;
+      const roomId = bedWithRoom?.room_id;
+
+      if (!roomId) {
+        // Resident has no bed/room assigned
+        return [];
+      }
+
+      // Find active staff assignments for this room
+      const assignments = await this.staffAssignmentModel
+        .find({
+          room_id: new Types.ObjectId(roomId),
+          status: AssignmentStatus.ACTIVE,
+        })
+        .populate('staff_id', 'full_name email phone role avatar')
+        .populate('assigned_by', 'full_name email')
+        .exec();
+
+      // Map to staff info with assignment metadata
+      return assignments.map((a: any) => ({
+        staff: a.staff_id,
+        assignment: {
+          _id: a._id,
+          assigned_date: a.assigned_date,
+          end_date: a.end_date,
+          status: a.status,
+          notes: a.notes,
+        },
+      }));
+    } catch (error: any) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error?.message || 'Failed to find staff by resident');
     }
   }
 
