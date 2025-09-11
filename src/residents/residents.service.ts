@@ -23,6 +23,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { RoomsService } from '../rooms/rooms.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { CacheService } from '../common/cache.service';
+import { PaginationDto, PaginatedResponse } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class ResidentsService {
@@ -31,6 +33,7 @@ export class ResidentsService {
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
     private roomsService: RoomsService,
     @InjectModel('User') private userModel: Model<UserDocument>,
+    private cacheService: CacheService,
   ) {}
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
@@ -62,6 +65,26 @@ export class ResidentsService {
       // }
       // Mặc định status = pending (chờ duyệt)
       residentData.status = ResidentStatus.PENDING;
+
+      // Kiểm tra CCCD của family member trước khi cho phép đăng ký resident
+      if (!createResidentDto.family_member_id) {
+        throw new BadRequestException('Thiếu family_member_id');
+      }
+      const familyMember = await this.userModel
+        .findById(createResidentDto.family_member_id)
+        .exec();
+      if (!familyMember) {
+        throw new NotFoundException('Không tìm thấy tài khoản gia đình');
+      }
+      if (
+        !familyMember.cccd_id ||
+        !familyMember.cccd_front ||
+        !familyMember.cccd_back
+      ) {
+        throw new BadRequestException(
+          'Tài khoản gia đình chưa cung cấp đủ thông tin CCCD (cccd_id, ảnh mặt trước, ảnh mặt sau). Vui lòng cập nhật CCCD trước khi đăng ký resident.',
+        );
+      }
 
       // Bỏ bắt buộc care_plan_assignment_id. Resident có thể được tạo trước,
       // care plan assignment sẽ được tạo ở API riêng.
@@ -606,6 +629,63 @@ export class ResidentsService {
       .exec();
   }
 
+  // Lấy danh sách resident ở trạng thái pending kèm thông tin đăng ký gói dịch vụ (care plan assignments)
+  async findPendingWithRegistrations(): Promise<any[]> {
+    const results = await this.residentModel.aggregate([
+      {
+        $match: { status: ResidentStatus.PENDING, is_deleted: false },
+      },
+      {
+        $lookup: {
+          from: 'care_plan_assignments',
+          localField: '_id',
+          foreignField: 'resident_id',
+          as: 'registrations',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'family_member_id',
+          foreignField: '_id',
+          as: 'family_member',
+        },
+      },
+      { $unwind: { path: '$family_member', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          full_name: 1,
+          date_of_birth: 1,
+          gender: 1,
+          avatar: 1,
+          admission_date: 1,
+          family_member_id: 1,
+          relationship: 1,
+          emergency_contact: 1,
+          cccd_id: 1,
+          cccd_front: 1,
+          cccd_back: 1,
+          status: 1,
+          created_at: 1,
+          updated_at: 1,
+          family_member: {
+            _id: 1,
+            full_name: 1,
+            email: 1,
+            phone: 1,
+            cccd_id: 1,
+            cccd_front: 1,
+            cccd_back: 1,
+          },
+          registrations: 1,
+        },
+      },
+      { $sort: { created_at: -1 } },
+    ]);
+
+    return results;
+  }
+
   // Admin/Staff: lấy tất cả residents đã được duyệt
   async findAllAccepted(): Promise<Resident[]> {
     return this.residentModel
@@ -615,22 +695,67 @@ export class ResidentsService {
   }
 
 
-  async findAll(): Promise<Resident[]> {
+  async findAll(pagination: PaginationDto = new PaginationDto()): Promise<PaginatedResponse<Resident>> {
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
-    return this.residentModel
-      .find(notDeleted)
-      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
-      .exec();
+    
+    // Generate cache key
+    const cacheKey = CacheService.generateResidentsListKey({ ...pagination, notDeleted });
+    
+    // Try to get from cache first
+    const cachedResult = await this.cacheService.get<PaginatedResponse<Resident>>(cacheKey);
+    if (cachedResult) {
+      console.log('[RESIDENT][FINDALL] Cache hit for key:', cacheKey);
+      return cachedResult;
+    }
+
+    console.log('[RESIDENT][FINDALL] Cache miss, querying database...');
+    
+    // Query database
+    const [data, total] = await Promise.all([
+      this.residentModel
+        .find(notDeleted)
+        .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+        .sort(pagination.sort)
+        .skip(pagination.skip)
+        .limit(pagination.limit || 10)
+        .lean() // Use lean() for better performance
+        .exec(),
+      this.residentModel.countDocuments(notDeleted).exec(),
+    ]);
+
+    const result = new PaginatedResponse(data, total, pagination);
+    
+    // Cache the result for 5 minutes
+    await this.cacheService.set(cacheKey, result, 300);
+    
+    return result;
   }
 
   async findOne(id: string): Promise<Resident> {
+    // Try to get from cache first
+    const cacheKey = CacheService.generateResidentKey(id);
+    const cachedResident = await this.cacheService.get<Resident>(cacheKey);
+    if (cachedResident) {
+      console.log('[RESIDENT][FINDONE] Cache hit for key:', cacheKey);
+      return cachedResident;
+    }
+
+    console.log('[RESIDENT][FINDONE] Cache miss, querying database...');
+    
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
     const resident = await this.residentModel
       .findOne({ _id: id, ...notDeleted })
       .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+      .lean() // Use lean() for better performance
       .exec();
-    if (!resident)
+      
+    if (!resident) {
       throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+
+    // Cache the result for 10 minutes
+    await this.cacheService.set(cacheKey, resident, 600);
+    
     return resident;
   }
 

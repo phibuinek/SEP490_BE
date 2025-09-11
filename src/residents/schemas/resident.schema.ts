@@ -95,6 +95,16 @@ export class Resident {
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;
 
+  // CCCD của resident
+  @Prop({ type: String, match: /^[0-9]{12}$/, required: true })
+  cccd_id: string;
+
+  @Prop({ type: String, required: false, default: null })
+  cccd_front?: string | null;
+
+  @Prop({ type: String, required: false, default: null })
+  cccd_back?: string | null;
+
   @Prop({ type: String, enum: ResidentStatus, required: true, default: ResidentStatus.PENDING })
   status: ResidentStatus;
 

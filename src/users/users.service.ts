@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { MailService } from '../common/mail.service';
+import type { Express } from 'express';
 
 interface UserCreateData extends Omit<CreateUserDto, 'join_date'> {
   join_date?: Date;

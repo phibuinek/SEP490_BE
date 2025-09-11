@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module';
 import { BedsModule } from '../beds/beds.module';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
 import { RoomsModule } from '../rooms/rooms.module';
+import { CacheService } from '../common/cache.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RoomsModule } from '../rooms/rooms.module';
     RoomsModule,
   ],
   controllers: [ResidentsController],
-  providers: [ResidentsService],
+  providers: [ResidentsService, CacheService],
   exports: [
     ResidentsService,
     MongooseModule.forFeature([
