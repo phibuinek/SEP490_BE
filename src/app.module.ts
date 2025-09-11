@@ -68,6 +68,8 @@ import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 import { MessagesModule } from './messages/messages.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
 import { CommonModule } from './common/common.module';
+import { CacheService } from './common/cache.service';
+import { DatabaseIndexes } from './database/indexes';
 
 @Module({
   imports: [
@@ -107,6 +109,7 @@ import { CommonModule } from './common/common.module';
   controllers: [AppController],
   providers: [
     AppService,
+    CacheService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

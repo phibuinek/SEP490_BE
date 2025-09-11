@@ -137,29 +137,7 @@ export class CreateResidentDto {
   @IsString()
   cccd_back?: string;
 
-  @ApiProperty({
-    example: '987654321098',
-    description: 'CCCD ID of the family member (12 digits)',
-  })
-  @IsString()
-  @Matches(/^[0-9]{12}$/, { message: 'Family member CCCD ID must be exactly 12 digits' })
-  user_cccd_id: string;
-
-  @ApiPropertyOptional({
-    example: 'uploads/user_cccd_front.jpg',
-    description: 'Family member CCCD front image path (optional)',
-  })
-  @IsOptional()
-  @IsString()
-  user_cccd_front?: string;
-
-  @ApiPropertyOptional({
-    example: 'uploads/user_cccd_back.jpg',
-    description: 'Family member CCCD back image path (optional)',
-  })
-  @IsOptional()
-  @IsString()
-  user_cccd_back?: string;
+  // Các trường CCCD của family đã loại khỏi DTO dành cho family tạo resident
 
   @ApiProperty({
     example: 'Cao huyết áp, tiểu đường type 2',

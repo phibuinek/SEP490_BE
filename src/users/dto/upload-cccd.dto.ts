@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, Matches } from 'class-validator';
-import { Express } from 'express';
+import type { Express } from 'express';
 
 export class UploadCccdDto {
   @ApiProperty({
