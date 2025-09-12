@@ -265,4 +265,42 @@ export class BedAssignmentsService {
       );
     }
   }
+
+  async activateBedAssignment(assignmentId: string) {
+    try {
+      const assignment = await this.model.findById(assignmentId);
+      if (!assignment) {
+        throw new BadRequestException('Bed assignment not found');
+      }
+
+      if (assignment.status !== 'accepted') {
+        throw new BadRequestException('Only accepted bed assignments can be activated');
+      }
+
+      // Update bed assignment status to active
+      const updatedAssignment = await this.model
+        .findByIdAndUpdate(
+          assignmentId,
+          { status: 'active' },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('bed_id', 'bed_number')
+        .populate('assigned_by', 'name email')
+        .exec();
+
+      if (!updatedAssignment) {
+        throw new BadRequestException('Failed to activate bed assignment');
+      }
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to activate bed assignment: ${error.message}`,
+      );
+    }
+  }
 }

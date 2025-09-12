@@ -89,15 +89,16 @@ export class CarePlanAssignment {
 
   @Prop({
     enum: [
-      'packages_selected',
-      'active',
+      'pending',
       'accepted',
+      'active',
       'rejected',
       'completed',
       'cancelled',
       'paused',
     ],
     required: true,
+    default: 'pending',
   })
   status: string;
 

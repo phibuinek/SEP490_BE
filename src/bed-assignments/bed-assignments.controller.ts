@@ -273,4 +273,14 @@ export class BedAssignmentsController {
     }
     return this.service.rejectBedAssignment(id, req.user.userId, body.reason);
   }
+
+  @Patch('admin/:id/activate')
+  @ApiBearerAuth()
+  async activateBedAssignment(@Param('id') id: string, @Req() req) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can activate bed assignments');
+    }
+    return this.service.activateBedAssignment(id);
+  }
 }

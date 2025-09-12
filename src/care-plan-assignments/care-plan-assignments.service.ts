@@ -69,7 +69,7 @@ export class CarePlanAssignmentsService {
         end_date: createCarePlanAssignmentDto.end_date
           ? new Date(createCarePlanAssignmentDto.end_date)
           : undefined,
-        status: createCarePlanAssignmentDto.status || 'packages_selected',
+        status: createCarePlanAssignmentDto.status || 'pending',
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -362,7 +362,7 @@ export class CarePlanAssignmentsService {
   async getPendingAssignments(): Promise<CarePlanAssignment[]> {
     try {
       return await this.carePlanAssignmentModel
-        .find({ status: 'packages_selected' })
+        .find({ status: 'pending' })
         .populate('resident_id', 'full_name date_of_birth cccd_id')
         .populate('family_member_id', 'name email phone')
         .populate('care_plan_ids', 'name description price')
@@ -382,8 +382,8 @@ export class CarePlanAssignmentsService {
         throw new NotFoundException('Care plan assignment not found');
       }
 
-      if (assignment.status !== 'packages_selected') {
-        throw new BadRequestException('Only packages_selected assignments can be approved');
+      if (assignment.status !== 'pending') {
+        throw new BadRequestException('Only pending assignments can be approved');
       }
 
       // Update assignment status to accepted

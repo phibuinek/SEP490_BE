@@ -60,7 +60,7 @@ export class AdminDashboardService {
         // Pending care plan assignments (not part of any package)
         this.carePlanAssignmentModel
           .find({ 
-            status: 'packages_selected',
+            status: 'pending',
             _id: { $nin: pendingRegistrationPackages.map(pkg => pkg.care_plan_assignment_id) }
           })
           .populate('resident_id', 'full_name date_of_birth cccd_id')
@@ -131,7 +131,7 @@ export class AdminDashboardService {
         // Care plan assignment statistics
         this.carePlanAssignmentModel.countDocuments(),
         this.carePlanAssignmentModel.countDocuments({ status: 'active' }),
-        this.carePlanAssignmentModel.countDocuments({ status: 'packages_selected' }),
+        this.carePlanAssignmentModel.countDocuments({ status: 'pending' }),
         this.carePlanAssignmentModel.countDocuments({ status: 'accepted' }),
         this.carePlanAssignmentModel.countDocuments({ status: 'rejected' }),
 
