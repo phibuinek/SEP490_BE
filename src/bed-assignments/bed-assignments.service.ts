@@ -43,6 +43,7 @@ export class BedAssignmentsService {
         : undefined,
       assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
       unassigned_date: null, // luôn set null khi tạo mới
+      status: dto.status || 'pending', // set status mặc định là pending
     };
 
     const result = await this.model.create(createData);
@@ -171,5 +172,97 @@ export class BedAssignmentsService {
    */
   async findAllIncludingInactive(bed_id?: string, resident_id?: string) {
     return this.findAll(bed_id, resident_id, false); // activeOnly = false
+  }
+
+  // Admin methods for bed assignment approval
+  async getPendingBedAssignments() {
+    try {
+      return await this.model
+        .find({ status: 'pending' })
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('bed_id', 'bed_number')
+        .populate('assigned_by', 'name email')
+        .sort({ assigned_date: -1 })
+        .exec();
+    } catch (error: any) {
+      throw new BadRequestException(
+        `Failed to get pending bed assignments: ${error.message}`,
+      );
+    }
+  }
+
+  async approveBedAssignment(assignmentId: string, adminId: string) {
+    try {
+      const assignment = await this.model.findById(assignmentId);
+      if (!assignment) {
+        throw new BadRequestException('Bed assignment not found');
+      }
+
+      if (assignment.status !== 'pending') {
+        throw new BadRequestException('Only pending bed assignments can be approved');
+      }
+
+      // Update bed assignment status to accepted
+      const updatedAssignment = await this.model
+        .findByIdAndUpdate(
+          assignmentId,
+          {
+            status: 'accepted',
+            assigned_by: new Types.ObjectId(adminId),
+          },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('bed_id', 'bed_number')
+        .populate('assigned_by', 'name email')
+        .exec();
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to approve bed assignment: ${error.message}`,
+      );
+    }
+  }
+
+  async rejectBedAssignment(assignmentId: string, adminId: string, reason?: string) {
+    try {
+      const assignment = await this.model.findById(assignmentId);
+      if (!assignment) {
+        throw new BadRequestException('Bed assignment not found');
+      }
+
+      if (assignment.status !== 'pending') {
+        throw new BadRequestException('Only pending bed assignments can be rejected');
+      }
+
+      // Update bed assignment status to rejected
+      const updatedAssignment = await this.model
+        .findByIdAndUpdate(
+          assignmentId,
+          {
+            status: 'rejected',
+            assigned_by: new Types.ObjectId(adminId),
+            reason: reason || 'Bed assignment rejected by admin',
+          },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('bed_id', 'bed_number')
+        .populate('assigned_by', 'name email')
+        .exec();
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to reject bed assignment: ${error.message}`,
+      );
+    }
   }
 }

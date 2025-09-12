@@ -8,8 +8,8 @@ export type CarePlanAssignmentDocument = CarePlanAssignment & Document;
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 })
 export class CarePlanAssignment {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  staff_id: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  staff_id?: Types.ObjectId | null;
 
   @Prop({ type: [Types.ObjectId], ref: 'CarePlan', required: true })
   care_plan_ids: Types.ObjectId[];
@@ -20,8 +20,8 @@ export class CarePlanAssignment {
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   family_member_id: Types.ObjectId | null;
 
-  @Prop({ required: true })
-  registration_date: Date;
+  @Prop({ type: Date, default: null })
+  registration_date?: Date | null;
 
   @Prop({ type: String, default: null })
   consultation_notes?: string | null;
@@ -90,9 +90,9 @@ export class CarePlanAssignment {
   @Prop({
     enum: [
       'packages_selected',
-      'room_assigned',
-      'payment_completed',
       'active',
+      'accepted',
+      'rejected',
       'completed',
       'cancelled',
       'paused',

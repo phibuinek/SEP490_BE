@@ -1308,4 +1308,22 @@ export class ResidentsService {
     //   await currentBed.save();
     // }
   }
+
+  // Admin method for getting pending residents
+  async getPendingResidents(): Promise<Resident[]> {
+    try {
+      return await this.residentModel
+        .find({ 
+          status: ResidentStatus.PENDING,
+          is_deleted: false 
+        })
+        .populate('family_member_id', 'name email phone')
+        .sort({ created_at: -1 })
+        .exec();
+    } catch (error: any) {
+      throw new BadRequestException(
+        `Failed to get pending residents: ${error.message}`,
+      );
+    }
+  }
 }

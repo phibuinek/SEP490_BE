@@ -29,6 +29,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiConsumes,
+  ApiParam,
 } from '@nestjs/swagger';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -364,5 +365,52 @@ export class ResidentsController {
   ) {
     console.log(`[CONTROLLER] Updating resident ${id} status to ${status}`);
     return this.residentsService.updateStatus(id, status, reason);
+  }
+
+  // Admin endpoints for resident approval
+  @Get('admin/pending')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all pending residents for admin review' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending residents retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  getPendingResidents() {
+    return this.residentsService.getPendingResidents();
+  }
+
+  @Patch('admin/:id/approve')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve a resident registration' })
+  @ApiParam({ name: 'id', description: 'Resident ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resident approved successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  approveResident(@Param('id') id: string) {
+    return this.residentsService.updateStatus(id, ResidentStatus.ACCEPTED);
+  }
+
+  @Patch('admin/:id/reject')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject a resident registration' })
+  @ApiParam({ name: 'id', description: 'Resident ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resident rejected successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  rejectResident(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.residentsService.updateStatus(id, ResidentStatus.REJECTED, body.reason);
   }
 }

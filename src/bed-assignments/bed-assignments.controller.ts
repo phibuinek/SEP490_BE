@@ -242,4 +242,35 @@ export class BedAssignmentsController {
       return { error: error.message };
     }
   }
+
+  // Admin endpoints for bed assignment approval
+  @Get('admin/pending')
+  @ApiBearerAuth()
+  async getPendingBedAssignments(@Req() req) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can view pending bed assignments');
+    }
+    return this.service.getPendingBedAssignments();
+  }
+
+  @Patch('admin/:id/approve')
+  @ApiBearerAuth()
+  async approveBedAssignment(@Param('id') id: string, @Req() req) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can approve bed assignments');
+    }
+    return this.service.approveBedAssignment(id, req.user.userId);
+  }
+
+  @Patch('admin/:id/reject')
+  @ApiBearerAuth()
+  async rejectBedAssignment(@Param('id') id: string, @Body() body: { reason?: string }, @Req() req) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can reject bed assignments');
+    }
+    return this.service.rejectBedAssignment(id, req.user.userId, body.reason);
+  }
 }

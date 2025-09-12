@@ -1,4 +1,4 @@
-import { IsMongoId, IsDateString, IsOptional } from 'class-validator';
+import { IsMongoId, IsDateString, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateBedAssignmentDto {
@@ -14,4 +14,13 @@ export class CreateBedAssignmentDto {
   @IsOptional()
   @IsMongoId()
   assigned_by?: string;
+
+  @ApiPropertyOptional({
+    enum: ['active', 'accepted', 'pending', 'rejected', 'discharged', 'exchanged'],
+    description: 'Trạng thái phân giường',
+    default: 'pending',
+  })
+  @IsOptional()
+  @IsEnum(['active', 'accepted', 'pending', 'rejected', 'discharged', 'exchanged'])
+  status?: string;
 }
