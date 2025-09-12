@@ -1,28 +1,25 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import {
-  CarePlanAssignment,
-  CarePlanAssignmentDocument,
-} from './schemas/care-plan-assignment.schema';
+import { CarePlanAssignment } from './schemas/care-plan-assignment.schema';
 import { CreateCarePlanAssignmentDto } from './dto/create-care-plan-assignment.dto';
 import { UpdateCarePlanAssignmentDto } from './dto/update-care-plan-assignment.dto';
-import {
-  Resident,
-  ResidentDocument,
-} from '../residents/schemas/resident.schema';
+// import { BillsService } from '../bills/bills.service';
+// import { BillStatus, PaymentMethod } from '../bills/schemas/bill.schema';
+import { CarePlan, CarePlanDocument } from '../care-plans/schemas/care-plan.schema';
+import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
+// import { Schema } from 'mongoose'; // phải import cả Schema
 
 @Injectable()
 export class CarePlanAssignmentsService {
   constructor(
     @InjectModel(CarePlanAssignment.name)
-    private carePlanAssignmentModel: Model<CarePlanAssignmentDocument>,
+    private carePlanAssignmentModel: Model<CarePlanAssignment>,
+    @InjectModel(CarePlan.name)
+    private carePlanModel: Model<CarePlanDocument>,
     @InjectModel(Resident.name)
     private residentModel: Model<ResidentDocument>,
+    // private readonly billsService: BillsService,
   ) {}
 
   async create(
@@ -89,340 +86,49 @@ export class CarePlanAssignmentsService {
   }
 
   async findAll(): Promise<CarePlanAssignment[]> {
-    try {
-      return await this.carePlanAssignmentModel
-        .find()
-        .populate('staff_id', 'full_name email')
-        .populate('resident_id', 'full_name date_of_birth gender care_level')
-        .populate('family_member_id', 'full_name email')
-        .populate({
-          path: 'care_plan_ids',
-          select:
-            'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
-        })
-        .populate('assigned_room_id', 'room_number floor room_type')
-        .populate('assigned_bed_id', 'bed_number bed_type')
-        .sort({ created_at: -1 })
-        .exec();
-    } catch (error: any) {
-      throw new BadRequestException(
-        `Failed to fetch care plan assignments: ${error.message}`,
-      );
-    }
+    return this.carePlanAssignmentModel.find().exec();
   }
 
   async findOne(id: string): Promise<CarePlanAssignment> {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid ID format');
-      }
-
-      const assignment = await this.carePlanAssignmentModel
-        .findById(id)
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
-        .exec();
-
-      if (!assignment) {
-        throw new NotFoundException(
-          `Care plan assignment with ID ${id} not found`,
-        );
-      }
-
-      return assignment;
-    } catch (error: any) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to fetch care plan assignment: ${error.message}`,
-      );
+    const carePlanAssignment = await this.carePlanAssignmentModel
+      .findById(id)
+      .exec();
+    if (!carePlanAssignment) {
+      throw new NotFoundException(`CarePlanAssignment #${id} not found`);
     }
-  }
-
-  async findByResident(resident_id: string): Promise<CarePlanAssignment[]> {
-    try {
-      if (!Types.ObjectId.isValid(resident_id)) {
-        throw new BadRequestException('Invalid resident ID format');
-      }
-
-      return await this.carePlanAssignmentModel
-        .find({ resident_id: new Types.ObjectId(resident_id) })
-        .populate('staff_id', 'full_name email')
-        .populate('resident_id', 'full_name date_of_birth gender')
-        .populate('family_member_id', 'full_name email')
-        .populate({
-          path: 'care_plan_ids',
-          select:
-            'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
-        })
-        .populate('assigned_room_id', 'room_number floor room_type')
-        .populate('assigned_bed_id', 'bed_number bed_type')
-        .sort({ created_at: -1 })
-        .exec();
-    } catch (error: any) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to fetch care plan assignments for resident: ${error.message}`,
-      );
-    }
-  }
-
-  async findByFamilyMember(
-    familyMemberId: string,
-  ): Promise<CarePlanAssignment[]> {
-    try {
-      if (!Types.ObjectId.isValid(familyMemberId)) {
-        throw new BadRequestException('Invalid family member ID format');
-      }
-
-      return await this.carePlanAssignmentModel
-        .find({ family_member_id: new Types.ObjectId(familyMemberId) })
-        .populate('staff_id', 'full_name email')
-        .populate('resident_id', 'full_name date_of_birth gender')
-        .populate('family_member_id', 'full_name email')
-        .populate({
-          path: 'care_plan_ids',
-          select:
-            'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
-        })
-        .populate('assigned_room_id', 'room_number floor room_type')
-        .populate('assigned_bed_id', 'bed_number bed_type')
-        .sort({ created_at: -1 })
-        .exec();
-    } catch (error: any) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to fetch care plan assignments for family member: ${error.message}`,
-      );
-    }
-  }
-
-  async findByStatus(status: string): Promise<CarePlanAssignment[]> {
-    try {
-      return await this.carePlanAssignmentModel
-        .find({ status })
-        .populate('staff_id', 'full_name email')
-        .populate('resident_id', 'full_name date_of_birth gender care_level')
-        .populate('family_member_id', 'full_name email')
-        .populate({
-          path: 'care_plan_ids',
-          select:
-            'plan_name description monthly_price plan_type category services_included staff_ratio duration_type prerequisites contraindications is_active',
-        })
-        .populate('assigned_room_id', 'room_number floor room_type')
-        .populate('assigned_bed_id', 'bed_number bed_type')
-        .sort({ created_at: -1 })
-        .exec();
-    } catch (error: any) {
-      throw new BadRequestException(
-        `Failed to fetch care plan assignments by status: ${error.message}`,
-      );
-    }
-  }
-
-  async getUnregisteredResidents(): Promise<any[]> {
-    try {
-      console.log('DEBUG - Getting unregistered residents...');
-
-      // Get all residents
-      const allResidents = await this.residentModel.find().exec();
-      console.log('DEBUG - Total residents found:', allResidents.length);
-
-      // Get all care plan assignments (unpopulated to get raw ObjectIds)
-      const allAssignments = await this.carePlanAssignmentModel
-        .find()
-        .lean()
-        .exec();
-      console.log('DEBUG - Total assignments found:', allAssignments.length);
-
-      // Get list of resident IDs that already have care plan assignments
-      // Filter out assignments with null/undefined resident_id
-      const registeredResidentIds = allAssignments
-        .filter((assignment) => assignment.resident_id) // Only include assignments with valid resident_id
-        .map((assignment) => assignment.resident_id.toString());
-
-      console.log('DEBUG - Registered resident IDs:', registeredResidentIds);
-
-      // Filter out residents who already have care plan assignments
-      const unregisteredResidents = allResidents.filter((resident: any) => {
-        if (!resident || !resident._id) {
-          console.log('DEBUG - Skipping resident with invalid _id');
-          return false;
-        }
-
-        const residentId = resident._id.toString();
-        const isRegistered = registeredResidentIds.includes(residentId);
-        console.log(
-          `DEBUG - Resident ${resident.full_name || 'Unknown'} (${residentId}): ${isRegistered ? 'REGISTERED' : 'UNREGISTERED'}`,
-        );
-        return !isRegistered;
-      });
-
-      console.log(
-        'DEBUG - Unregistered residents count:',
-        unregisteredResidents.length,
-      );
-      console.log(
-        'DEBUG - Unregistered residents:',
-        unregisteredResidents.map((r: any) => r.full_name || 'Unknown'),
-      );
-
-      return unregisteredResidents;
-    } catch (error: any) {
-      console.error('DEBUG - Error in getUnregisteredResidents:', error);
-      throw new BadRequestException(
-        `Failed to fetch unregistered residents: ${error.message}`,
-      );
-    }
+    return carePlanAssignment;
   }
 
   async update(
     id: string,
     updateCarePlanAssignmentDto: UpdateCarePlanAssignmentDto,
   ): Promise<CarePlanAssignment> {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid ID format');
-      }
-
-      // Handle date conversions
-      const updateData: any = { ...updateCarePlanAssignmentDto };
-      if (updateData.registration_date) {
-        updateData.registration_date = new Date(updateData.registration_date);
-      }
-      if (updateData.start_date) {
-        updateData.start_date = new Date(updateData.start_date);
-      }
-      if (updateData.end_date) {
-        updateData.end_date = new Date(updateData.end_date);
-      }
-      updateData.updated_at = new Date();
-
-      const updatedAssignment = await this.carePlanAssignmentModel
-        .findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
-        .exec();
-
-      if (!updatedAssignment) {
-        throw new NotFoundException(
-          `Care plan assignment with ID ${id} not found`,
-        );
-      }
-
-      return updatedAssignment;
-    } catch (error: any) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to update care plan assignment: ${error.message}`,
-      );
+    const carePlanAssignment = await this.carePlanAssignmentModel
+      .findByIdAndUpdate(id, updateCarePlanAssignmentDto, { new: true })
+      .exec();
+    if (!carePlanAssignment) {
+      throw new NotFoundException(`CarePlanAssignment #${id} not found`);
     }
+    return carePlanAssignment;
   }
 
-  async remove(id: string): Promise<{ deleted: boolean; _id: string }> {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid ID format');
-      }
-
-      const deletedAssignment = await this.carePlanAssignmentModel
-        .findByIdAndDelete(id)
-        .exec();
-
-      if (!deletedAssignment) {
-        throw new NotFoundException(
-          `Care plan assignment with ID ${id} not found`,
-        );
-      }
-
-      return { deleted: true, _id: id };
-    } catch (error: any) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to delete care plan assignment: ${error.message}`,
-      );
+  async remove(id: string): Promise<CarePlanAssignment> {
+    const carePlanAssignment = await this.carePlanAssignmentModel
+      .findByIdAndDelete(id)
+      .exec();
+    if (!carePlanAssignment) {
+      throw new NotFoundException(`CarePlanAssignment #${id} not found`);
     }
+    return carePlanAssignment;
   }
 
-  async updateStatus(id: string, status: string): Promise<CarePlanAssignment> {
-    try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid ID format');
-      }
-
-      const validStatuses = [
-        'consulting',
-        'packages_selected',
-        'room_assigned',
-        'payment_completed',
-        'active',
-        'completed',
-        'cancelled',
-        'paused',
-      ];
-
-      if (!validStatuses.includes(status)) {
-        throw new BadRequestException('Invalid status value');
-      }
-
-      const updatedAssignment = await this.carePlanAssignmentModel
-        .findByIdAndUpdate(
-          id,
-          { status, updated_at: new Date() },
-          { new: true, runValidators: true },
-        )
-        .populate('staff_id', 'name email')
-        .populate('resident_id', 'name date_of_birth')
-        .populate('family_member_id', 'name email')
-        .populate('care_plan_ids', 'name description price')
-        .populate('assigned_room_id', 'room_number floor')
-        .populate('assigned_bed_id', 'bed_number')
-        .exec();
-
-      if (!updatedAssignment) {
-        throw new NotFoundException(
-          `Care plan assignment with ID ${id} not found`,
-        );
-      }
-
-      return updatedAssignment;
-    } catch (error: any) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(
-        `Failed to update status: ${error.message}`,
-      );
+  async findByResident(resident_id: string): Promise<CarePlanAssignment[]> {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new NotFoundException('Invalid resident ID');
     }
+    return this.carePlanAssignmentModel
+      .find({ resident_id: new Types.ObjectId(resident_id) })
+      .exec();
   }
 
   /**
