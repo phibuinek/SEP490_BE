@@ -200,23 +200,23 @@ export class CreateCarePlanAssignmentDto {
 
   @ApiPropertyOptional({
     enum: [
-      'packages_selected',
-      'active',
+      'pending',
       'accepted',
+      'active',
       'rejected',
       'completed',
       'cancelled',
       'paused',
     ],
     description: 'Trạng thái đăng ký và chăm sóc',
-    default: 'packages_selected',
-    example: 'packages_selected'
+    default: 'pending',
+    example: 'pending'
   })
   @IsOptional()
   @IsEnum([
-    'packages_selected',
-    'active',
+    'pending',
     'accepted',
+    'active',
     'rejected',
     'completed',
     'cancelled',

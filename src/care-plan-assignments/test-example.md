@@ -176,14 +176,13 @@ curl -X DELETE http://localhost:3000/care-plan-assignments/507f1f77bcf86cd799439
 ## Status Values
 
 ### Assignment Status
-- `consulting`: Initial consultation phase
-- `packages_selected`: Care packages have been selected
-- `room_assigned`: Room has been assigned
-- `payment_completed`: Payment has been completed
-- `active`: Assignment is active and ongoing
-- `completed`: Assignment has been completed
-- `cancelled`: Assignment has been cancelled
-- `paused`: Assignment is temporarily paused
+- `pending`: Initial registration, waiting for admin approval
+- `accepted`: Admin has approved the registration
+- `active`: Payment completed, care plan is active
+- `rejected`: Admin has rejected the registration
+- `completed`: Care plan has been completed
+- `cancelled`: Care plan has been cancelled
+- `paused`: Care plan is temporarily paused
 
 ### Payment Status
 - `pending`: Payment is pending
