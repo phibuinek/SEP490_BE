@@ -72,6 +72,7 @@ export class CarePlanAssignmentsService {
         end_date: createCarePlanAssignmentDto.end_date
           ? new Date(createCarePlanAssignmentDto.end_date)
           : undefined,
+        status: createCarePlanAssignmentDto.status || 'packages_selected',
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -647,6 +648,182 @@ export class CarePlanAssignmentsService {
       }
       throw new BadRequestException(
         `Failed to renew assignment: ${error.message}`,
+      );
+    }
+  }
+
+  // Admin methods for approval workflow
+  async getPendingAssignments(): Promise<CarePlanAssignment[]> {
+    try {
+      return await this.carePlanAssignmentModel
+        .find({ status: 'packages_selected' })
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('family_member_id', 'name email phone')
+        .populate('care_plan_ids', 'name description price')
+        .sort({ created_at: -1 })
+        .exec();
+    } catch (error: any) {
+      throw new BadRequestException(
+        `Failed to get pending assignments: ${error.message}`,
+      );
+    }
+  }
+
+  async approveAssignment(assignmentId: string, adminId: string): Promise<CarePlanAssignment> {
+    try {
+      const assignment = await this.carePlanAssignmentModel.findById(assignmentId);
+      if (!assignment) {
+        throw new NotFoundException('Care plan assignment not found');
+      }
+
+      if (assignment.status !== 'packages_selected') {
+        throw new BadRequestException('Only packages_selected assignments can be approved');
+      }
+
+      // Update assignment status to accepted
+      const updatedAssignment = await this.carePlanAssignmentModel
+        .findByIdAndUpdate(
+          assignmentId,
+          {
+            status: 'accepted',
+            staff_id: new Types.ObjectId(adminId),
+            updated_at: new Date(),
+          },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('family_member_id', 'name email phone')
+        .populate('care_plan_ids', 'name description price')
+        .populate('staff_id', 'name email')
+        .exec();
+
+      if (!updatedAssignment) {
+        throw new NotFoundException('Failed to update care plan assignment');
+      }
+
+      // Update resident status to accepted
+      await this.residentModel.findByIdAndUpdate(
+        assignment.resident_id,
+        { status: 'accepted' },
+        { new: true }
+      );
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to approve assignment: ${error.message}`,
+      );
+    }
+  }
+
+  async rejectAssignment(assignmentId: string, adminId: string, reason?: string): Promise<CarePlanAssignment> {
+    try {
+      const assignment = await this.carePlanAssignmentModel.findById(assignmentId);
+      if (!assignment) {
+        throw new NotFoundException('Care plan assignment not found');
+      }
+
+      if (assignment.status !== 'packages_selected') {
+        throw new BadRequestException('Only packages_selected assignments can be rejected');
+      }
+
+      // Update assignment status to rejected
+      const updatedAssignment = await this.carePlanAssignmentModel
+        .findByIdAndUpdate(
+          assignmentId,
+          {
+            status: 'rejected',
+            staff_id: new Types.ObjectId(adminId),
+            notes: reason || 'Assignment rejected by admin',
+            updated_at: new Date(),
+          },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('family_member_id', 'name email phone')
+        .populate('care_plan_ids', 'name description price')
+        .populate('staff_id', 'name email')
+        .exec();
+
+      if (!updatedAssignment) {
+        throw new NotFoundException('Failed to update care plan assignment');
+      }
+
+      // Update resident status to rejected
+      await this.residentModel.findByIdAndUpdate(
+        assignment.resident_id,
+        { status: 'rejected' },
+        { new: true }
+      );
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to reject assignment: ${error.message}`,
+      );
+    }
+  }
+
+  async activateAssignment(assignmentId: string): Promise<CarePlanAssignment> {
+    try {
+      const assignment = await this.carePlanAssignmentModel.findById(assignmentId);
+      if (!assignment) {
+        throw new NotFoundException('Care plan assignment not found');
+      }
+
+      if (assignment.status !== 'accepted') {
+        throw new BadRequestException('Only accepted assignments can be activated');
+      }
+
+      // Update assignment status to active
+      const updatedAssignment = await this.carePlanAssignmentModel
+        .findByIdAndUpdate(
+          assignmentId,
+          {
+            status: 'active',
+            updated_at: new Date(),
+          },
+          { new: true, runValidators: true }
+        )
+        .populate('resident_id', 'full_name date_of_birth cccd_id')
+        .populate('family_member_id', 'name email phone')
+        .populate('care_plan_ids', 'name description price')
+        .populate('staff_id', 'name email')
+        .exec();
+
+      if (!updatedAssignment) {
+        throw new NotFoundException('Failed to update care plan assignment');
+      }
+
+      // Update resident status to active
+      await this.residentModel.findByIdAndUpdate(
+        assignment.resident_id,
+        { status: 'active' },
+        { new: true }
+      );
+
+      return updatedAssignment;
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to activate assignment: ${error.message}`,
       );
     }
   }

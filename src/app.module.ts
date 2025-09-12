@@ -67,6 +67,8 @@ import { RoomsModule } from './rooms/rooms.module';
 import { BedAssignmentsModule } from './bed-assignments/bed-assignments.module';
 import { MessagesModule } from './messages/messages.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
+import { RegistrationPackagesModule } from './registration-packages/registration-packages.module';
+import { AdminDashboardModule } from './admin/admin-dashboard.module';
 import { CommonModule } from './common/common.module';
 import { CacheService } from './common/cache.service';
 import { DatabaseIndexes } from './database/indexes';
@@ -105,6 +107,8 @@ import { DatabaseIndexes } from './database/indexes';
     BedAssignmentsModule,
     MessagesModule,
     StaffAssignmentsModule,
+    RegistrationPackagesModule,
+    AdminDashboardModule,
   ],
   controllers: [AppController],
   providers: [

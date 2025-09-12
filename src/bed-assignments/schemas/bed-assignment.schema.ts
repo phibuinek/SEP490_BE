@@ -20,8 +20,24 @@ export class BedAssignment {
   @Prop({ type: Date, required: false, default: null })
   unassigned_date?: Date | null;
 
-  @Prop({ required: false, type: Types.ObjectId, ref: 'User' })
-  assigned_by?: Types.ObjectId;
+  @Prop({
+    enum: [
+      'active',
+      'accepted',
+      'pending',
+      'rejected',
+      'discharged',
+      'exchanged',
+    ],
+    required: true,
+  })
+  status: string;
+
+  @Prop({ type: String, required: false, default: null })
+  reason?: string | null;
+
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  assigned_by: Types.ObjectId;
 }
 
 export const BedAssignmentSchema = SchemaFactory.createForClass(BedAssignment);
