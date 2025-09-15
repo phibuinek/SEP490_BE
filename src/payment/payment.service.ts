@@ -9,6 +9,9 @@ import { Model } from 'mongoose';
 import { Bill } from '../bills/schemas/bill.schema';
 import { Payment } from './schemas/payment.schema';
 import { BadRequestException } from '@nestjs/common';
+import { CarePlanAssignment } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
+import { BedAssignment } from '../bed-assignments/schemas/bed-assignment.schema';
+import { Resident } from '../residents/schemas/resident.schema';
 
 @Injectable()
 export class PaymentService {
@@ -21,6 +24,9 @@ export class PaymentService {
   constructor(
     @InjectModel(Bill.name) private billModel: Model<Bill>,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
+    @InjectModel(CarePlanAssignment.name) private carePlanAssignmentModel: Model<CarePlanAssignment>,
+    @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignment>,
+    @InjectModel(Resident.name) private residentModel: Model<Resident>,
     private readonly careplanService: CarePlansService,
   ) {}
 
@@ -294,10 +300,91 @@ export class PaymentService {
         paidDate: updatedBill.paid_date,
       });
 
+      // Khi payment thành công, cập nhật status của các entities liên quan
+      if (status === 'paid') {
+        await this.updateRelatedEntitiesStatus(updatedBill);
+      }
+
       return updatedBill;
     } catch (error) {
       console.error('❌ Error updating bill status:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Cập nhật status của các entities liên quan khi payment thành công
+   * - Care plan assignment → 'completed'
+   * - Bed assignment → 'completed' 
+   * - Resident → 'active'
+   */
+  private async updateRelatedEntitiesStatus(bill: any) {
+    try {
+      console.log('🔄 Updating related entities status after payment completion...');
+
+      const updatePromises: Promise<any>[] = [];
+
+      // Cập nhật Care Plan Assignment status thành 'completed'
+      if (bill.care_plan_assignment_id) {
+        console.log('📋 Updating care plan assignment status to completed:', bill.care_plan_assignment_id);
+        updatePromises.push(
+          this.carePlanAssignmentModel.findByIdAndUpdate(
+            bill.care_plan_assignment_id,
+            { 
+              status: 'completed',
+              updated_at: new Date()
+            },
+            { new: true }
+          ).exec()
+        );
+      }
+
+      // Cập nhật Bed Assignment status thành 'completed'
+      if (bill.bed_assignment_id) {
+        console.log('🛏️ Updating bed assignment status to completed:', bill.bed_assignment_id);
+        updatePromises.push(
+          this.bedAssignmentModel.findByIdAndUpdate(
+            bill.bed_assignment_id,
+            { 
+              status: 'completed',
+              updated_at: new Date()
+            },
+            { new: true }
+          ).exec()
+        );
+      }
+
+      // Cập nhật Resident status thành 'active'
+      if (bill.resident_id) {
+        console.log('👤 Updating resident status to active:', bill.resident_id);
+        updatePromises.push(
+          this.residentModel.findByIdAndUpdate(
+            bill.resident_id,
+            { 
+              status: 'active',
+              updated_at: new Date()
+            },
+            { new: true }
+          ).exec()
+        );
+      }
+
+      // Thực hiện tất cả các cập nhật song song
+      const results = await Promise.allSettled(updatePromises);
+      
+      // Log kết quả
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          console.log(`✅ Entity ${index + 1} updated successfully`);
+        } else {
+          console.error(`❌ Entity ${index + 1} update failed:`, result.reason);
+        }
+      });
+
+      console.log('✅ All related entities status updated successfully');
+    } catch (error) {
+      console.error('❌ Error updating related entities status:', error);
+      // Không throw error để không ảnh hưởng đến payment process
     }
   }
 
