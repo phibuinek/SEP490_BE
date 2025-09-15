@@ -30,6 +30,13 @@ export class Bill extends Document {
   })
   care_plan_assignment_id?: MongooseSchema.Types.ObjectId;
 
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'BedAssignment',
+    required: false,
+  })
+  bed_assignment_id?: MongooseSchema.Types.ObjectId;
+
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   staff_id: MongooseSchema.Types.ObjectId;
 

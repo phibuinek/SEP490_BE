@@ -36,6 +36,23 @@ export class ResidentsService {
     private cacheService: CacheService,
   ) {}
 
+  // Điểm danh: nếu có mặt tại cơ sở -> chuyển sang ADMITTED
+  async markAttendancePresent(id: string): Promise<Resident> {
+    const resident = await this.residentModel.findOne({ _id: id, is_deleted: false });
+    if (!resident) {
+      throw new NotFoundException(`Resident with ID ${id} not found`);
+    }
+
+    if (resident.status !== ResidentStatus.ACTIVE) {
+      throw new BadRequestException('Only ACTIVE residents can be marked admitted');
+    }
+
+    resident.status = ResidentStatus.ADMITTED;
+    resident.updated_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+    await resident.save();
+    return resident;
+  }
+
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
     try {
       console.log(

@@ -26,6 +26,7 @@ export class BedAssignment {
       'accepted',
       'pending',
       'rejected',
+      'completed',
       'discharged',
       'exchanged',
     ],

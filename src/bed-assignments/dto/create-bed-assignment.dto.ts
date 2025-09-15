@@ -16,11 +16,11 @@ export class CreateBedAssignmentDto {
   assigned_by?: string;
 
   @ApiPropertyOptional({
-    enum: ['active', 'accepted', 'pending', 'rejected', 'discharged', 'exchanged'],
+    enum: ['active', 'accepted', 'pending', 'rejected', 'completed', 'discharged', 'exchanged'],
     description: 'Trạng thái phân giường',
     default: 'pending',
   })
   @IsOptional()
-  @IsEnum(['active', 'accepted', 'pending', 'rejected', 'discharged', 'exchanged'])
+  @IsEnum(['active', 'accepted', 'pending', 'rejected', 'completed', 'discharged', 'exchanged'])
   status?: string;
 }

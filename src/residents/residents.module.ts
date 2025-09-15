@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ResidentsController } from './residents.controller';
 import { ResidentsService } from './residents.service';
@@ -8,6 +9,7 @@ import { BedsModule } from '../beds/beds.module';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
 import { RoomsModule } from '../rooms/rooms.module';
 import { CacheService } from '../common/cache.service';
+import { ResidentsSchedulerService } from './residents.scheduler';
 
 @Module({
   imports: [
@@ -16,11 +18,12 @@ import { CacheService } from '../common/cache.service';
       { name: Bed.name, schema: BedSchema },
     ]),
     UsersModule,
+    ScheduleModule,
     BedsModule,
     RoomsModule,
   ],
   controllers: [ResidentsController],
-  providers: [ResidentsService, CacheService],
+  providers: [ResidentsService, CacheService, ResidentsSchedulerService],
   exports: [
     ResidentsService,
     MongooseModule.forFeature([

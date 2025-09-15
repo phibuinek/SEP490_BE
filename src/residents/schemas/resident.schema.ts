@@ -41,9 +41,11 @@ export enum ResidentStatus {
   PENDING = 'pending',       // Chờ duyệt
   ACCEPTED = 'accepted',     // Đã duyệt
   REJECTED = 'rejected',     // Bị từ chối
-  ACTIVE = 'active',         // Có thể giữ nếu cần (ví dụ resident đang sinh hoạt bình thường)
-  DISCHARGED = 'discharged',
-  DECEASED = 'deceased',
+  ADMITTED = 'admitted',     // Đã nhập viện
+  ACTIVE = 'active',         // Đang hoạt động
+  CANCELLED = 'cancelled',   // Đã hủy
+  DISCHARGED = 'discharged', // Đã xuất viện
+  DECEASED = 'deceased',     // Đã qua đời
 }
 
 @Schema({

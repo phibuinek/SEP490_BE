@@ -367,6 +367,17 @@ export class ResidentsController {
     return this.residentsService.updateStatus(id, status, reason);
   }
 
+  @Post(':id/attendance')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Mark resident attendance (admitted if present)' })
+  @ApiParam({ name: 'id', description: 'Resident ID' })
+  @ApiResponse({ status: 200, description: 'Resident marked as admitted.' })
+  @ApiResponse({ status: 400, description: 'Only ACTIVE residents can be admitted.' })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  markAttendance(@Param('id') id: string) {
+    return this.residentsService.markAttendancePresent(id);
+  }
+
   // Admin endpoints for resident approval
   @Get('admin/pending')
   @Roles(Role.ADMIN)
