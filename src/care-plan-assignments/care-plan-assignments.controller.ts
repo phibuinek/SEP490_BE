@@ -111,6 +111,13 @@ export class CarePlanAssignmentsController {
     return this.carePlanAssignmentsService.findOne(id);
   }
 
+  @Get('by-resident/:residentId')
+  @ApiOperation({ summary: 'Get care plan assignments by resident ID' })
+  @ApiParam({ name: 'residentId', description: 'Resident ID' })
+  findByResident(@Param('residentId') residentId: string) {
+    return this.carePlanAssignmentsService.findByResident(residentId);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,
