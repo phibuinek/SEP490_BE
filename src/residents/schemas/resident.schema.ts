@@ -45,6 +45,7 @@ export enum ResidentStatus {
   ACTIVE = 'active',         // Có thể giữ nếu cần (ví dụ resident đang sinh hoạt bình thường)
   DISCHARGED = 'discharged',
   DECEASED = 'deceased',
+  CANCELLED = 'cancelled'
 }
 
 @Schema({
