@@ -214,4 +214,134 @@ Trân trọng,
       return { error: true };
     }
   }
+
+  async sendAccountRejectedEmail(params: { to: string; username: string; reason?: string }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Thông báo từ chối đăng ký tài khoản';
+    const reasonText = params.reason ? `\n\nLý do từ chối: ${params.reason}` : '';
+    const text = `Xin chào ${params.username},\n\nRất tiếc, đăng ký tài khoản của bạn đã bị từ chối.${reasonText}\n\nNếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi.\n\nTrân trọng,\nĐội ngũ CareHome`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #e74c3c; margin-bottom: 20px;">Đăng ký tài khoản bị từ chối</h2>
+          <p>Xin chào <strong>${params.username}</strong>,</p>
+          <p>Rất tiếc, đăng ký tài khoản của bạn đã bị từ chối.</p>
+          ${params.reason ? `<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0;"><strong>Lý do từ chối:</strong><br>${params.reason}</div>` : ''}
+          <p>Nếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi.</p>
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Username: ${params.username} | Reason: ${params.reason || 'N/A'}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Rejection email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send rejection email', err);
+      return { error: true };
+    }
+  }
+
+  async sendResidentApprovedEmail(params: { to: string; residentName: string; familyMemberName: string }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Đơn đăng ký nhập viện đã được phê duyệt';
+    const text = `Xin chào ${params.familyMemberName},\n\nĐơn đăng ký nhập viện cho ${params.residentName} đã được admin phê duyệt.\nBạn có thể xem thông tin chi tiết tại: ${appUrl}\n\nTrân trọng,\nĐội ngũ CareHome`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #27ae60; margin-bottom: 20px;">Đơn đăng ký nhập viện đã được phê duyệt</h2>
+          <p>Xin chào <strong>${params.familyMemberName}</strong>,</p>
+          <p>Đơn đăng ký nhập viện cho <strong>${params.residentName}</strong> đã được admin phê duyệt.</p>
+          <p>Bạn có thể xem thông tin chi tiết tại: <a href="${appUrl}" target="_blank" style="color: #3498db;">${appUrl}</a></p>
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Resident: ${params.residentName} | Family: ${params.familyMemberName}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Resident approval email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send resident approval email', err);
+      return { error: true };
+    }
+  }
+
+  async sendResidentRejectedEmail(params: { to: string; residentName: string; familyMemberName: string; reason?: string }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Đơn đăng ký nhập viện bị từ chối';
+    const reasonText = params.reason ? `\n\nLý do từ chối: ${params.reason}` : '';
+    const text = `Xin chào ${params.familyMemberName},\n\nRất tiếc, đơn đăng ký nhập viện cho ${params.residentName} đã bị từ chối.${reasonText}\n\nNếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi.\n\nTrân trọng,\nĐội ngũ CareHome`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #e74c3c; margin-bottom: 20px;">Đơn đăng ký nhập viện bị từ chối</h2>
+          <p>Xin chào <strong>${params.familyMemberName}</strong>,</p>
+          <p>Rất tiếc, đơn đăng ký nhập viện cho <strong>${params.residentName}</strong> đã bị từ chối.</p>
+          ${params.reason ? `<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0;"><strong>Lý do từ chối:</strong><br>${params.reason}</div>` : ''}
+          <p>Nếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi.</p>
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Resident: ${params.residentName} | Family: ${params.familyMemberName} | Reason: ${params.reason || 'N/A'}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Resident rejection email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send resident rejection email', err);
+      return { error: true };
+    }
+  }
 }
