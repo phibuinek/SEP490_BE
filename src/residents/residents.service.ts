@@ -16,6 +16,7 @@ import {
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { Bed, BedDocument } from '../beds/schemas/bed.schema';
+import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 import { UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -32,6 +33,7 @@ export class ResidentsService {
   constructor(
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
+    @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignmentDocument>,
     private roomsService: RoomsService,
     @InjectModel('User') private userModel: Model<UserDocument>,
     private cacheService: CacheService,
@@ -53,6 +55,36 @@ export class ResidentsService {
     resident.updated_at = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
     await resident.save();
     return resident;
+  }
+
+  // Tìm residents đã nhập viện (ADMITTED) theo room
+  async findAdmittedResidentsByRoom(roomId: string): Promise<Resident[]> {
+    if (!Types.ObjectId.isValid(roomId)) {
+      throw new BadRequestException('Invalid room ID');
+    }
+
+    // Lấy tất cả bed assignments đang active thuộc các bed trong room này
+    const activeAssignments = await this.bedAssignmentModel
+      .find({ unassigned_date: null })
+      .populate({ path: 'bed_id', select: 'room_id' })
+      .exec();
+
+    const residentIds: string[] = activeAssignments
+      .filter((a: any) => a?.bed_id?.room_id?.toString() === roomId)
+      .map((a) => a.resident_id?.toString())
+      .filter(Boolean) as string[];
+
+    if (residentIds.length === 0) return [];
+
+    // Trả về residents có status ADMITTED và không bị xóa
+    return this.residentModel
+      .find({
+        _id: { $in: residentIds.map((id) => new Types.ObjectId(id)) },
+        status: ResidentStatus.ADMITTED,
+        is_deleted: false,
+      })
+      .populate('family_member_id', 'full_name email phone')
+      .exec();
   }
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {

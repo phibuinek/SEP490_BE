@@ -11,12 +11,14 @@ import { RoomsModule } from '../rooms/rooms.module';
 import { CacheService } from '../common/cache.service';
 import { ResidentsSchedulerService } from './residents.scheduler';
 import { CommonModule } from '../common/common.module';
+import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Resident.name, schema: ResidentSchema },
       { name: Bed.name, schema: BedSchema },
+      { name: BedAssignment.name, schema: BedAssignmentSchema },
     ]),
     UsersModule,
     ScheduleModule,
