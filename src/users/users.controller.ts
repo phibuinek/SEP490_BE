@@ -341,6 +341,28 @@ export class UsersController {
     return this.usersService.approveUser(id);
   }
 
+  @Patch(':id/reject')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Reject pending user (Admin only)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          description: 'Reason for rejection (optional)',
+          example: 'Thiếu thông tin cần thiết'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: 'User rejected successfully.' })
+  @ApiResponse({ status: 404, description: 'User not found.' })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  rejectUser(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.usersService.rejectUser(id, body.reason);
+  }
+
   @Patch(':id/reset-password')
   @Roles('admin')
   @ApiOperation({

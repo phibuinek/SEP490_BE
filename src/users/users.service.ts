@@ -331,6 +331,46 @@ export class UsersService {
     return user;
   }
 
+  async rejectUser(user_id: string, reason?: string): Promise<User> {
+    if (!Types.ObjectId.isValid(user_id))
+      throw new BadRequestException('Invalid user id');
+
+    const userBefore = await this.userModel
+      .findById(new Types.ObjectId(user_id))
+      .exec();
+    if (!userBefore) throw new NotFoundException('User not found');
+
+    const user = await this.userModel
+      .findByIdAndUpdate(
+        new Types.ObjectId(user_id),
+        { 
+          status: UserStatus.INACTIVE, 
+          updated_at: new Date(),
+          deleted_reason: reason || 'Đăng ký tài khoản bị từ chối'
+        },
+        { new: true },
+      )
+      .select('-password')
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // gửi email thông báo từ chối nếu có email
+    if (userBefore.email) {
+      this.mailService
+        .sendAccountRejectedEmail({
+          to: userBefore.email,
+          username: userBefore.username,
+          reason: reason,
+        })
+        .catch(() => {});
+    }
+
+    return user;
+  }
+
   async addResidentToFamily(
     family_id: string,
     resident_id: any,
