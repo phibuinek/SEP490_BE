@@ -45,8 +45,8 @@ export class ResidentsService {
       throw new NotFoundException(`Resident with ID ${id} not found`);
     }
 
-    if (resident.status !== ResidentStatus.ACCEPTED) {
-      throw new BadRequestException('Only ACCEPTED residents can be marked as admitted');
+    if (resident.status !== ResidentStatus.ACTIVE) {
+      throw new BadRequestException('Only ACTIVE residents can be marked admitted');
     }
 
     resident.status = ResidentStatus.ADMITTED;
