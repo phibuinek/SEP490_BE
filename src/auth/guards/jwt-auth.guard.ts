@@ -18,12 +18,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
     const request = context.switchToHttp().getRequest();
     const url: string = request?.url || '';
-    if (url.startsWith('/api') || url.startsWith('/api-json')) {
+    
+    // Chỉ cho phép Swagger UI và uploads không cần auth
+    if (url.startsWith('/api-json') || url.startsWith('/uploads/')) {
       return true;
     }
-    if (url.startsWith('/uploads/')) {
-      return true;
-    }
+    
     return super.canActivate(context);
   }
 }

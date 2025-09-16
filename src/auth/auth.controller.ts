@@ -136,4 +136,18 @@ export class AuthController {
   async loginWithOtp(@Body() otpLoginDto: OtpLoginDto) {
     return this.authService.loginWithOtp(otpLoginDto);
   }
+
+  @Get('debug/jwt-info')
+  @Public()
+  @ApiOperation({ summary: 'Debug JWT configuration' })
+  @ApiResponse({ status: 200, description: 'JWT debug information' })
+  async getJwtDebugInfo() {
+    return {
+      jwtSecret: process.env.JWT_SECRET ? 'Set' : 'Not set',
+      jwtSecretLength: process.env.JWT_SECRET?.length || 0,
+      nodeEnv: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      message: 'JWT debug information - check if JWT_SECRET is properly configured'
+    };
+  }
 }
