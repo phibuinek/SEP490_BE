@@ -209,6 +209,16 @@ export class ResidentsController {
     return this.residentsService.findAllAccepted();
   }
 
+  @Get('by-room/:roomId/admitted')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get admitted residents by room ID' })
+  @ApiParam({ name: 'roomId', description: 'Room ID' })
+  @ApiResponse({ status: 200, description: 'Admitted residents retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid room ID' })
+  async findAdmittedByRoom(@Param('roomId') roomId: string) {
+    return this.residentsService.findAdmittedResidentsByRoom(roomId);
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })
