@@ -76,12 +76,8 @@ export class ResidentsService {
         JSON.stringify(residentData, null, 2),
       );
 
-      // // Nếu không truyền status thì mặc định là 'active'
-      // if (!residentData.status) {
-      //   residentData.status = ResidentStatus.ACTIVE;
-      // }
-      // Mặc định status = pending (chờ duyệt)
-      residentData.status = ResidentStatus.PENDING;
+      // Luồng mới: khi tạo resident chuyển thẳng sang ACTIVE (bỏ duyệt)
+      residentData.status = ResidentStatus.ACTIVE;
 
       // Kiểm tra CCCD của family member trước khi cho phép đăng ký resident
       if (!createResidentDto.family_member_id) {

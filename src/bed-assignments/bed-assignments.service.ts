@@ -43,7 +43,8 @@ export class BedAssignmentsService {
         : undefined,
       assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
       unassigned_date: null, // luôn set null khi tạo mới
-      status: dto.status || 'pending', // set status mặc định là pending
+      // Luồng mới: tạo xong chuyển thẳng sang completed (bỏ duyệt)
+      status: 'completed',
     };
 
     const result = await this.model.create(createData);
