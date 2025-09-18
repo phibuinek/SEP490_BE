@@ -209,6 +209,20 @@ export class ResidentsController {
     return this.residentsService.findAllAccepted();
   }
 
+  @Get('admitted')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get all admitted residents' })
+  findAllAdmitted() {
+    return this.residentsService.findAllAdmitted();
+  }
+
+  @Get('active')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get all active residents' })
+  findAllActive() {
+    return this.residentsService.findAllActive();
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })

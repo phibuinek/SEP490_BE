@@ -707,6 +707,22 @@ export class ResidentsService {
       .exec();
   }
 
+  // Admin/Staff: lấy tất cả residents đã admitted
+  async findAllAdmitted(): Promise<Resident[]> {
+    return this.residentModel
+      .find({ status: ResidentStatus.ADMITTED, is_deleted: false })
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+      .exec();
+  }
+
+  // Admin/Staff: lấy tất cả residents đang active
+  async findAllActive(): Promise<Resident[]> {
+    return this.residentModel
+      .find({ status: ResidentStatus.ACTIVE, is_deleted: false })
+      .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+      .exec();
+  }
+
 
   async findAll(pagination: PaginationDto = new PaginationDto()): Promise<PaginatedResponse<Resident>> {
     const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
