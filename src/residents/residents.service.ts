@@ -1401,4 +1401,82 @@ export class ResidentsService {
       );
     }
   }
+
+  async findResidentsAdmittedByRoom(roomId: string): Promise<Resident[]> {
+    if (!Types.ObjectId.isValid(roomId)) {
+      throw new BadRequestException('Invalid room ID format');
+    }
+    return this.residentModel
+      .find({
+        status: ResidentStatus.ADMITTED,
+        is_deleted: false,
+      })
+      .populate({
+        path: 'bed_id',
+        match: { room_id: new Types.ObjectId(roomId) },
+        select: 'room_id',
+      })
+      .exec()
+      .then(residents => residents.filter(resident => (resident as any).bed_id !== null));
+  }
+
+  async findRoomsWithAdmittedResidents(): Promise<any[]> {
+    try {
+      // Tìm tất cả residents có status ADMITTED
+      const admittedResidents = await this.residentModel
+        .find({
+          status: ResidentStatus.ADMITTED,
+          is_deleted: false,
+        })
+        .populate({
+          path: 'bed_id',
+          select: 'room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number room_type capacity',
+          },
+        })
+        .exec();
+
+      // Lọc ra những residents có bed assignment hợp lệ
+      const validResidents = admittedResidents.filter(resident => (resident as any).bed_id !== null);
+
+      // Nhóm theo room_id và đếm số lượng residents
+      const roomMap = new Map();
+      
+      validResidents.forEach(resident => {
+        const bed = (resident as any).bed_id as any;
+        const room = bed?.room_id;
+        
+        if (room) {
+          const roomId = room._id.toString();
+          
+          if (!roomMap.has(roomId)) {
+            roomMap.set(roomId, {
+              room_id: roomId,
+              room_number: room.room_number,
+              room_type: room.room_type,
+              capacity: room.capacity,
+              admitted_residents_count: 0,
+              residents: []
+            });
+          }
+          
+          const roomData = roomMap.get(roomId);
+          roomData.admitted_residents_count++;
+          roomData.residents.push({
+            resident_id: resident._id,
+            full_name: resident.full_name,
+            bed_id: bed._id
+          });
+        }
+      });
+
+      return Array.from(roomMap.values());
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to get rooms with admitted residents: ${error.message}`,
+      );
+    }
+  }
 }
