@@ -16,6 +16,8 @@ import {
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { Bed, BedDocument } from '../beds/schemas/bed.schema';
+import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
+import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 import { UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -31,6 +33,8 @@ export class ResidentsService {
   constructor(
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
     @InjectModel(Bed.name) private bedModel: Model<BedDocument>,
+    @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignmentDocument>,
+    @InjectModel(Room.name) private roomModel: Model<RoomDocument>,
     private roomsService: RoomsService,
     @InjectModel('User') private userModel: Model<UserDocument>,
     private cacheService: CacheService,
@@ -1353,6 +1357,138 @@ export class ResidentsService {
       throw new BadRequestException(
         `Failed to get pending residents: ${error.message}`,
       );
+    }
+  }
+
+  // Lấy danh sách residents đã admitted theo room ID
+  async findAdmittedResidentsByRoom(roomId: string): Promise<any[]> {
+    try {
+      // Validate room ID
+      if (!Types.ObjectId.isValid(roomId)) {
+        throw new BadRequestException('Invalid room ID format');
+      }
+
+      const roomObjectId = new Types.ObjectId(roomId);
+      
+      // Kiểm tra room có tồn tại không
+      const room = await this.roomModel.findById(roomObjectId);
+      if (!room) {
+        throw new NotFoundException('Room not found');
+      }
+
+      // Tìm tất cả beds trong room
+      const beds = await this.bedModel.find({ room_id: roomObjectId });
+      const bedIds = beds.map(bed => bed._id);
+
+      // Tìm bed assignments active cho các beds này
+      const bedAssignments = await this.bedAssignmentModel
+        .find({ 
+          bed_id: { $in: bedIds },
+          status: 'active',
+          unassigned_date: null
+        })
+        .populate('resident_id', 'full_name date_of_birth gender avatar')
+        .populate('bed_id', 'bed_number bed_type')
+        .exec();
+
+      // Lọc chỉ lấy residents có status = 'admitted'
+      const admittedResidents: any[] = [];
+      for (const assignment of bedAssignments) {
+        const resident = await this.residentModel.findOne({
+          _id: assignment.resident_id._id,
+          status: ResidentStatus.ADMITTED,
+          is_deleted: false
+        });
+
+        if (resident && assignment.bed_id && typeof assignment.bed_id === 'object' && 'bed_number' in assignment.bed_id) {
+          admittedResidents.push({
+            resident_id: resident._id,
+            full_name: resident.full_name,
+            date_of_birth: resident.date_of_birth,
+            gender: resident.gender,
+            avatar: resident.avatar,
+            bed_id: assignment.bed_id._id,
+            bed_number: (assignment.bed_id as any).bed_number,
+            bed_type: (assignment.bed_id as any).bed_type,
+            assigned_date: assignment.assigned_date
+          });
+        }
+      }
+
+      return admittedResidents;
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to get admitted residents by room: ${error.message}`);
+    }
+  }
+
+  // Lấy danh sách tất cả rooms có residents đã admitted
+  async findRoomsWithAdmittedResidents(): Promise<any[]> {
+    try {
+      // Tìm tất cả bed assignments active
+      const activeAssignments = await this.bedAssignmentModel
+        .find({ 
+          status: 'active',
+          unassigned_date: null
+        })
+        .populate('bed_id', 'bed_number room_id')
+        .populate('resident_id', 'full_name status')
+        .exec();
+
+      // Lọc chỉ lấy assignments của residents có status = 'admitted'
+      const admittedAssignments: any[] = [];
+      for (const assignment of activeAssignments) {
+        const resident = await this.residentModel.findOne({
+          _id: assignment.resident_id._id,
+          status: ResidentStatus.ADMITTED,
+          is_deleted: false
+        });
+
+        if (resident) {
+          admittedAssignments.push(assignment);
+        }
+      }
+
+      // Nhóm theo room_id
+      const roomGroups: { [key: string]: any[] } = {};
+      for (const assignment of admittedAssignments) {
+        if (assignment.bed_id && typeof assignment.bed_id === 'object' && 'room_id' in assignment.bed_id) {
+          const roomId = (assignment.bed_id as any).room_id.toString();
+          if (!roomGroups[roomId]) {
+            roomGroups[roomId] = [];
+          }
+          roomGroups[roomId].push(assignment);
+        }
+      }
+
+      // Lấy thông tin room và tạo response
+      const result: any[] = [];
+      for (const roomId of Object.keys(roomGroups)) {
+        const room = await this.roomModel.findById(roomId);
+        if (room) {
+          const residents = roomGroups[roomId].map(assignment => ({
+            resident_id: assignment.resident_id._id,
+            full_name: assignment.resident_id.full_name,
+            bed_id: assignment.bed_id._id,
+            bed_number: (assignment.bed_id as any).bed_number
+          }));
+
+          result.push({
+            room_id: room._id,
+            room_number: room.room_number,
+            room_type: room.room_type,
+            capacity: room.bed_count,
+            admitted_residents_count: residents.length,
+            residents: residents
+          });
+        }
+      }
+
+      return result;
+    } catch (error) {
+      throw new BadRequestException(`Failed to get rooms with admitted residents: ${error.message}`);
     }
   }
 }

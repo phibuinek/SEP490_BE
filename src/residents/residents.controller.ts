@@ -223,6 +223,52 @@ export class ResidentsController {
     return this.residentsService.findAllActive();
   }
 
+  @Get('by-room/:roomId/admitted')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get admitted residents by room ID' })
+  @ApiParam({ name: 'roomId', description: 'Room ID' })
+  @ApiResponse({ status: 200, description: 'Admitted residents retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid room ID' })
+  async findAdmittedByRoom(@Param('roomId') roomId: string) {
+    return this.residentsService.findAdmittedResidentsByRoom(roomId);
+  }
+
+  @Get('rooms/with-admitted')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ summary: 'Get all rooms that have admitted residents' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Rooms with admitted residents retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          room_id: { type: 'string' },
+          room_number: { type: 'string' },
+          room_type: { type: 'string' },
+          capacity: { type: 'number' },
+          admitted_residents_count: { type: 'number' },
+          residents: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                resident_id: { type: 'string' },
+                full_name: { type: 'string' },
+                bed_id: { type: 'string' }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  async findRoomsWithAdmittedResidents() {
+    return this.residentsService.findRoomsWithAdmittedResidents();
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF, Role.FAMILY)
   @ApiOperation({ summary: 'Get resident by ID' })
