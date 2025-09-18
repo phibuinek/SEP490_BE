@@ -7,11 +7,13 @@ import { Resident, ResidentSchema } from './schemas/resident.schema';
 import { UsersModule } from '../users/users.module';
 import { BedsModule } from '../beds/beds.module';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
+import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
+import { Room, RoomSchema } from '../rooms/schemas/room.schema';
 import { RoomsModule } from '../rooms/rooms.module';
 import { CacheService } from '../common/cache.service';
 import { ResidentsSchedulerService } from './residents.scheduler';
 import { CommonModule } from '../common/common.module';
-import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
+
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/b
       { name: Resident.name, schema: ResidentSchema },
       { name: Bed.name, schema: BedSchema },
       { name: BedAssignment.name, schema: BedAssignmentSchema },
+      { name: Room.name, schema: RoomSchema },
     ]),
     UsersModule,
     ScheduleModule,
