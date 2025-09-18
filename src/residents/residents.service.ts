@@ -27,6 +27,7 @@ import { RoomsService } from '../rooms/rooms.service';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { CacheService } from '../common/cache.service';
 import { PaginationDto, PaginatedResponse } from '../common/dto/pagination.dto';
+import { MailService } from '../common/mail.service';
 
 @Injectable()
 export class ResidentsService {
@@ -38,6 +39,7 @@ export class ResidentsService {
     private roomsService: RoomsService,
     @InjectModel('User') private userModel: Model<UserDocument>,
     private cacheService: CacheService,
+    private mailService: MailService,
   ) {}
 
   // Điểm danh: nếu có mặt tại cơ sở -> chuyển sang ADMITTED
@@ -56,6 +58,8 @@ export class ResidentsService {
     await resident.save();
     return resident;
   }
+
+  // (old duplicate) removed
 
   async create(createResidentDto: CreateResidentDto): Promise<Resident> {
     try {
@@ -591,7 +595,7 @@ export class ResidentsService {
     const resident = await this.residentModel.findOne({
       _id: id,
       is_deleted: false,
-    });
+    }).populate('family_member_id', 'email full_name');
     
     if (!resident) {
       console.log(`[SERVICE] Resident with ID ${id} not found`);
@@ -625,6 +629,34 @@ export class ResidentsService {
     console.log(`[SERVICE] Updating resident ${id} to status: ${status}`);
     const updatedResident = await resident.save();
     console.log(`[SERVICE] Resident ${id} status updated successfully to: ${updatedResident.status}`);
+    
+    // Gửi email thông báo cho family member
+    try {
+      const familyMember = resident.family_member_id as any;
+      if (familyMember && familyMember.email) {
+        if (status === ResidentStatus.ACCEPTED) {
+          await this.mailService.sendResidentApprovedEmail({
+            to: familyMember.email,
+            residentName: resident.full_name,
+            familyMemberName: familyMember.full_name || familyMember.username || 'Quý khách',
+          });
+          console.log(`[SERVICE] Approval email sent to ${familyMember.email}`);
+        } else if (status === ResidentStatus.REJECTED) {
+          await this.mailService.sendResidentRejectedEmail({
+            to: familyMember.email,
+            residentName: resident.full_name,
+            familyMemberName: familyMember.full_name || familyMember.username || 'Quý khách',
+            reason: reason,
+          });
+          console.log(`[SERVICE] Rejection email sent to ${familyMember.email}`);
+        }
+      } else {
+        console.log(`[SERVICE] No email found for family member of resident ${id}`);
+      }
+    } catch (emailError) {
+      console.error(`[SERVICE] Failed to send email notification for resident ${id}:`, emailError);
+      // Không throw error để không ảnh hưởng đến flow chính
+    }
     
     return updatedResident;
   }

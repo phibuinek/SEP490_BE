@@ -208,7 +208,6 @@ export class ResidentsController {
   findAllAccepted() {
     return this.residentsService.findAllAccepted();
   }
-
   @Get('admitted')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get all admitted residents' })
@@ -222,7 +221,6 @@ export class ResidentsController {
   findAllActive() {
     return this.residentsService.findAllActive();
   }
-
   @Get('by-room/:roomId/admitted')
   @Roles(Role.ADMIN, Role.STAFF)
   @ApiOperation({ summary: 'Get admitted residents by room ID' })

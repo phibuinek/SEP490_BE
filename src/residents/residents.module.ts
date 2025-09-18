@@ -12,6 +12,8 @@ import { Room, RoomSchema } from '../rooms/schemas/room.schema';
 import { RoomsModule } from '../rooms/rooms.module';
 import { CacheService } from '../common/cache.service';
 import { ResidentsSchedulerService } from './residents.scheduler';
+import { CommonModule } from '../common/common.module';
+
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { ResidentsSchedulerService } from './residents.scheduler';
     ScheduleModule,
     BedsModule,
     RoomsModule,
+    CommonModule,
   ],
   controllers: [ResidentsController],
   providers: [ResidentsService, CacheService, ResidentsSchedulerService],

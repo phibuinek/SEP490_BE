@@ -41,11 +41,11 @@ export enum ResidentStatus {
   PENDING = 'pending',       // Chờ duyệt
   ACCEPTED = 'accepted',     // Đã duyệt
   REJECTED = 'rejected',     // Bị từ chối
-  ADMITTED = 'admitted',     // Đã nhập viện
-  ACTIVE = 'active',         // Đang hoạt động
-  CANCELLED = 'cancelled',   // Đã hủy
-  DISCHARGED = 'discharged', // Đã xuất viện
-  DECEASED = 'deceased',     // Đã qua đời
+  ADMITTED = 'admitted',     // Đã chính thức nhập viện
+  ACTIVE = 'active',         // Có thể giữ nếu cần (ví dụ resident đang sinh hoạt bình thường)
+  DISCHARGED = 'discharged',
+  DECEASED = 'deceased',
+  CANCELLED = 'cancelled'
 }
 
 @Schema({
@@ -97,22 +97,8 @@ export class Resident {
   @Prop({ type: EmergencyContactSchema, required: true })
   emergency_contact: EmergencyContact;
 
-  // CCCD của resident
-  @Prop({ type: String, match: /^[0-9]{12}$/, required: true })
-  cccd_id: string;
-
-  @Prop({ type: String, required: false, default: null })
-  cccd_front?: string | null;
-
-  @Prop({ type: String, required: false, default: null })
-  cccd_back?: string | null;
-
   @Prop({ type: String, enum: ResidentStatus, required: true, default: ResidentStatus.PENDING })
   status: ResidentStatus;
-
-  // Deprecated: Care plan assignment reference removed from Resident
-  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', required: false, default: null })
-  care_plan_assignment_id?: Types.ObjectId | null;
 
   @Prop({ required: true })
   created_at: Date;
@@ -120,13 +106,13 @@ export class Resident {
   @Prop({ required: true })
   updated_at: Date;
 
-   @Prop({ type: Boolean, default: false })
+  @Prop({ type: Boolean, default: false })
   is_deleted: boolean;
 
   @Prop({ type: Date, default: null })
   deleted_at?: Date | null;
   
-  @Prop({ type: String, default: null })
+  @Prop({ type: String, required: false, default: null })
   deleted_reason?: string | null;
 }
 
