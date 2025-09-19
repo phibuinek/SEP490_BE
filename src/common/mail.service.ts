@@ -344,4 +344,49 @@ Trân trọng,
       return { error: true };
     }
   }
+
+  async sendRequestApprovalEmail(params: {
+    to: string;
+    familyName: string;
+    residentName: string;
+    requestType: string;
+    note?: string;
+  }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const subject = `Yêu cầu ${params.requestType} đã được duyệt - CareHome`;
+    const text = `Yêu cầu ${params.requestType} cho cư dân ${params.residentName} đã được quản trị viên duyệt và thực hiện thành công.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #2c3e50; margin-bottom: 20px;">Yêu cầu đã được duyệt</h2>
+          <p>Xin chào <strong>${params.familyName}</strong>,</p>
+          <p>Yêu cầu <strong>${params.requestType}</strong> cho cư dân <strong>${params.residentName}</strong> đã được quản trị viên duyệt và thực hiện thành công.</p>
+          ${params.note ? `<p><strong>Ghi chú:</strong> ${params.note}</p>` : ''}
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Family: ${params.familyName} | Resident: ${params.residentName}`,
+      );
+      return { mocked: true };
+    }
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Request approval email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send request approval email', err);
+      return { error: true };
+    }
+  }
 }
