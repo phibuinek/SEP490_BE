@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsNotEmpty,
 } from 'class-validator';
+import type { Express } from 'express';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@gmail.com' })
@@ -55,4 +56,27 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   address?: string;
+
+  @ApiProperty({ 
+    example: '123456789012',
+    description: 'Mã số căn cước công dân (12 chữ số)'
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[0-9]{12}$/, { message: 'CCCD ID must be exactly 12 digits' })
+  cccd_id: string;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    description: 'Ảnh CCCD mặt trước (bắt buộc)'
+  })
+  cccd_front: Express.Multer.File;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'binary', 
+    description: 'Ảnh CCCD mặt sau (bắt buộc)'
+  })
+  cccd_back: Express.Multer.File;
 }

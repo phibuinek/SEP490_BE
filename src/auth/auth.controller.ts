@@ -7,13 +7,21 @@ import {
   Get,
   Put,
   Patch,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { Express } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { OtpLoginDto, SendOtpDto } from './dto/otp-login.dto';
@@ -43,10 +51,76 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Đăng ký tài khoản role FAMILY' })
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'cccd_front', maxCount: 1 },
+      { name: 'cccd_back', maxCount: 1 },
+    ], {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Đăng ký tài khoản role FAMILY với CCCD bắt buộc' })
   @ApiResponse({ status: 201, description: 'Đăng ký thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
-  async register(@Body() dto: RegisterDto) {
+  @ApiBody({
+    description: 'Đăng ký tài khoản family với thông tin CCCD bắt buộc',
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email', example: 'user@gmail.com' },
+        password: { type: 'string', minLength: 6, example: 'password123' },
+        confirmPassword: { type: 'string', minLength: 6, example: 'password123' },
+        full_name: { type: 'string', example: 'Nguyễn Văn A' },
+        phone: { type: 'string', pattern: '^[0-9]{10,11}$', example: '0987654329' },
+        username: { type: 'string', example: 'family_user' },
+        address: { type: 'string', example: '123 Đường ABC, Quận 1, TP.HCM' },
+        cccd_id: { type: 'string', pattern: '^[0-9]{12}$', example: '123456789012' },
+        cccd_front: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt trước (bắt buộc)' },
+        cccd_back: { type: 'string', format: 'binary', description: 'Ảnh CCCD mặt sau (bắt buộc)' },
+      },
+      required: [
+        'email',
+        'password', 
+        'confirmPassword',
+        'full_name',
+        'phone',
+        'cccd_id',
+        'cccd_front',
+        'cccd_back'
+      ],
+    },
+  })
+  async register(
+    @UploadedFiles() files: {
+      cccd_front?: Express.Multer.File[];
+      cccd_back?: Express.Multer.File[];
+    },
+    @Body() dto: RegisterDto,
+  ) {
+    // Map uploaded files to DTO fields
+    if (files?.cccd_front?.[0]) {
+      dto.cccd_front = files.cccd_front[0];
+    }
+    if (files?.cccd_back?.[0]) {
+      dto.cccd_back = files.cccd_back[0];
+    }
+
     return this.authService.register(dto);
   }
 
