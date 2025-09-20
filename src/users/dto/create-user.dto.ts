@@ -84,6 +84,32 @@ export class CreateUserDto {
   @IsString()
   notes?: string;
 
+  // CCCD Information for family members
+  @ApiPropertyOptional({ 
+    example: '123456789012',
+    description: 'Mã số căn cước công dân (12 chữ số)'
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[0-9]{12}$/, { message: 'CCCD ID must be exactly 12 digits' })
+  cccd_id?: string;
+
+  @ApiPropertyOptional({ 
+    example: 'uploads/cccd_front_123456789.jpg',
+    description: 'Đường dẫn ảnh CCCD mặt trước'
+  })
+  @IsOptional()
+  @IsString()
+  cccd_front?: string;
+
+  @ApiPropertyOptional({ 
+    example: 'uploads/cccd_back_123456789.jpg',
+    description: 'Đường dẫn ảnh CCCD mặt sau'
+  })
+  @IsOptional()
+  @IsString()
+  cccd_back?: string;
+
   @ApiPropertyOptional({ example: '2024-01-10T10:00:00.000Z' })
   @IsOptional()
   @IsDateString()

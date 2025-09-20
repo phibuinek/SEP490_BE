@@ -170,6 +170,13 @@ export class AuthService {
       throw new BadRequestException('Mật khẩu xác nhận không khớp');
     }
 
+    // Validation CCCD bắt buộc cho family registration
+    if (!dto.cccd_id || !dto.cccd_front || !dto.cccd_back) {
+      throw new BadRequestException(
+        'Thông tin CCCD là bắt buộc khi đăng ký tài khoản family. Vui lòng cung cấp đầy đủ mã số CCCD và ảnh mặt trước, mặt sau.',
+      );
+    }
+
     // Sử dụng dữ liệu từ DTO; nếu không có username thì tự sinh
     const baseFromEmail = (dto.email || '').split('@')[0] || 'user';
     const sanitizedBase = baseFromEmail
@@ -196,6 +203,10 @@ export class AuthService {
       address: dto.address || undefined,
       role: UserRole.FAMILY,
       status: UserStatus.PENDING, // Chờ duyệt như message
+      // Thêm thông tin CCCD bắt buộc
+      cccd_id: dto.cccd_id,
+      cccd_front: dto.cccd_front?.path || `uploads/${dto.cccd_front?.filename}`,
+      cccd_back: dto.cccd_back?.path || `uploads/${dto.cccd_back?.filename}`,
     } as any;
 
     // Xóa confirmPassword trước khi chuyển xuống UsersService
@@ -215,7 +226,7 @@ export class AuthService {
     return {
       success: true,
       message:
-        'Đăng ký thành công. Tài khoản đang chờ duyệt. Bạn sẽ nhận email khi được kích hoạt.',
+        'Đăng ký thành công với thông tin CCCD. Tài khoản đang chờ duyệt. Bạn sẽ nhận email khi được kích hoạt.',
       user: {
         ...userObj,
         id: (user as any)._id?.toString?.() || (user as any).id,
