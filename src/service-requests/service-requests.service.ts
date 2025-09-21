@@ -302,11 +302,16 @@ export class ServiceRequestsService {
     }
   }
 
-  async reject(id: string): Promise<ServiceRequest> {
+  async reject(id: string, reason?: string): Promise<ServiceRequest> {
+    const updateData: any = { status: ServiceRequestStatus.REJECTED };
+    if (reason) {
+      updateData.rejection_reason = reason;
+    }
+    
     const req = await this.serviceRequestModel
       .findByIdAndUpdate(
         id,
-        { status: ServiceRequestStatus.REJECTED },
+        updateData,
         { new: true },
       )
       .exec();

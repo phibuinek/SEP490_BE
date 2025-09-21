@@ -106,7 +106,7 @@ export class ServiceRequestsController {
   @ApiOperation({ summary: 'Từ chối yêu cầu (Admin only)' })
   @ApiResponse({ status: 200, description: 'Yêu cầu được từ chối thành công.' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy yêu cầu.' })
-  reject(@Param('id') id: string) {
-    return this.service.reject(id);
+  reject(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.service.reject(id, body.reason);
   }
 }

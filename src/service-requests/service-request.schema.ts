@@ -63,6 +63,9 @@ export class ServiceRequest {
 
   @Prop({ type: Types.ObjectId, ref: 'Bed', default: null })
   target_bed_id?: Types.ObjectId | null;
+
+  @Prop({ type: String, default: null })
+  rejection_reason?: string | null;
 }
 
 export const ServiceRequestSchema =
