@@ -74,6 +74,9 @@ export class ServiceRequestsService {
         throw new BadRequestException('Thiếu target_room_id');
       }
       payload.target_room_id = new Types.ObjectId(dto.target_room_id);
+      if (dto.target_bed_id) {
+        payload.target_bed_id = new Types.ObjectId(dto.target_bed_id);
+      }
     }
 
     const created = new this.serviceRequestModel(payload);
@@ -82,7 +85,13 @@ export class ServiceRequestsService {
 
   async findAll(status?: string): Promise<ServiceRequest[]> {
     const filter = status ? { status } : {};
-    return this.serviceRequestModel.find(filter).exec();
+    return this.serviceRequestModel
+      .find(filter)
+      .populate('resident_id', 'full_name email phone cccd_id')
+      .populate('family_member_id', 'full_name email phone')
+      .populate('target_room_id', 'room_number floor room_type gender')
+      .populate('target_bed_id', 'bed_number bed_type')
+      .exec();
   }
 
   async findAllByFamily(familyMemberId: string): Promise<ServiceRequest[]> {
@@ -132,7 +141,7 @@ export class ServiceRequestsService {
         await this.executeServiceDateChange(residentId, request.new_start_date || undefined, request.new_end_date || undefined);
         break;
       case 'room_change':
-        await this.executeRoomChange(residentId, request.target_room_id);
+        await this.executeRoomChange(residentId, request.target_room_id, request.target_bed_id);
         break;
       default:
         throw new BadRequestException('Loại yêu cầu không hợp lệ');
@@ -187,7 +196,7 @@ export class ServiceRequestsService {
     );
   }
 
-  private async executeRoomChange(residentId: any, newRoomId: any): Promise<void> {
+  private async executeRoomChange(residentId: any, newRoomId: any, targetBedId?: any): Promise<void> {
     // End current bed assignment
     await this.bedAssignmentModel.updateMany(
       { 
@@ -200,54 +209,63 @@ export class ServiceRequestsService {
       }
     );
 
-    // Find an available bed in the new room
-    const availableBed = await this.bedAssignmentModel.aggregate([
-      {
-        $lookup: {
-          from: 'beds',
-          localField: 'bed_id',
-          foreignField: '_id',
-          as: 'bed'
-        }
-      },
-      {
-        $match: {
-          'bed.room_id': newRoomId,
-          unassigned_date: null
-        }
-      },
-      {
-        $group: {
-          _id: '$bed_id',
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $lookup: {
-          from: 'beds',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'bed'
-        }
-      },
-      {
-        $match: {
-          'bed.0.room_id': newRoomId
-        }
-      },
-      {
-        $limit: 1
-      }
-    ]);
+    let bedIdToAssign;
 
-    if (availableBed.length === 0) {
-      throw new BadRequestException('Không có giường trống trong phòng mới');
+    if (targetBedId) {
+      // Use the specific bed requested
+      bedIdToAssign = targetBedId;
+    } else {
+      // Find an available bed in the new room
+      const availableBed = await this.bedAssignmentModel.aggregate([
+        {
+          $lookup: {
+            from: 'beds',
+            localField: 'bed_id',
+            foreignField: '_id',
+            as: 'bed'
+          }
+        },
+        {
+          $match: {
+            'bed.room_id': newRoomId,
+            unassigned_date: null
+          }
+        },
+        {
+          $group: {
+            _id: '$bed_id',
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'beds',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'bed'
+          }
+        },
+        {
+          $match: {
+            'bed.0.room_id': newRoomId
+          }
+        },
+        {
+          $limit: 1
+        }
+      ]);
+
+      if (availableBed.length === 0) {
+        throw new BadRequestException('Không có giường trống trong phòng mới');
+      }
+
+      bedIdToAssign = availableBed[0]._id;
     }
 
     // Create new bed assignment
     const newBedAssignment = new this.bedAssignmentModel({
       resident_id: residentId,
-      bed_id: availableBed[0]._id,
+      bed_id: bedIdToAssign,
       assigned_date: new Date(),
       unassigned_date: null,
       assigned_by: null, // System assigned
