@@ -60,4 +60,9 @@ export class CreateServiceRequestDto {
   @IsOptional()
   @IsMongoId()
   target_bed_id?: string;
+
+  @ApiPropertyOptional({ description: 'Rejection reason when rejecting request' })
+  @IsOptional()
+  @IsString()
+  rejection_reason?: string;
 }
