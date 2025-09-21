@@ -197,83 +197,84 @@ export class ServiceRequestsService {
   }
 
   private async executeRoomChange(residentId: any, newRoomId: any, targetBedId?: any): Promise<void> {
-    // End current bed assignment
-    await this.bedAssignmentModel.updateMany(
-      { 
-        resident_id: residentId,
-        unassigned_date: null // Only active assignments
-      },
-      { 
-        unassigned_date: new Date(),
-        updated_at: new Date()
-      }
-    );
-
-    let bedIdToAssign;
-
-    if (targetBedId) {
-      // Use the specific bed requested
-      bedIdToAssign = targetBedId;
-    } else {
-      // Find an available bed in the new room
-      const availableBed = await this.bedAssignmentModel.aggregate([
-        {
-          $lookup: {
-            from: 'beds',
-            localField: 'bed_id',
-            foreignField: '_id',
-            as: 'bed'
-          }
+    try {
+      // End current bed assignment
+      await this.bedAssignmentModel.updateMany(
+        { 
+          resident_id: residentId,
+          unassigned_date: null // Only active assignments
         },
-        {
-          $match: {
-            'bed.room_id': newRoomId,
-            unassigned_date: null
-          }
-        },
-        {
-          $group: {
-            _id: '$bed_id',
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $lookup: {
-            from: 'beds',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'bed'
-          }
-        },
-        {
-          $match: {
-            'bed.0.room_id': newRoomId
-          }
-        },
-        {
-          $limit: 1
+        { 
+          unassigned_date: new Date(),
+          updated_at: new Date()
         }
-      ]);
+      );
 
-      if (availableBed.length === 0) {
-        throw new BadRequestException('Không có giường trống trong phòng mới');
+      let bedIdToAssign;
+
+      if (targetBedId) {
+        // Use the specific bed requested
+        bedIdToAssign = targetBedId;
+        
+        // Verify the bed exists and is in the correct room
+        const bed = await this.bedAssignmentModel.db.collection('beds').findOne({ _id: new Types.ObjectId(targetBedId) });
+        if (!bed) {
+          throw new BadRequestException('Giường được yêu cầu không tồn tại');
+        }
+        
+        // Check if bed is already assigned
+        const existingAssignment = await this.bedAssignmentModel.findOne({
+          bed_id: targetBedId,
+          unassigned_date: null
+        });
+        
+        if (existingAssignment) {
+          throw new BadRequestException('Giường được yêu cầu đã được sử dụng');
+        }
+      } else {
+        // Find an available bed in the new room - simplified approach
+        const availableBeds = await this.bedAssignmentModel.db.collection('beds').find({
+          room_id: new Types.ObjectId(newRoomId)
+        }).toArray();
+        
+        if (availableBeds.length === 0) {
+          throw new BadRequestException('Phòng mới không có giường nào');
+        }
+        
+        // Find first unassigned bed
+        for (const bed of availableBeds) {
+          const existingAssignment = await this.bedAssignmentModel.findOne({
+            bed_id: bed._id,
+            unassigned_date: null
+          });
+          
+          if (!existingAssignment) {
+            bedIdToAssign = bed._id;
+            break;
+          }
+        }
+        
+        if (!bedIdToAssign) {
+          throw new BadRequestException('Không có giường trống trong phòng mới');
+        }
       }
 
-      bedIdToAssign = availableBed[0]._id;
+      // Create new bed assignment
+      const newBedAssignment = new this.bedAssignmentModel({
+        resident_id: residentId,
+        bed_id: bedIdToAssign,
+        assigned_date: new Date(),
+        unassigned_date: null,
+        assigned_by: null, // System assigned
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      await newBedAssignment.save();
+    } catch (error) {
+      console.error('Error in executeRoomChange:', error);
+      throw error;
     }
-
-    // Create new bed assignment
-    const newBedAssignment = new this.bedAssignmentModel({
-      resident_id: residentId,
-      bed_id: bedIdToAssign,
-      assigned_date: new Date(),
-      unassigned_date: null,
-      assigned_by: null, // System assigned
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-
-    await newBedAssignment.save();
   }
 
   private async sendApprovalNotification(request: ServiceRequest): Promise<void> {
