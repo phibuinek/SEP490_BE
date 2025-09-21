@@ -265,9 +265,9 @@ export class ServiceRequestsService {
         bed_id: bedIdToAssign,
         assigned_date: new Date(),
         unassigned_date: null,
-        assigned_by: null, // System assigned
-        created_at: new Date(),
-        updated_at: new Date()
+        status: 'active', // Required field
+        assigned_by: new Types.ObjectId('000000000000000000000000'), // System assigned - use a default system user ID
+        reason: 'Room change request approved'
       });
 
       await newBedAssignment.save();
