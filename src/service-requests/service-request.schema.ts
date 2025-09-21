@@ -60,6 +60,9 @@ export class ServiceRequest {
   // For room change
   @Prop({ type: Types.ObjectId, ref: 'Room', default: null })
   target_room_id?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Bed', default: null })
+  target_bed_id?: Types.ObjectId | null;
 }
 
 export const ServiceRequestSchema =

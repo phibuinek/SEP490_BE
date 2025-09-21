@@ -55,4 +55,9 @@ export class CreateServiceRequestDto {
   @IsOptional()
   @IsMongoId()
   target_room_id?: string;
+
+  @ApiPropertyOptional({ description: 'Target bed id when requesting room change' })
+  @IsOptional()
+  @IsMongoId()
+  target_bed_id?: string;
 }
