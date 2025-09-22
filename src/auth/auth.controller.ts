@@ -61,8 +61,10 @@ export class AuthController {
       storage: diskStorage({
         destination: (req, file, cb) => {
           try {
-            const uploadPath = path.join(process.cwd(), 'uploads');
-            // Ensure uploads directory exists
+            // On Render/production, write to /tmp/uploads (writable). Locally, use ./uploads
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
             if (!fs.existsSync(uploadPath)) {
               fs.mkdirSync(uploadPath, { recursive: true });
             }
