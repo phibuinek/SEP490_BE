@@ -20,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import * as path from 'path';
 import { extname } from 'path';
 import { Express } from 'express';
 import { AuthService } from './auth.service';
@@ -57,7 +59,18 @@ export class AuthController {
       { name: 'cccd_back', maxCount: 1 },
     ], {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const uploadPath = path.join(process.cwd(), 'uploads');
+            // Ensure uploads directory exists
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
