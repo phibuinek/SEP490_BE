@@ -27,6 +27,20 @@ export class ServiceRequestsService {
     private mailService: MailService,
   ) {}
 
+  /**
+   * Ensure we always use a proper ObjectId even when fields are populated.
+   */
+  private toObjectId(id: any): Types.ObjectId {
+    if (!id) {
+      throw new BadRequestException('Invalid id');
+    }
+    if (id instanceof Types.ObjectId) return id;
+    if (typeof id === 'string') return new Types.ObjectId(id);
+    if (id._id) return new Types.ObjectId(id._id);
+    // Fallback to string cast if possible
+    return new Types.ObjectId(id.toString());
+  }
+
   async create(dto: CreateServiceRequestDto, user?: { userId: string; role: string }): Promise<ServiceRequest> {
     // Only family can create request for their own resident
     if (!user || user.role !== Role.FAMILY) {
@@ -136,7 +150,8 @@ export class ServiceRequestsService {
   }
 
   private async executeRequestChanges(request: ServiceRequest): Promise<void> {
-    const residentId = request.resident_id;
+    // resident_id might be populated; normalize to ObjectId
+    const residentId = this.toObjectId(request.resident_id);
     
     switch (request.request_type) {
       case 'care_plan_change':
@@ -146,7 +161,11 @@ export class ServiceRequestsService {
         await this.executeServiceDateChange(residentId, request.new_start_date || undefined, request.new_end_date || undefined);
         break;
       case 'room_change':
-        await this.executeRoomChange(residentId, request.target_room_id, request.target_bed_id);
+        await this.executeRoomChange(
+          residentId,
+          request.target_room_id ? this.toObjectId(request.target_room_id) : undefined,
+          request.target_bed_id ? this.toObjectId(request.target_bed_id) : undefined,
+        );
         break;
       default:
         throw new BadRequestException('Loại yêu cầu không hợp lệ');
