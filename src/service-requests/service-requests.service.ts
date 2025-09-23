@@ -63,6 +63,11 @@ export class ServiceRequestsService {
       payload.target_service_package_id = new Types.ObjectId(
         dto.target_service_package_id,
       );
+      // Xử lý thêm các trường cho care_plan_change
+      if (dto.new_start_date) payload.new_start_date = new Date(dto.new_start_date);
+      if (dto.new_end_date) payload.new_end_date = new Date(dto.new_end_date);
+      if (dto.target_room_id) payload.target_room_id = new Types.ObjectId(dto.target_room_id);
+      if (dto.target_bed_id) payload.target_bed_id = new Types.ObjectId(dto.target_bed_id);
     } else if (dto.request_type === 'service_date_change') {
       if (!dto.new_start_date && !dto.new_end_date) {
         throw new BadRequestException('Cần new_start_date hoặc new_end_date');
