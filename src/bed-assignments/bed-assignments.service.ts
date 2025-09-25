@@ -73,9 +73,9 @@ export class BedAssignmentsService {
       filter.resident_id = new Types.ObjectId(resident_id);
     }
 
-    // Mặc định chỉ lấy những assignment đang hoạt động (unassigned_date = null)
+    // Mặc định chỉ lấy những assignment đang hoạt động (chỉ status 'active')
     if (activeOnly) {
-      filter.unassigned_date = null;
+      filter.status = 'active';
     }
 
     return this.model
@@ -105,7 +105,7 @@ export class BedAssignmentsService {
     return this.model
       .find({
         resident_id: new Types.ObjectId(resident_id),
-        unassigned_date: null, // Chỉ lấy những assignment đang hoạt động (chưa unassign)
+        status: 'active', // Chỉ lấy những assignment đang hoạt động
       })
       .populate({
         path: 'bed_id',
@@ -130,7 +130,10 @@ export class BedAssignmentsService {
     }
     const assignment = await this.model.findByIdAndUpdate(
       id,
-      { unassigned_date: new Date() },
+      { 
+        status: 'discharged',
+        unassigned_date: new Date() 
+      },
       { new: true },
     );
     if (assignment) {
@@ -143,7 +146,7 @@ export class BedAssignmentsService {
     // 1. Cập nhật trạng thái bed
     const activeAssignment = await this.model.findOne({
       bed_id,
-      unassigned_date: null,
+      status: 'active',
     });
     const bedStatus = activeAssignment ? 'occupied' : 'available';
     await this.bedModel.findByIdAndUpdate(bed_id, { status: bedStatus });
@@ -156,7 +159,7 @@ export class BedAssignmentsService {
         allBeds.map(async (b) => {
           const a = await this.model.findOne({
             bed_id: b._id,
-            unassigned_date: null,
+            status: 'active',
           });
           return !!a;
         }),
@@ -303,5 +306,52 @@ export class BedAssignmentsService {
         `Failed to activate bed assignment: ${error.message}`,
       );
     }
+  }
+
+  // Method to automatically activate completed assignments when admission date arrives
+  async activateCompletedAssignmentsByAdmissionDate(): Promise<void> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+
+      // Find all completed assignments where admission date is today or earlier
+      const completedAssignments = await this.model
+        .find({
+          status: 'completed',
+        })
+        .populate('resident_id', 'admission_date')
+        .exec();
+
+      for (const assignment of completedAssignments) {
+        const resident = assignment.resident_id as any;
+        if (resident && resident.admission_date) {
+          const admissionDate = new Date(resident.admission_date);
+          admissionDate.setHours(0, 0, 0, 0);
+
+          // If admission date is today or earlier, activate the assignment
+          if (admissionDate <= today) {
+            await this.model.findByIdAndUpdate(assignment._id, {
+              status: 'active',
+            });
+
+            // Update bed and room status
+            await this.updateBedAndRoomStatus(assignment.bed_id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error activating completed assignments:', error);
+    }
+  }
+
+  // Method to get assignments by status
+  async getAssignmentsByStatus(status: string): Promise<any[]> {
+    return this.model
+      .find({ status })
+      .populate('resident_id', 'full_name date_of_birth cccd_id admission_date')
+      .populate('bed_id', 'bed_number bed_type room_id')
+      .populate('assigned_by', 'name email')
+      .sort({ assigned_date: -1 })
+      .exec();
   }
 }
