@@ -55,11 +55,11 @@ export class BedsService {
 
     const result: any[] = [];
     for (const bed of beds) {
-      // Tìm bed assignment đang active (chưa có unassigned_date)
+      // Tìm bed assignment đang active (chỉ status 'active')
       const assignment = await this.bedAssignmentModel
         .findOne({
           bed_id: bed._id,
-          unassigned_date: null,
+          status: 'active',
         })
         .populate({
           path: 'resident_id',
@@ -67,10 +67,10 @@ export class BedsService {
         })
         .lean();
 
-      // Xác định trạng thái thực tế của giường
-      let dynamicStatus = 'available'; // Default là available
+      // Xác định trạng thái thực tế của giường dựa trên bed.status và assignment
+      let dynamicStatus = bed.status; // Sử dụng status từ bed schema
       if (assignment) {
-        dynamicStatus = 'occupied'; // Có assignment thì là occupied
+        dynamicStatus = 'occupied'; // Có assignment active thì là occupied
       }
 
       // Nếu có filter status thì chỉ trả về bed phù hợp
@@ -128,17 +128,51 @@ export class BedsService {
       .lean();
     const result: any[] = [];
     for (const bed of beds) {
+      // Tìm bed assignment đang active (chỉ status 'active')
       const assignment = await this.bedAssignmentModel.findOne({
         bed_id: bed._id,
-        unassigned_date: null,
+        status: 'active',
       });
-      let dynamicStatus = bed.status;
-      if (assignment) dynamicStatus = 'occupied';
+      
+      // Xác định trạng thái thực tế của giường dựa trên bed.status và assignment
+      let dynamicStatus = bed.status; // Sử dụng status từ bed schema
+      if (assignment) {
+        dynamicStatus = 'occupied'; // Có assignment active thì là occupied
+      }
+      
       // Nếu có filter status thì chỉ trả về bed phù hợp
       if (!status || dynamicStatus === status) {
-        result.push({ ...bed, status: dynamicStatus });
+        result.push({ 
+          ...bed, 
+          status: dynamicStatus,
+          is_assigned: !!assignment,
+          assignment_id: assignment?._id || null,
+        });
       }
     }
     return result;
+  }
+
+  // Method to update bed status based on assignments
+  async updateBedStatus(bedId: string): Promise<void> {
+    const bed = await this.bedModel.findById(bedId);
+    if (!bed) return;
+
+    // Check for active assignments
+    const activeAssignment = await this.bedAssignmentModel.findOne({
+      bed_id: bedId,
+      status: 'active',
+    });
+
+    // Update bed status based on assignment
+    const newStatus = activeAssignment ? 'occupied' : 'available';
+    if (bed.status !== newStatus) {
+      await this.bedModel.findByIdAndUpdate(bedId, { status: newStatus });
+    }
+  }
+
+  // Method to get available beds by room with proper status filtering
+  async getAvailableBedsByRoom(roomId: string): Promise<any[]> {
+    return this.findByRoomIdWithStatus(roomId, 'available');
   }
 }

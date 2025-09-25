@@ -283,4 +283,28 @@ export class BedAssignmentsController {
     }
     return this.service.activateBedAssignment(id);
   }
+
+  @Post('activate-completed')
+  @UseGuards(JwtAuthGuard)
+  async activateCompletedAssignments(@Req() req: any) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can activate completed assignments');
+    }
+    await this.service.activateCompletedAssignmentsByAdmissionDate();
+    return { message: 'Completed assignments activated successfully' };
+  }
+
+  @Get('by-status/:status')
+  @UseGuards(JwtAuthGuard)
+  async getAssignmentsByStatus(
+    @Param('status') status: string,
+    @Req() req: any,
+  ) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN && userRole !== Role.STAFF) {
+      throw new ForbiddenException('Only admin and staff can view assignments by status');
+    }
+    return this.service.getAssignmentsByStatus(status);
+  }
 }
