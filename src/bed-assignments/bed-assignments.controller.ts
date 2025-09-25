@@ -15,7 +15,7 @@ import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiBearerAuth()
 @ApiTags('BedAssignments')
@@ -39,14 +39,28 @@ export class BedAssignmentsController {
     required: false,
     description: 'Include inactive assignments (admin/staff only)',
   })
+  @ApiQuery({
+    name: 'statuses',
+    required: false,
+    description: "Comma-separated statuses to filter by (e.g., 'completed,pending')",
+  })
   async findAll(
     @Req() req,
     @Query('bed_id') bed_id?: string,
     @Query('resident_id') resident_id?: string,
     @Query('include_inactive') include_inactive?: string,
+    @Query('statuses') statuses?: string,
   ) {
     const userRole = req.user?.role;
+    // Allow FAMILY to query by bed_id with limited fields for reservation check
     if (userRole === Role.FAMILY) {
+      if (bed_id) {
+        const list = await this.service.findByBedIdWithStatuses(
+          bed_id,
+          statuses ? statuses.split(',') : undefined,
+        );
+        return list;
+      }
       throw new ForbiddenException('Family cannot view all bed assignments');
     }
 

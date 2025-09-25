@@ -178,6 +178,23 @@ export class BedAssignmentsService {
     return this.findAll(bed_id, resident_id, false); // activeOnly = false
   }
 
+  // Find assignments by bed_id with specific statuses (minimal projection)
+  async findByBedIdWithStatuses(bed_id: string, statuses: string[] = []) {
+    if (!Types.ObjectId.isValid(bed_id)) {
+      throw new BadRequestException('Invalid bed_id format');
+    }
+    const filter: any = { bed_id: new Types.ObjectId(bed_id) };
+    if (Array.isArray(statuses) && statuses.length > 0) {
+      filter.status = { $in: statuses };
+    }
+    return this.model
+      .find(filter)
+      .select('_id status assigned_date unassigned_date')
+      .sort({ assigned_date: -1 })
+      .lean()
+      .exec();
+  }
+
   // Admin methods for bed assignment approval
   async getPendingBedAssignments() {
     try {
