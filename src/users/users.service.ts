@@ -551,13 +551,13 @@ export class UsersService {
         updated_at: new Date(),
       };
 
-      // Handle file uploads
-      if (cccdFront) {
-        updateData.cccd_front = cccdFront.path || `uploads/${cccdFront.filename}`;
+      // Handle file uploads: always store relative URL under uploads/
+      if (cccdFront?.filename) {
+        updateData.cccd_front = `uploads/${cccdFront.filename}`.replace(/\\/g, '/');
       }
 
-      if (cccdBack) {
-        updateData.cccd_back = cccdBack.path || `uploads/${cccdBack.filename}`;
+      if (cccdBack?.filename) {
+        updateData.cccd_back = `uploads/${cccdBack.filename}`.replace(/\\/g, '/');
       }
 
       // Update user
