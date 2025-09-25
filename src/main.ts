@@ -46,7 +46,11 @@ async function bootstrap() {
   );
 
   // Serve static files from uploads
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  // In production, serve from /tmp/uploads, locally from ./uploads
+  const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+  const uploadsDir = isProd ? '/tmp/uploads' : join(__dirname, '..', 'uploads');
+  
+  app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
   });
 
