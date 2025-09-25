@@ -8,12 +8,14 @@ import {
   Query,
   Req,
   ForbiddenException,
+  UseGuards,
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiBearerAuth()
 @ApiTags('BedAssignments')
