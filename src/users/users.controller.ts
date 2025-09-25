@@ -36,6 +36,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Express } from 'express';
 
 @ApiTags('users')
@@ -50,7 +52,19 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -462,7 +476,19 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -555,7 +581,19 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -723,7 +761,19 @@ export class UsersController {
       { name: 'cccd_back', maxCount: 1 },
     ], {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, uniqueSuffix + extname(file.originalname));
@@ -798,7 +848,19 @@ export class UsersController {
       { name: 'cccd_back', maxCount: 1 },
     ], {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, uniqueSuffix + extname(file.originalname));
