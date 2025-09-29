@@ -303,6 +303,43 @@ export class PaymentService {
       // Khi payment thành công, cập nhật status của các entities liên quan
       if (status === 'paid') {
         await this.updateRelatedEntitiesStatus(updatedBill);
+        // Bổ sung: chuyển care plan assignment sang completed/active tùy theo admission_date
+        try {
+          if ((updatedBill as any).care_plan_assignment_id) {
+            const cpa = await this.carePlanAssignmentModel
+              .findById((updatedBill as any).care_plan_assignment_id)
+              .populate('resident_id', 'admission_date')
+              .exec();
+            if (cpa) {
+              const getYmdInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              }).format(d);
+              const todayYmd = getYmdInTz(new Date());
+              const admission = (cpa as any)?.resident_id?.admission_date
+                ? new Date((cpa as any).resident_id.admission_date)
+                : null;
+              if (admission) {
+                const admissionYmd = getYmdInTz(admission);
+                const nextStatus = admissionYmd <= todayYmd ? 'active' : 'completed';
+                await this.carePlanAssignmentModel.findByIdAndUpdate(cpa._id, {
+                  status: nextStatus,
+                  updated_at: new Date(),
+                });
+              } else {
+                // Không có admission_date, để completed
+                await this.carePlanAssignmentModel.findByIdAndUpdate(cpa._id, {
+                  status: 'completed',
+                  updated_at: new Date(),
+                });
+              }
+            }
+          }
+        } catch (_) {
+          // swallow
+        }
       }
 
       return updatedBill;

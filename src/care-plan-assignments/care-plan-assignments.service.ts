@@ -69,8 +69,8 @@ export class CarePlanAssignmentsService {
         end_date: createCarePlanAssignmentDto.end_date
           ? new Date(createCarePlanAssignmentDto.end_date)
           : undefined,
-        // Luồng mới: tạo xong chuyển thẳng sang completed (bỏ duyệt)
-        status: 'completed',
+        // Mặc định: pending cho đến khi thanh toán xong
+        status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
       });

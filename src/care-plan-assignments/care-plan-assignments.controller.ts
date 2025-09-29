@@ -133,4 +133,19 @@ export class CarePlanAssignmentsController {
   remove(@Param('id') id: string) {
     return this.carePlanAssignmentsService.remove(id);
   }
+
+  @Post('activate-completed')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activate completed care plan assignments by admission date' })
+  @ApiResponse({
+    status: 200,
+    description: 'Completed assignments activated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async activateCompletedAssignments(@Req() req: any) {
+    await this.carePlanAssignmentsService.activateCompletedAssignmentsByAdmissionDate();
+    return { message: 'Completed care plan assignments activated successfully' };
+  }
 } 
