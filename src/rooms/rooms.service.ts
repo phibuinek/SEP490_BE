@@ -272,16 +272,16 @@ export class RoomsService {
     const residents = bedAssignments.map(ba => ba.resident_id);
     return residents;
   }
-  async getResidentsByStaff(staffId: string) {
+  async getResidentsByStaff(staffId: string): Promise<any[]> {
     // Lấy các phòng staff được phân công
     const rooms = await this.roomModel.find({ assigned_staff: staffId }).exec();
-    const residents = [];
+    const residents: any[] = [];
     for (const room of rooms) {
-      const resInRoom = await this.getResidentsInRoom(room._id);
+      const resInRoom = await this.getResidentsInRoom(String(room._id));
       residents.push(...resInRoom);
     }
     // Loại bỏ resident trùng lặp (nếu có)
-    const uniqueResidents = Array.from(new Map(residents.map(r => [r._id.toString(), r])).values());
+    const uniqueResidents = Array.from(new Map(residents.map((r: any) => [r._id.toString(), r])).values());
     return uniqueResidents;
   }
 }
