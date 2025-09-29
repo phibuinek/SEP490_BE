@@ -12,6 +12,7 @@ import { BadRequestException } from '@nestjs/common';
 import { CarePlanAssignment } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
 import { BedAssignment } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Resident } from '../residents/schemas/resident.schema';
+import { BedAssignmentsService } from '../bed-assignments/bed-assignments.service';
 
 @Injectable()
 export class PaymentService {
@@ -28,6 +29,7 @@ export class PaymentService {
     @InjectModel(BedAssignment.name) private bedAssignmentModel: Model<BedAssignment>,
     @InjectModel(Resident.name) private residentModel: Model<Resident>,
     private readonly careplanService: CarePlansService,
+    private readonly bedAssignmentsService: BedAssignmentsService,
   ) {}
 
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
@@ -303,6 +305,83 @@ export class PaymentService {
       // Khi payment thành công, cập nhật status của các entities liên quan
       if (status === 'paid') {
         await this.updateRelatedEntitiesStatus(updatedBill);
+
+        // Bổ sung: chuyển care plan assignment và bed assignment sang completed/active tùy theo admission_date
+        try {
+          // Handle Care Plan Assignment
+          if ((updatedBill as any).care_plan_assignment_id) {
+            const cpa = await this.carePlanAssignmentModel
+              .findById((updatedBill as any).care_plan_assignment_id)
+              .populate('resident_id', 'admission_date')
+              .exec();
+            if (cpa) {
+              const getYmdInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              }).format(d);
+              const todayYmd = getYmdInTz(new Date());
+              const admission = (cpa as any)?.resident_id?.admission_date
+                ? new Date((cpa as any).resident_id.admission_date)
+                : null;
+              if (admission) {
+                const admissionYmd = getYmdInTz(admission);
+                const nextStatus = admissionYmd <= todayYmd ? 'active' : 'completed';
+                await this.carePlanAssignmentModel.findByIdAndUpdate(cpa._id, {
+                  status: nextStatus,
+                  updated_at: new Date(),
+                });
+              } else {
+                // Không có admission_date, để completed
+                await this.carePlanAssignmentModel.findByIdAndUpdate(cpa._id, {
+                  status: 'completed',
+                  updated_at: new Date(),
+                });
+              }
+            }
+          }
+
+          // Handle Bed Assignment
+          if ((updatedBill as any).bed_assignment_id) {
+            const ba = await this.bedAssignmentModel
+              .findById((updatedBill as any).bed_assignment_id)
+              .populate('resident_id', 'admission_date')
+              .exec();
+            if (ba) {
+              const getYmdInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              }).format(d);
+              const todayYmd = getYmdInTz(new Date());
+              const admission = (ba as any)?.resident_id?.admission_date
+                ? new Date((ba as any).resident_id.admission_date)
+                : null;
+              if (admission) {
+                const admissionYmd = getYmdInTz(admission);
+                const nextStatus = admissionYmd <= todayYmd ? 'active' : 'completed';
+                await this.bedAssignmentModel.findByIdAndUpdate(ba._id, {
+                  status: nextStatus,
+                  updated_at: new Date(),
+                });
+                // Update bed and room status when bed assignment becomes active
+                if (nextStatus === 'active') {
+                  await this.bedAssignmentsService.updateBedAndRoomStatus(ba.bed_id);
+                }
+              } else {
+                // Không có admission_date, để completed
+                await this.bedAssignmentModel.findByIdAndUpdate(ba._id, {
+                  status: 'completed',
+                  updated_at: new Date(),
+                });
+              }
+            }
+          }
+        } catch (_) {
+          // swallow
+        }
       }
 
       return updatedBill;
@@ -339,19 +418,10 @@ export class PaymentService {
         );
       }
 
-      // Cập nhật Bed Assignment status thành 'completed'
+      // Cập nhật Bed Assignment status thành 'completed' hoặc 'active' tùy theo admission_date
       if (bill.bed_assignment_id) {
-        console.log('🛏️ Updating bed assignment status to completed:', bill.bed_assignment_id);
-        updatePromises.push(
-          this.bedAssignmentModel.findByIdAndUpdate(
-            bill.bed_assignment_id,
-            { 
-              status: 'completed',
-              updated_at: new Date()
-            },
-            { new: true }
-          ).exec()
-        );
+        console.log('🛏️ Updating bed assignment status:', bill.bed_assignment_id);
+        // Bed assignment status will be handled separately after payment
       }
 
       // Cập nhật Resident status thành 'active'
