@@ -69,13 +69,51 @@ export class CarePlanAssignmentsService {
         end_date: createCarePlanAssignmentDto.end_date
           ? new Date(createCarePlanAssignmentDto.end_date)
           : undefined,
-        // Luồng mới: tạo xong chuyển thẳng sang completed (bỏ duyệt)
-        status: 'completed',
+        // Mặc định: pending cho đến khi thanh toán xong
+        status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
       });
 
-      return await createdAssignment.save();
+      const saved = await createdAssignment.save();
+
+      // Auto-activate on creation day if registration_date is the same local day as resident's admission_date
+      try {
+        const populated = await this.carePlanAssignmentModel
+          .findById(saved._id)
+          .populate('resident_id', 'admission_date')
+          .exec();
+
+        const residentAny: any = populated?.resident_id;
+        if (residentAny?.admission_date) {
+          const getYmdInTz = (d: Date) => {
+            const fmt = new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Asia/Ho_Chi_Minh',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            });
+            return fmt.format(d);
+          };
+
+          const admission = new Date(residentAny.admission_date);
+          const registered = new Date(registration_date);
+          const sameLocalDay = getYmdInTz(admission) === getYmdInTz(registered);
+
+          if (sameLocalDay && saved.status === 'completed') {
+            await this.carePlanAssignmentModel.findByIdAndUpdate(saved._id, {
+              status: 'active',
+              updated_at: new Date(),
+            });
+            const updated = await this.carePlanAssignmentModel.findById(saved._id).exec();
+            return updated as any;
+          }
+        }
+      } catch (e) {
+        // non-fatal
+      }
+
+      return saved;
     } catch (error: any) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -532,6 +570,49 @@ export class CarePlanAssignmentsService {
       throw new BadRequestException(
         `Failed to activate assignment: ${error.message}`,
       );
+    }
+  }
+
+  // Auto-activate completed assignments when resident admission date arrives (daily/triggered)
+  async activateCompletedAssignmentsByAdmissionDate(): Promise<void> {
+    try {
+      const todayYmd = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+
+      const completed = await this.carePlanAssignmentModel
+        .find({ status: 'completed' })
+        .populate('resident_id', 'admission_date')
+        .exec();
+
+      const getYmdInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+
+      for (const assignment of completed as any[]) {
+        const admission = assignment?.resident_id?.admission_date
+          ? new Date(assignment.resident_id.admission_date)
+          : null;
+        if (!admission) continue;
+
+        // Activate if admission date is today or earlier (by local date)
+        const admissionYmd = getYmdInTz(admission);
+        if (admissionYmd <= todayYmd) {
+          await this.carePlanAssignmentModel.findByIdAndUpdate(assignment._id, {
+            status: 'active',
+            updated_at: new Date(),
+          });
+        }
+      }
+    } catch (e) {
+      // log silently
+      // console.error('activateCompletedAssignmentsByAdmissionDate error', e);
     }
   }
 }
