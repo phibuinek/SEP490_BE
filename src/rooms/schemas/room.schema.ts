@@ -31,6 +31,10 @@ export class Room {
     enum: ['available', 'occupied', 'maintenance', 'reserved'],
   })
   status: string;
+
+  // Thêm trường assigned_staff
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User ' }], default: [] })
+  assigned_staff: Types.ObjectId[];
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);

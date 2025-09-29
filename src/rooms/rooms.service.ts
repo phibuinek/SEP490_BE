@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Room, RoomDocument } from './schemas/room.schema';
@@ -236,5 +236,52 @@ export class RoomsService {
       });
     }
     return result;
+  }
+  async assignStaffToRoom(roomId: string, staffId: string) {
+    const room = await this.roomModel.findById(roomId);
+    if (!room) throw new NotFoundException('Room not found');
+    if (!Types.ObjectId.isValid(staffId)) {
+      throw new BadRequestException('Invalid staffId');
+    }
+    const staffObjectId = new Types.ObjectId(staffId);
+    if (!room.assigned_staff.some(id => id.equals(staffObjectId))) {
+      room.assigned_staff.push(staffObjectId);
+      await room.save();
+    }
+    return room;
+  }
+  async removeStaffFromRoom(roomId: string, staffId: string) {
+    const room = await this.roomModel.findById(roomId);
+    if (!room) throw new NotFoundException('Room not found');
+    room.assigned_staff = room.assigned_staff.filter(
+      id => id.toString() !== staffId,
+    );
+    await room.save();
+    return room;
+  }
+  async getResidentsInRoom(roomId: string) {
+    // Lấy tất cả bed trong phòng
+    const beds = await this.bedModel.find({ room_id: roomId }).select('_id').exec();
+    const bedIds = beds.map(b => b._id);
+    // Lấy các bed assignment đang active (unassigned_date = null) trong các bed đó
+    const bedAssignments = await this.bedAssignmentModel.find({
+      bed_id: { $in: bedIds },
+      unassigned_date: null,
+    }).populate('resident_id');
+    // Lấy resident từ bedAssignments
+    const residents = bedAssignments.map(ba => ba.resident_id);
+    return residents;
+  }
+  async getResidentsByStaff(staffId: string) {
+    // Lấy các phòng staff được phân công
+    const rooms = await this.roomModel.find({ assigned_staff: staffId }).exec();
+    const residents = [];
+    for (const room of rooms) {
+      const resInRoom = await this.getResidentsInRoom(room._id);
+      residents.push(...resInRoom);
+    }
+    // Loại bỏ resident trùng lặp (nếu có)
+    const uniqueResidents = Array.from(new Map(residents.map(r => [r._id.toString(), r])).values());
+    return uniqueResidents;
   }
 }
