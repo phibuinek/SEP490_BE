@@ -114,6 +114,16 @@ export class Resident {
   
   @Prop({ type: String, required: false, default: null })
   deleted_reason?: string | null;
+
+  // CCCD Information for residents
+  @Prop({ required: false })
+  cccd_id?: string;
+
+  @Prop({ required: false })
+  cccd_front?: string;
+
+  @Prop({ required: false })
+  cccd_back?: string;
 }
 
 export const ResidentSchema = SchemaFactory.createForClass(Resident);
