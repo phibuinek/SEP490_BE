@@ -48,6 +48,48 @@ export class BedAssignmentsService {
     };
 
     const result = await this.model.create(createData);
+
+    // Edge case: if bed assignment is created on the same local day as resident's admission_date,
+    // auto-activate immediately (handles case when creation happens exactly on admission day)
+    try {
+      // Re-fetch with resident admission_date
+      const created = await this.model
+        .findById(result._id)
+        .populate('resident_id', 'admission_date')
+        .exec();
+
+      const resident: any = created?.resident_id;
+      if (resident?.admission_date) {
+        // Compare only the calendar date in Asia/Ho_Chi_Minh timezone (no double shifting)
+        const getYmdInTz = (d: Date) => {
+          const fmt = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          });
+          // en-CA gives YYYY-MM-DD
+          return fmt.format(d);
+        };
+
+        const admission = new Date(resident.admission_date);
+        const assigned = new Date(createData.assigned_date);
+        const sameLocalDay = getYmdInTz(admission) === getYmdInTz(assigned);
+
+        if (sameLocalDay && result.status === 'completed') {
+          // Activate immediately
+          await this.model.findByIdAndUpdate(result._id, { status: 'active' });
+          await this.updateBedAndRoomStatus(createData.bed_id);
+          // Return updated doc with status active
+          const updated = await this.model.findById(result._id).exec();
+          return updated;
+        }
+      }
+    } catch (e) {
+      // Non-fatal; keep original result
+      // console.error('Auto-activate on create failed:', e);
+    }
+
     await this.updateBedAndRoomStatus(createData.bed_id);
     return result;
   }
