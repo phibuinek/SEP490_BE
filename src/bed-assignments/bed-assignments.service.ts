@@ -43,52 +43,14 @@ export class BedAssignmentsService {
         : undefined,
       assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
       unassigned_date: null, // luôn set null khi tạo mới
-      // Luồng mới: tạo xong chuyển thẳng sang completed (bỏ duyệt)
-      status: 'completed',
+      // Mặc định: pending cho đến khi thanh toán xong
+      status: 'pending',
     };
 
     const result = await this.model.create(createData);
 
-    // Edge case: if bed assignment is created on the same local day as resident's admission_date,
-    // auto-activate immediately (handles case when creation happens exactly on admission day)
-    try {
-      // Re-fetch with resident admission_date
-      const created = await this.model
-        .findById(result._id)
-        .populate('resident_id', 'admission_date')
-        .exec();
-
-      const resident: any = created?.resident_id;
-      if (resident?.admission_date) {
-        // Compare only the calendar date in Asia/Ho_Chi_Minh timezone (no double shifting)
-        const getYmdInTz = (d: Date) => {
-          const fmt = new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'Asia/Ho_Chi_Minh',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          });
-          // en-CA gives YYYY-MM-DD
-          return fmt.format(d);
-        };
-
-        const admission = new Date(resident.admission_date);
-        const assigned = new Date(createData.assigned_date);
-        const sameLocalDay = getYmdInTz(admission) === getYmdInTz(assigned);
-
-        if (sameLocalDay && result.status === 'completed') {
-          // Activate immediately
-          await this.model.findByIdAndUpdate(result._id, { status: 'active' });
-          await this.updateBedAndRoomStatus(createData.bed_id);
-          // Return updated doc with status active
-          const updated = await this.model.findById(result._id).exec();
-          return updated;
-        }
-      }
-    } catch (e) {
-      // Non-fatal; keep original result
-      // console.error('Auto-activate on create failed:', e);
-    }
+    // No auto-activation on creation since status is now 'pending'
+    // Status will be updated to 'completed' or 'active' when payment is successful
 
     await this.updateBedAndRoomStatus(createData.bed_id);
     return result;
