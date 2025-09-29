@@ -9,6 +9,7 @@ import { Bill, BillSchema } from '../bills/schemas/bill.schema';
 import { CarePlanAssignment, CarePlanAssignmentSchema } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
 import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
+import { BedAssignmentsModule } from '../bed-assignments/bed-assignments.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
     ]),
     BillsModule,
     CarePlansModule,
+    BedAssignmentsModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService],
