@@ -1538,4 +1538,125 @@ export class ResidentsService {
       throw new BadRequestException(`Failed to get rooms with admitted residents: ${error.message}`);
     }
   }
+
+  // Discharge resident (discharged or deceased)
+  async dischargeResident(residentId: string, dischargeData: { status: ResidentStatus.DISCHARGED | ResidentStatus.DECEASED; reason: string }): Promise<Resident> {
+    try {
+      // Find the resident
+      const resident = await this.residentModel
+        .findOne({ _id: residentId, is_deleted: false })
+        .populate('family_member_id', 'name email phone')
+        .exec();
+
+      if (!resident) {
+        throw new NotFoundException(`Resident with ID ${residentId} not found`);
+      }
+
+      // Check if resident can be discharged (must be admitted)
+      if (resident.status !== ResidentStatus.ADMITTED) {
+        throw new BadRequestException('Only admitted residents can be discharged');
+      }
+
+      // Update resident status and discharge date
+      const dischargeDate = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // Vietnam timezone
+      resident.status = dischargeData.status;
+      resident.discharge_date = dischargeDate;
+      resident.updated_at = dischargeDate;
+      resident.is_deleted = true;
+      resident.deleted_at = dischargeDate;
+      resident.deleted_reason = dischargeData.reason;
+
+      // Save the updated resident
+      await resident.save();
+
+      // Update related bed assignments using the service
+      const bedAssignments = await this.bedAssignmentModel.find({
+        resident_id: residentId,
+        status: 'active'
+      });
+
+      for (const bedAssignment of bedAssignments) {
+        await this.bedAssignmentModel.findByIdAndUpdate(
+          bedAssignment._id,
+          { 
+            status: 'discharged',
+            unassigned_date: dischargeDate
+          }
+        );
+        // Update bed and room status
+        await this.updateBedAndRoomStatus(bedAssignment.bed_id);
+      }
+
+      // Update related care plan assignments using the service
+      const { CarePlanAssignment, CarePlanAssignmentSchema } = await import('../care-plan-assignments/schemas/care-plan-assignment.schema');
+      const carePlanAssignmentModel = this.residentModel.db.model('CarePlanAssignment', CarePlanAssignmentSchema);
+      const carePlanAssignments = await carePlanAssignmentModel.find({
+        resident_id: residentId,
+        status: 'active'
+      });
+
+      for (const carePlanAssignment of carePlanAssignments) {
+        await carePlanAssignmentModel.findByIdAndUpdate(
+          carePlanAssignment._id,
+          { 
+            status: 'cancelled',
+            end_date: dischargeDate,
+            notes: `Cancelled due to resident discharge: ${dischargeData.reason}`
+          }
+        );
+      }
+
+      // Send email notification to family member
+      if (resident.family_member_id && typeof resident.family_member_id === 'object' && 'email' in resident.family_member_id) {
+        const familyMember = resident.family_member_id as any;
+        const statusText = dischargeData.status === ResidentStatus.DISCHARGED ? 'xuất viện' : 'qua đời';
+        
+        await this.mailService.sendDischargeNotificationEmail({
+          to: familyMember.email,
+          familyName: familyMember.name,
+          residentName: resident.full_name,
+          statusText: statusText,
+          reason: dischargeData.reason,
+          dischargeDate: dischargeDate
+        });
+      }
+
+      return resident;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to discharge resident: ${error.message}`);
+    }
+  }
+
+  // Helper method to update bed and room status (copied from bed assignments service)
+  private async updateBedAndRoomStatus(bed_id: any) {
+    // 1. Cập nhật trạng thái bed
+    const activeAssignment = await this.bedAssignmentModel.findOne({
+      bed_id,
+      status: 'active',
+    });
+    const bedStatus = activeAssignment ? 'occupied' : 'available';
+    await this.bedModel.findByIdAndUpdate(bed_id, { status: bedStatus });
+
+    // 2. Cập nhật trạng thái room chứa bed này
+    const bed = await this.bedModel.findById(bed_id);
+    if (bed) {
+      const allBeds = await this.bedModel.find({ room_id: bed.room_id });
+      const allOccupied = await Promise.all(
+        allBeds.map(async (b) => {
+          const a = await this.bedAssignmentModel.findOne({
+            bed_id: b._id,
+            status: 'active',
+          });
+          return !!a;
+        }),
+      );
+      const roomStatus = allOccupied.every(Boolean) ? 'occupied' : 'available';
+      await this.roomModel.findByIdAndUpdate(bed.room_id, {
+        status: roomStatus,
+      });
+    }
+  }
 }

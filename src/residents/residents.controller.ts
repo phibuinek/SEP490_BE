@@ -18,6 +18,7 @@ import {
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
+import { DischargeResidentDto } from './dto/discharge-resident.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -495,5 +496,43 @@ export class ResidentsController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   rejectResident(@Param('id') id: string, @Body() body: { reason?: string }) {
     return this.residentsService.updateStatus(id, ResidentStatus.REJECTED, body.reason);
+  }
+
+  @Patch(':id/discharge')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Discharge a resident (discharged or deceased)' })
+  @ApiParam({ name: 'id', description: 'Resident ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['discharged', 'deceased'],
+          description: 'Discharge status - either discharged or deceased'
+        },
+        reason: {
+          type: 'string',
+          description: 'Reason for discharge (required)',
+          minLength: 10
+        }
+      },
+      required: ['status', 'reason']
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Resident discharged successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid status or missing reason' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  @ApiResponse({ status: 404, description: 'Resident not found' })
+  async dischargeResident(
+    @Param('id') id: string,
+    @Body() dischargeData: DischargeResidentDto
+  ) {
+    return this.residentsService.dischargeResident(id, dischargeData);
   }
 }
