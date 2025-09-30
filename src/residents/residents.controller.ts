@@ -34,6 +34,8 @@ import {
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Express } from 'express';
 import { ResidentStatus } from './schemas/resident.schema';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -54,7 +56,19 @@ export class ResidentsController {
       { name: 'cccd_back', maxCount: 1 },
     ], {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -127,15 +141,15 @@ export class ResidentsController {
     // Tự động lấy family_member_id từ token
     createResidentDto.family_member_id = req.user.userId;
 
-    // Map uploaded files to DTO fields
+    // Map uploaded files to DTO fields - always store relative paths
     if (files?.avatar?.[0]) {
-      createResidentDto.avatar = files.avatar[0].path || `uploads/${files.avatar[0].filename}`;
+      createResidentDto.avatar = `uploads/${files.avatar[0].filename}`.replace(/\\/g, '/');
     }
     if (files?.cccd_front?.[0]) {
-      createResidentDto.cccd_front = files.cccd_front[0].path || `uploads/${files.cccd_front[0].filename}`;
+      createResidentDto.cccd_front = `uploads/${files.cccd_front[0].filename}`.replace(/\\/g, '/');
     }
     if (files?.cccd_back?.[0]) {
-      createResidentDto.cccd_back = files.cccd_back[0].path || `uploads/${files.cccd_back[0].filename}`;
+      createResidentDto.cccd_back = `uploads/${files.cccd_back[0].filename}`.replace(/\\/g, '/');
     }
 
     // Debug all data

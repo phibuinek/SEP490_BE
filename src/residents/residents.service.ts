@@ -318,7 +318,7 @@ export class ResidentsService {
       console.log('- admission_date type:', typeof residentData.admission_date, 'value:', residentData.admission_date);
       console.log('- family_member_id type:', typeof residentData.family_member_id, 'value:', residentData.family_member_id);
       
-      // Xử lý CCCD fields: nếu không có thì gán null
+      // Xử lý CCCD fields: chỉ set null nếu thực sự không có
       if (!residentData.cccd_id) {
         residentData.cccd_id = null;
         console.log('[RESIDENT][CREATE] Set cccd_id to null');
@@ -326,10 +326,14 @@ export class ResidentsService {
       if (!residentData.cccd_front) {
         residentData.cccd_front = null;
         console.log('[RESIDENT][CREATE] Set cccd_front to null');
+      } else {
+        console.log('[RESIDENT][CREATE] cccd_front value:', residentData.cccd_front);
       }
       if (!residentData.cccd_back) {
         residentData.cccd_back = null;
         console.log('[RESIDENT][CREATE] Set cccd_back to null');
+      } else {
+        console.log('[RESIDENT][CREATE] cccd_back value:', residentData.cccd_back);
       }
       if (!residentData.user_cccd_id) {
         residentData.user_cccd_id = null;
@@ -469,7 +473,18 @@ export class ResidentsService {
       try {
         const savedResident = await createdResident.save();
         console.log('[RESIDENT][CREATE] Save successful');
-      return savedResident;
+        
+        // Populate family_member_id with CCCD fields for consistent response
+        const populatedResident = await this.residentModel
+          .findById(savedResident._id)
+          .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+          .exec();
+          
+        if (!populatedResident) {
+          throw new NotFoundException('Failed to retrieve created resident');
+        }
+        
+        return populatedResident;
       } catch (saveError) {
         console.error('[RESIDENT][CREATE] Save error details:');
         console.error('- Error name:', saveError.name);
