@@ -540,4 +540,82 @@ export class ActivityParticipationsService {
       throw error;
     }
   }
+
+  async countDistinctActivitiesByStaff(staff_id: string): Promise<{ staff_id: string; distinct_activity_count: number }> {
+    if (!Types.ObjectId.isValid(staff_id)) {
+      throw new BadRequestException('Invalid staff_id format');
+    }
+
+    try {
+      const distinctActivities = await this.participationModel.distinct('activity_id', {
+        staff_id: new Types.ObjectId(staff_id),
+      });
+      return {
+        staff_id,
+        distinct_activity_count: Array.isArray(distinctActivities) ? distinctActivities.length : 0,
+      };
+    } catch (error) {
+      console.error('Error counting distinct activities by staff:', error);
+      throw new BadRequestException('Failed to count distinct activities by staff');
+    }
+  }
+
+  async countDistinctActivitiesForAllStaff(): Promise<
+    Array<{ staff_id: string; full_name?: string; email?: string; position?: string; distinct_activity_count: number }>
+  > {
+    try {
+      // Get all staff users
+      const staffUsers = await this.userModel
+        .find({ role: 'staff' }, 'full_name email position')
+        .exec();
+
+      // Aggregate participations to count distinct activity_id per staff
+      const agg = await this.participationModel.aggregate([
+        {
+          $group: {
+            _id: '$staff_id',
+            activities: { $addToSet: '$activity_id' },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            distinct_activity_count: { $size: '$activities' },
+          },
+        },
+      ]);
+
+      // Build a quick lookup for counts
+      const countByStaffId = new Map<string, number>();
+      for (const row of agg) {
+        if (row && row._id) {
+          countByStaffId.set(String(row._id), row.distinct_activity_count || 0);
+        }
+      }
+
+      // Prepare results for all staff (including zero counts)
+      const results = staffUsers.map((u: any) => {
+        const idStr = String(u._id);
+        return {
+          staff_id: idStr,
+          full_name: u.full_name,
+          email: u.email,
+          position: u.position,
+          distinct_activity_count: countByStaffId.get(idStr) || 0,
+        };
+      });
+
+      // Sort ascending by count
+      results.sort(
+        (a, b) => a.distinct_activity_count - b.distinct_activity_count,
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error counting distinct activities for all staff:', error);
+      throw new BadRequestException(
+        'Failed to count distinct activities for all staff',
+      );
+    }
+  }
 }

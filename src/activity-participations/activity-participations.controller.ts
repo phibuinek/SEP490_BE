@@ -72,6 +72,18 @@ export class ActivityParticipationsController {
     return this.service.findByStaffId(staffId);
   }
 
+  @Get('stats/by-staff/:staffId')
+  @ApiOperation({ summary: 'Get count of distinct activities handled by a staff' })
+  async getDistinctActivityCountByStaff(@Param('staffId') staffId: string) {
+    return this.service.countDistinctActivitiesByStaff(staffId);
+  }
+
+  @Get('stats/all-staff')
+  @ApiOperation({ summary: 'Get distinct activity counts for all staff, sorted ascending' })
+  async getDistinctActivityCountsForAllStaff() {
+    return this.service.countDistinctActivitiesForAllStaff();
+  }
+
   @Get('by-activity')
   @ApiOperation({
     summary: 'Get all activity participations by activityId and date',
