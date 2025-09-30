@@ -60,15 +60,48 @@ export class StaffAssignmentsService {
         throw new NotFoundException('Không tìm thấy thông tin phòng');
       }
 
-      // Check if staff already has maximum 3 active room assignments
-      const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
-        staff_id: new Types.ObjectId(staff_id),
-        status: AssignmentStatus.ACTIVE,
-      });
+      // Capacity map by room_type
+      const getCapacityForRoomType = (roomType?: string): number => {
+        switch ((roomType || '').toLowerCase()) {
+          case '2_bed':
+          case '2-bed':
+            return 2;
+          case '3_bed':
+          case '3-bed':
+            return 3;
+          case '4_5_bed':
+          case '4-5_bed':
+          case '4-5-bed':
+            return 5;
+          case '6_8_bed':
+          case '6-8_bed':
+          case '6-8-bed':
+            return 8;
+          default:
+            // fallback to room.bed_count if provided, else 0
+            return (room as any)?.bed_count || 0;
+        }
+      };
 
-      if (activeAssignmentsCount >= 3) {
+      // Enforce cumulative capacity <= 8 across all active rooms of this staff
+      const existingActiveAssignments = await this.staffAssignmentModel
+        .find({
+          staff_id: new Types.ObjectId(staff_id),
+          status: AssignmentStatus.ACTIVE,
+        })
+        .populate('room_id', 'room_type bed_count')
+        .exec();
+
+      const currentCapacity = existingActiveAssignments.reduce((sum, a: any) => {
+        const rt = a?.room_id?.room_type;
+        const cap = getCapacityForRoomType(rt);
+        return sum + (Number.isFinite(cap) ? cap : 0);
+      }, 0);
+
+      const newRoomCapacity = getCapacityForRoomType((room as any)?.room_type);
+      if (currentCapacity + newRoomCapacity > 8) {
         throw new BadRequestException(
-          'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+          `Vượt quá giới hạn chăm sóc tối đa 8 người cho một nhân viên (hiện tại: ${currentCapacity}, phòng mới: ${newRoomCapacity}).`,
         );
       }
 
@@ -95,7 +128,13 @@ export class StaffAssignmentsService {
       );
 
       if (existingExpiredAssignment) {
-        // Update the expired assignment to active
+        // Re-activate only if capacity allows
+        const reactivateRoomCapacity = newRoomCapacity;
+        if (currentCapacity + reactivateRoomCapacity > 8) {
+          throw new BadRequestException(
+            `Vượt quá giới hạn chăm sóc tối đa 8 người khi kích hoạt lại phân công (hiện tại: ${currentCapacity}, phòng: ${reactivateRoomCapacity}).`,
+          );
+        }
         existingExpiredAssignment.status = AssignmentStatus.ACTIVE;
         existingExpiredAssignment.updated_at = new Date();
         return await existingExpiredAssignment.save();
@@ -476,16 +515,52 @@ export class StaffAssignmentsService {
           updateStaffAssignmentDto.room_id ||
           assignment.room_id.toString();
 
-        // Check if staff already has maximum 3 active room assignments (excluding current assignment)
-        const activeAssignmentsCount = await this.staffAssignmentModel.countDocuments({
-          staff_id: new Types.ObjectId(staff_id),
-          status: AssignmentStatus.ACTIVE,
-          _id: { $ne: new Types.ObjectId(id) }, // Exclude current assignment being updated
-        });
+        // Enforce cumulative capacity <= 8 across all active rooms (excluding current assignment)
+        const existingActiveAssignments = await this.staffAssignmentModel
+          .find({
+            staff_id: new Types.ObjectId(staff_id),
+            status: AssignmentStatus.ACTIVE,
+            _id: { $ne: new Types.ObjectId(id) },
+          })
+          .populate('room_id', 'room_type bed_count')
+          .exec();
 
-        if (activeAssignmentsCount >= 3) {
+        const getCapacityForRoomType = (roomType?: string, fallback?: number): number => {
+          switch ((roomType || '').toLowerCase()) {
+            case '2_bed':
+            case '2-bed':
+              return 2;
+            case '3_bed':
+            case '3-bed':
+              return 3;
+            case '4_5_bed':
+            case '4-5_bed':
+            case '4-5-bed':
+              return 5;
+            case '6_8_bed':
+            case '6-8_bed':
+            case '6-8-bed':
+              return 8;
+            default:
+              return typeof fallback === 'number' ? fallback : 0;
+          }
+        };
+
+        const currentCapacity = existingActiveAssignments.reduce((sum, a: any) => {
+          const rt = a?.room_id?.room_type;
+          const cap = getCapacityForRoomType(rt, (a?.room_id as any)?.bed_count);
+          return sum + (Number.isFinite(cap) ? cap : 0);
+        }, 0);
+
+        // Determine capacity for new/updated room
+        const targetRoom = await this.roomModel.findById(room_id).exec();
+        if (!targetRoom) {
+          throw new NotFoundException('Không tìm thấy thông tin phòng');
+        }
+        const targetCapacity = getCapacityForRoomType((targetRoom as any)?.room_type, (targetRoom as any)?.bed_count);
+        if (currentCapacity + targetCapacity > 8) {
           throw new BadRequestException(
-            'Nhân viên đã được phân công tối đa 3 phòng. Không thể phân công thêm.',
+            `Vượt quá giới hạn chăm sóc tối đa 8 người cho một nhân viên (hiện tại: ${currentCapacity}, phòng mới: ${targetCapacity}).`,
           );
         }
 
