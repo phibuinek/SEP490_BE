@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsMongoId, IsEnum, IsDateString } from 'class-validator';
-import { ServiceRequestType } from '../service-request.schema';
+import { ServiceRequestType } from '../schemas/service-request.schema';
 
 export class CreateServiceRequestDto {
   @ApiProperty()

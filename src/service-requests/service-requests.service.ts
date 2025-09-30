@@ -5,7 +5,7 @@ import {
   ServiceRequest,
   ServiceRequestDocument,
   ServiceRequestStatus,
-} from './service-request.schema';
+} from './schemas/service-request.schema';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 import { Role } from '../common/enums/role.enum';

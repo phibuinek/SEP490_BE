@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -23,7 +24,7 @@ import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 
 @Injectable()
-export class StaffAssignmentsService {
+export class StaffAssignmentsService implements OnModuleInit {
   constructor(
     @InjectModel(StaffAssignment.name)
     private staffAssignmentModel: Model<StaffAssignmentDocument>,
@@ -36,6 +37,26 @@ export class StaffAssignmentsService {
     @InjectModel(BedAssignment.name)
     private bedAssignmentModel: Model<BedAssignmentDocument>,
   ) {}
+
+  async onModuleInit() {
+    try {
+      // Normalize indexes to allow multiple rooms per staff, unique only per (staff_id, room_id)
+      const collection = this.staffAssignmentModel.collection as any;
+      const indexes = await collection.indexes();
+      // Drop accidental unique index on staff_id only, if present
+      for (const idx of indexes) {
+        if (idx?.key && idx.key.staff_id === 1 && !idx.key.room_id && idx.unique) {
+          if (idx.name) {
+            await collection.dropIndex(idx.name).catch(() => undefined);
+          }
+        }
+      }
+      // Ensure compound unique index
+      await collection.createIndex({ staff_id: 1, room_id: 1 }, { unique: true });
+    } catch (e) {
+      // Best-effort; do not block startup
+    }
+  }
 
   async create(
     createStaffAssignmentDto: CreateStaffAssignmentDto,
