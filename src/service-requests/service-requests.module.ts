@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ServiceRequest, ServiceRequestSchema } from './service-request.schema';
+import { ServiceRequest, ServiceRequestSchema } from './schemas/service-request.schema';
 import { ServiceRequestsService } from './service-requests.service';
 import { ServiceRequestsController } from './service-requests.controller';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
