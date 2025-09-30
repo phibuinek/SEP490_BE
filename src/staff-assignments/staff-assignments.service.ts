@@ -22,6 +22,7 @@ import {
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
+import { MailService } from '../common/mail.service';
 
 @Injectable()
 export class StaffAssignmentsService implements OnModuleInit {
@@ -36,6 +37,7 @@ export class StaffAssignmentsService implements OnModuleInit {
     private roomModel: Model<RoomDocument>,
     @InjectModel(BedAssignment.name)
     private bedAssignmentModel: Model<BedAssignmentDocument>,
+    private readonly mailService: MailService,
   ) {}
 
   async onModuleInit() {
@@ -178,6 +180,22 @@ export class StaffAssignmentsService implements OnModuleInit {
       });
 
       const savedAssignment = await assignment.save();
+
+      // Send email notification to staff
+      try {
+        await this.mailService.sendStaffRoomAssignmentEmail({
+          to: staff.email,
+          staffName: staff.full_name,
+          roomNumber: room.room_number,
+          roomType: room.room_type,
+          responsibilities: createStaffAssignmentDto.responsibilities || [],
+          notes: createStaffAssignmentDto.notes,
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the assignment creation
+        console.error('Failed to send staff room assignment email:', emailError);
+      }
+
       return savedAssignment;
     } catch (error) {
       console.error('Error creating staff assignment:', error);

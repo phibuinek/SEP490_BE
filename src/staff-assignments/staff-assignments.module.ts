@@ -10,6 +10,7 @@ import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { Room, RoomSchema } from '../rooms/schemas/room.schema';
 import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
+import { MailService } from '../common/mail.service';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/b
     ]),
   ],
   controllers: [StaffAssignmentsController],
-  providers: [StaffAssignmentsService],
+  providers: [StaffAssignmentsService, MailService],
   exports: [StaffAssignmentsService],
 })
 export class StaffAssignmentsModule {}
