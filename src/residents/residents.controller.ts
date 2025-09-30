@@ -514,8 +514,7 @@ export class ResidentsController {
         },
         reason: {
           type: 'string',
-          description: 'Reason for discharge (required)',
-          minLength: 10
+          description: 'Reason for discharge (required)'
         }
       },
       required: ['status', 'reason']
