@@ -389,4 +389,75 @@ Trân trọng,
       return { error: true };
     }
   }
+
+  async sendStaffRoomAssignmentEmail(params: {
+    to: string;
+    staffName: string;
+    roomNumber: string;
+    roomType: string;
+    responsibilities: string[];
+    notes?: string;
+  }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Phân công phòng chăm sóc mới - CareHome';
+    const responsibilitiesText = params.responsibilities.length > 0 
+      ? params.responsibilities.join(', ') 
+      : 'Chăm sóc tổng quát';
+    const notesText = params.notes ? `\n\nGhi chú: ${params.notes}` : '';
+    
+    const text = `Xin chào ${params.staffName},
+
+Bạn đã được phân công chăm sóc phòng ${params.roomNumber} (${params.roomType}).
+
+Trách nhiệm: ${responsibilitiesText}${notesText}
+
+Bạn có thể xem thông tin chi tiết và danh sách cư dân tại: ${appUrl}
+
+Trân trọng,
+Đội ngũ CareHome`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #2c3e50; margin-bottom: 20px;">Phân công phòng chăm sóc mới</h2>
+          <p>Xin chào <strong>${params.staffName}</strong>,</p>
+          <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Phòng được phân công:</strong> ${params.roomNumber}</p>
+            <p style="margin: 5px 0 0 0;"><strong>Loại phòng:</strong> ${params.roomType}</p>
+          </div>
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Trách nhiệm:</strong> ${responsibilitiesText}</p>
+          </div>
+          ${params.notes ? `<div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #6c757d;"><p style="margin: 0;"><strong>Ghi chú:</strong> ${params.notes}</p></div>` : ''}
+          <p>Bạn có thể xem thông tin chi tiết và danh sách cư dân tại: <a href="${appUrl}" target="_blank" style="color: #3498db;">${appUrl}</a></p>
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Staff: ${params.staffName} | Room: ${params.roomNumber}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Staff room assignment email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send staff room assignment email', err);
+      return { error: true };
+    }
+  }
 }
