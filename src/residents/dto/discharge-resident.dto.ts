@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { ResidentStatus } from '../schemas/resident.schema';
 
 export class DischargeResidentDto {
@@ -14,11 +14,9 @@ export class DischargeResidentDto {
 
   @ApiProperty({
     description: 'Reason for discharge (required)',
-    example: 'Resident completed treatment and is ready to go home',
-    minLength: 10
+    example: 'Resident completed treatment and is ready to go home'
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(10, { message: 'Reason must be at least 10 characters long' })
   reason: string;
 }
