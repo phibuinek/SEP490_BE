@@ -93,7 +93,7 @@ export class MonthlyBillingService {
           resident_id: resident._id,
           status: 'active'
         })
-        .populate('care_plan_id')
+        .populate('care_plan_ids')
         .exec();
 
       if (!carePlanAssignment) {
@@ -151,10 +151,10 @@ export class MonthlyBillingService {
       const monthFormatted = moment().tz('Asia/Ho_Chi_Minh').format('MM/YYYY');
 
       // Prepare room details
-      const roomDetails = bedAssignment?.bed_id?.room_id ? {
-        room_number: bedAssignment.bed_id.room_id.room_number,
-        room_type: bedAssignment.bed_id.room_id.room_type,
-        floor: bedAssignment.bed_id.room_id.floor,
+      const roomDetails = bedAssignment?.bed_id && (bedAssignment.bed_id as any)?.room_id ? {
+        room_number: (bedAssignment.bed_id as any).room_id.room_number,
+        room_type: (bedAssignment.bed_id as any).room_id.room_type,
+        floor: (bedAssignment.bed_id as any).room_id.floor,
         monthly_price: calculation.roomDetails?.monthly_price || 0
       } : null;
 
@@ -178,13 +178,13 @@ export class MonthlyBillingService {
           service_details: calculation.serviceDetails || [],
           room_details: roomDetails
         },
-        care_plan_snapshot: carePlanAssignment.care_plan_id ? {
-          plan_name: carePlanAssignment.care_plan_id.plan_name,
-          description: carePlanAssignment.care_plan_id.description,
-          monthly_price: carePlanAssignment.care_plan_id.monthly_price,
-          plan_type: carePlanAssignment.care_plan_id.plan_type,
-          category: carePlanAssignment.care_plan_id.category,
-          staff_ratio: carePlanAssignment.care_plan_id.staff_ratio
+        care_plan_snapshot: carePlanAssignment.care_plan_ids && carePlanAssignment.care_plan_ids.length > 0 ? {
+          plan_name: (carePlanAssignment.care_plan_ids as any)[0]?.plan_name || 'Gói dịch vụ',
+          description: (carePlanAssignment.care_plan_ids as any)[0]?.description || 'Dịch vụ chăm sóc',
+          monthly_price: (carePlanAssignment.care_plan_ids as any)[0]?.monthly_price || 0,
+          plan_type: (carePlanAssignment.care_plan_ids as any)[0]?.plan_type || 'basic',
+          category: (carePlanAssignment.care_plan_ids as any)[0]?.category || 'care',
+          staff_ratio: (carePlanAssignment.care_plan_ids as any)[0]?.staff_ratio || '1:1'
         } : null
       };
 
