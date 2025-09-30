@@ -460,4 +460,85 @@ Trân trọng,
       return { error: true };
     }
   }
+
+  async sendMonthlyBillEmail(params: {
+    to: string;
+    familyName: string;
+    residentName: string;
+    month: string;
+    amount: string;
+    dueDate: string;
+    billId: string;
+  }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = `Hóa đơn tháng ${params.month} - ${params.residentName} - CareHome`;
+    
+    const text = `Xin chào ${params.familyName},
+
+Hóa đơn dịch vụ chăm sóc cho ${params.residentName} tháng ${params.month} đã được tạo.
+
+Thông tin hóa đơn:
+- Cư dân: ${params.residentName}
+- Số tiền: ${params.amount} VNĐ
+- Hạn thanh toán: ${params.dueDate}
+- Mã hóa đơn: ${params.billId}
+
+Bạn có thể đăng nhập vào hệ thống CareHome (web hoặc app) để xem chi tiết và thanh toán hóa đơn.
+
+Trân trọng,
+Đội ngũ CareHome`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #2c3e50; margin-bottom: 20px;">Hóa đơn tháng ${params.month}</h2>
+          <p>Xin chào <strong>${params.familyName}</strong>,</p>
+          <p>Hóa đơn dịch vụ chăm sóc cho <strong>${params.residentName}</strong> tháng ${params.month} đã được tạo.</p>
+          
+          <div style="background-color: #e8f4fd; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="color: #2c3e50; margin-top: 0;">Thông tin hóa đơn</h3>
+            <p style="margin: 5px 0;"><strong>Cư dân:</strong> ${params.residentName}</p>
+            <p style="margin: 5px 0;"><strong>Số tiền:</strong> <span style="color: #e74c3c; font-size: 18px;">${params.amount} VNĐ</span></p>
+            <p style="margin: 5px 0;"><strong>Hạn thanh toán:</strong> ${params.dueDate}</p>
+            <p style="margin: 5px 0;"><strong>Mã hóa đơn:</strong> ${params.billId}</p>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <p style="margin: 0; color: #856404;"><strong>Lưu ý:</strong> Vui lòng thanh toán trước hạn để tránh phí trễ hạn.</p>
+          </div>
+          
+          <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <p style="margin: 0; color: #155724;"><strong>Hướng dẫn thanh toán:</strong> Bạn có thể đăng nhập vào hệ thống CareHome (web hoặc app) để xem chi tiết và thanh toán hóa đơn.</p>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.log(
+        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Family: ${params.familyName} | Resident: ${params.residentName} | Amount: ${params.amount}`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Monthly bill email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send monthly bill email', err);
+      return { error: true };
+    }
+  }
 }
