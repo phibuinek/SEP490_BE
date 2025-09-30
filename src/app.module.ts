@@ -69,6 +69,7 @@ import { MessagesModule } from './messages/messages.module';
 import { StaffAssignmentsModule } from './staff-assignments/staff-assignments.module';
 import { RegistrationPackagesModule } from './registration-packages/registration-packages.module';
 import { AdminDashboardModule } from './admin/admin-dashboard.module';
+import { MonthlyBillingModule } from './monthly-billing/monthly-billing.module';
 import { CommonModule } from './common/common.module';
 import { CacheService } from './common/cache.service';
 import { DatabaseIndexes } from './database/indexes';
@@ -109,6 +110,7 @@ import { DatabaseIndexes } from './database/indexes';
     StaffAssignmentsModule,
     RegistrationPackagesModule,
     AdminDashboardModule,
+    MonthlyBillingModule,
   ],
   controllers: [AppController],
   providers: [
