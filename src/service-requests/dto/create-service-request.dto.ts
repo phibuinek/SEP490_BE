@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsMongoId, IsEnum, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsMongoId, IsEnum, IsDateString, ValidateIf } from 'class-validator';
 import { ServiceRequestType } from '../schemas/service-request.schema';
 
 export class CreateServiceRequestDto {
@@ -15,27 +15,37 @@ export class CreateServiceRequestDto {
   @IsEnum(ServiceRequestType)
   request_type: ServiceRequestType;
 
-  // For care plan change
-  @ApiPropertyOptional({ description: 'New service package ID when changing care plan' })
-  @IsOptional()
-  @IsMongoId()
-  target_service_package_id?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
+  // Note is required for CARE_PLAN_CHANGE and ROOM_CHANGE
+  @ApiPropertyOptional({ 
+    description: 'Reason for the request (required for care plan change and room change)',
+    required: false
+  })
+  @ValidateIf((o) => o.request_type === 'care_plan_change' || o.request_type === 'room_change')
   @IsString()
   note?: string;
 
-  // For date change
-  @ApiPropertyOptional({ description: 'New start date (ISO string)' })
+  // For CARE_PLAN_CHANGE - will be created by the service
+  @ApiPropertyOptional({ description: 'Target care plan assignment ID (created by service)' })
   @IsOptional()
-  @IsDateString()
-  new_start_date?: string;
+  @IsMongoId()
+  target_care_plan_assignment_id?: string;
 
-  @ApiPropertyOptional({ description: 'New end date (ISO string)' })
+  @ApiPropertyOptional({ description: 'Target bed assignment ID (created by service)' })
   @IsOptional()
+  @IsMongoId()
+  target_bed_assignment_id?: string;
+
+  // For SERVICE_DATE_CHANGE
+  @ApiPropertyOptional({ description: 'Current care plan assignment ID to extend' })
+  @ValidateIf((o) => o.request_type === 'service_date_change')
+  @IsMongoId()
+  current_care_plan_assignment_id?: string;
+
+  @ApiPropertyOptional({ description: 'New end date for service extension (ISO string)' })
+  @ValidateIf((o) => o.request_type === 'service_date_change')
   @IsDateString()
   new_end_date?: string;
+
 
   @ApiProperty()
   @IsString()
@@ -50,13 +60,23 @@ export class CreateServiceRequestDto {
   @IsString()
   medicalNote?: string;
 
-  // For room change
-  @ApiPropertyOptional({ description: 'Target room id when requesting room change' })
+  // Legacy fields for backward compatibility
+  @ApiPropertyOptional({ description: 'New service package ID when changing care plan (legacy)' })
+  @IsOptional()
+  @IsMongoId()
+  target_service_package_id?: string;
+
+  @ApiPropertyOptional({ description: 'New start date (ISO string) (legacy)' })
+  @IsOptional()
+  @IsDateString()
+  new_start_date?: string;
+
+  @ApiPropertyOptional({ description: 'Target room id when requesting room change (legacy)' })
   @IsOptional()
   @IsMongoId()
   target_room_id?: string;
 
-  @ApiPropertyOptional({ description: 'Target bed id when requesting room change' })
+  @ApiPropertyOptional({ description: 'Target bed id when requesting room change (legacy)' })
   @IsOptional()
   @IsMongoId()
   target_bed_id?: string;
