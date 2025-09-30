@@ -27,10 +27,6 @@ export class ServiceRequest {
   @Prop({ type: String, enum: ServiceRequestType, required: true })
   request_type: ServiceRequestType;
 
-  // For care plan change
-  @Prop({ type: Types.ObjectId, ref: 'ServicePackage', default: null })
-  target_service_package_id?: Types.ObjectId | null;
-
   @Prop({
     type: String,
     enum: ServiceRequestStatus,
@@ -38,15 +34,38 @@ export class ServiceRequest {
   })
   status: ServiceRequestStatus;
 
-  @Prop()
-  note: string;
+  @Prop({ type: String, default: null })
+  note?: string | null;
 
-  // For date change (extend/adjust service period)
-  @Prop({ type: Date, default: null })
-  new_start_date?: Date | null;
+  @Prop({ type: String, default: null })
+  rejection_reason?: string | null;
+
+  // For CARE_PLAN_CHANGE
+  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', default: null })
+  target_care_plan_assignment_id?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'BedAssignment', default: null })
+  target_bed_assignment_id?: Types.ObjectId | null;
+
+  // For SERVICE_DATE_CHANGE
+  @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', default: null })
+  current_care_plan_assignment_id?: Types.ObjectId | null;
 
   @Prop({ type: Date, default: null })
   new_end_date?: Date | null;
+
+  // Legacy fields for backward compatibility
+  @Prop({ type: Types.ObjectId, ref: 'ServicePackage', default: null })
+  target_service_package_id?: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  new_start_date?: Date | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Room', default: null })
+  target_room_id?: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Bed', default: null })
+  target_bed_id?: Types.ObjectId | null;
 
   @Prop({ required: true })
   emergencyContactName: string;
@@ -56,16 +75,6 @@ export class ServiceRequest {
 
   @Prop()
   medicalNote: string;
-
-  // For room change
-  @Prop({ type: Types.ObjectId, ref: 'Room', default: null })
-  target_room_id?: Types.ObjectId | null;
-
-  @Prop({ type: Types.ObjectId, ref: 'Bed', default: null })
-  target_bed_id?: Types.ObjectId | null;
-
-  @Prop({ type: String, default: null })
-  rejection_reason?: string | null;
 }
 
 export const ServiceRequestSchema =

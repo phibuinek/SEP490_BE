@@ -6,6 +6,8 @@ import { ServiceRequestsController } from './service-requests.controller';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 import { CarePlanAssignment, CarePlanAssignmentSchema } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
 import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
+import { Room, RoomSchema } from '../rooms/schemas/room.schema';
+import { Bed, BedSchema } from '../beds/schemas/bed.schema';
 import { CommonModule } from '../common/common.module';
 
 @Module({
@@ -15,6 +17,8 @@ import { CommonModule } from '../common/common.module';
       { name: Resident.name, schema: ResidentSchema },
       { name: CarePlanAssignment.name, schema: CarePlanAssignmentSchema },
       { name: BedAssignment.name, schema: BedAssignmentSchema },
+      { name: Room.name, schema: RoomSchema },
+      { name: Bed.name, schema: BedSchema },
     ]),
     CommonModule,
   ],

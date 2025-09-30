@@ -5,13 +5,16 @@ import {
   ServiceRequest,
   ServiceRequestDocument,
   ServiceRequestStatus,
+  ServiceRequestType,
 } from './schemas/service-request.schema';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { Resident, ResidentDocument } from '../residents/schemas/resident.schema';
 import { Role } from '../common/enums/role.enum';
-import { CarePlanAssignment } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
+import { CarePlanAssignment, CarePlanAssignmentDocument } from '../care-plan-assignments/schemas/care-plan-assignment.schema';
 import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 import { MailService } from '../common/mail.service';
+import { Room, RoomDocument } from '../rooms/schemas/room.schema';
+import { Bed, BedDocument } from '../beds/schemas/bed.schema';
 
 @Injectable()
 export class ServiceRequestsService {
@@ -21,9 +24,13 @@ export class ServiceRequestsService {
     @InjectModel(Resident.name)
     private residentModel: Model<ResidentDocument>,
     @InjectModel(CarePlanAssignment.name)
-    private carePlanAssignmentModel: Model<any>,
+    private carePlanAssignmentModel: Model<CarePlanAssignmentDocument>,
     @InjectModel(BedAssignment.name)
     private bedAssignmentModel: Model<BedAssignmentDocument>,
+    @InjectModel(Room.name)
+    private roomModel: Model<RoomDocument>,
+    @InjectModel(Bed.name)
+    private bedModel: Model<BedDocument>,
     private mailService: MailService,
   ) {}
 
@@ -58,48 +65,95 @@ export class ServiceRequestsService {
       throw new ForbiddenException('Bạn không thể tạo yêu cầu cho cư dân không thuộc gia đình bạn');
     }
 
-    // Normalize payload by request_type
-    const payload: any = {
-      resident_id: new Types.ObjectId(dto.resident_id),
-      family_member_id: new Types.ObjectId(user.userId),
-      request_type: dto.request_type,
-      note: dto.note || undefined,
-      emergencyContactName: dto.emergencyContactName,
-      emergencyContactPhone: dto.emergencyContactPhone,
-      medicalNote: dto.medicalNote || undefined,
-      status: ServiceRequestStatus.PENDING,
-    };
+    // Validate note is required for CARE_PLAN_CHANGE and ROOM_CHANGE
+    if ((dto.request_type === ServiceRequestType.CARE_PLAN_CHANGE || dto.request_type === ServiceRequestType.ROOM_CHANGE) && !dto.note) {
+      throw new BadRequestException('Lý do yêu cầu là bắt buộc cho loại yêu cầu này');
+    }
 
-    if (dto.request_type === 'care_plan_change') {
-      if (!dto.target_service_package_id) {
-        throw new BadRequestException('Thiếu target_service_package_id');
+    // Validate required fields for SERVICE_DATE_CHANGE
+    if (dto.request_type === ServiceRequestType.SERVICE_DATE_CHANGE) {
+      if (!dto.current_care_plan_assignment_id) {
+        throw new BadRequestException('Thiếu current_care_plan_assignment_id');
       }
-      payload.target_service_package_id = new Types.ObjectId(
-        dto.target_service_package_id,
-      );
-      // Xử lý thêm các trường cho care_plan_change
-      if (dto.new_start_date) payload.new_start_date = new Date(dto.new_start_date);
-      if (dto.new_end_date) payload.new_end_date = new Date(dto.new_end_date);
-      if (dto.target_room_id) payload.target_room_id = new Types.ObjectId(dto.target_room_id);
-      if (dto.target_bed_id) payload.target_bed_id = new Types.ObjectId(dto.target_bed_id);
-    } else if (dto.request_type === 'service_date_change') {
-      if (!dto.new_start_date && !dto.new_end_date) {
-        throw new BadRequestException('Cần new_start_date hoặc new_end_date');
-      }
-      if (dto.new_start_date) payload.new_start_date = new Date(dto.new_start_date);
-      if (dto.new_end_date) payload.new_end_date = new Date(dto.new_end_date);
-    } else if (dto.request_type === 'room_change') {
-      if (!dto.target_room_id) {
-        throw new BadRequestException('Thiếu target_room_id');
-      }
-      payload.target_room_id = new Types.ObjectId(dto.target_room_id);
-      if (dto.target_bed_id) {
-        payload.target_bed_id = new Types.ObjectId(dto.target_bed_id);
+      if (!dto.new_end_date) {
+        throw new BadRequestException('Thiếu new_end_date');
       }
     }
 
-    const created = new this.serviceRequestModel(payload);
-    return created.save();
+    // Create the service request based on type
+    let serviceRequest: ServiceRequest;
+
+    switch (dto.request_type) {
+      case ServiceRequestType.CARE_PLAN_CHANGE:
+        serviceRequest = await this.createCarePlanChangeRequest(dto, user.userId);
+        break;
+      case ServiceRequestType.SERVICE_DATE_CHANGE:
+        serviceRequest = await this.createServiceDateChangeRequest(dto, user.userId);
+        break;
+      case ServiceRequestType.ROOM_CHANGE:
+        serviceRequest = await this.createRoomChangeRequest(dto, user.userId);
+        break;
+      default:
+        throw new BadRequestException('Loại yêu cầu không hợp lệ');
+    }
+
+    return serviceRequest;
+  }
+
+  private async createCarePlanChangeRequest(dto: CreateServiceRequestDto, familyMemberId: string): Promise<ServiceRequest> {
+    // This would typically involve creating new care plan and bed assignments
+    // For now, we'll create a basic request structure
+    const payload = {
+      resident_id: new Types.ObjectId(dto.resident_id),
+      family_member_id: new Types.ObjectId(familyMemberId),
+      request_type: ServiceRequestType.CARE_PLAN_CHANGE,
+      note: dto.note,
+      emergencyContactName: dto.emergencyContactName,
+      emergencyContactPhone: dto.emergencyContactPhone,
+      medicalNote: dto.medicalNote,
+      status: ServiceRequestStatus.PENDING,
+      // These will be populated when admin approves
+      target_care_plan_assignment_id: null,
+      target_bed_assignment_id: null,
+    };
+
+    return new this.serviceRequestModel(payload).save();
+  }
+
+  private async createServiceDateChangeRequest(dto: CreateServiceRequestDto, familyMemberId: string): Promise<ServiceRequest> {
+    const payload = {
+      resident_id: new Types.ObjectId(dto.resident_id),
+      family_member_id: new Types.ObjectId(familyMemberId),
+      request_type: ServiceRequestType.SERVICE_DATE_CHANGE,
+      note: dto.note,
+      emergencyContactName: dto.emergencyContactName,
+      emergencyContactPhone: dto.emergencyContactPhone,
+      medicalNote: dto.medicalNote,
+      status: ServiceRequestStatus.PENDING,
+      current_care_plan_assignment_id: new Types.ObjectId(dto.current_care_plan_assignment_id!),
+      new_end_date: new Date(dto.new_end_date!),
+    };
+
+    return new this.serviceRequestModel(payload).save();
+  }
+
+  private async createRoomChangeRequest(dto: CreateServiceRequestDto, familyMemberId: string): Promise<ServiceRequest> {
+    // This would typically involve creating a new bed assignment
+    // For now, we'll create a basic request structure
+    const payload = {
+      resident_id: new Types.ObjectId(dto.resident_id),
+      family_member_id: new Types.ObjectId(familyMemberId),
+      request_type: ServiceRequestType.ROOM_CHANGE,
+      note: dto.note,
+      emergencyContactName: dto.emergencyContactName,
+      emergencyContactPhone: dto.emergencyContactPhone,
+      medicalNote: dto.medicalNote,
+      status: ServiceRequestStatus.PENDING,
+      // This will be populated when admin approves
+      target_bed_assignment_id: null,
+    };
+
+    return new this.serviceRequestModel(payload).save();
   }
 
   async findAll(status?: string): Promise<ServiceRequest[]> {
@@ -131,6 +185,10 @@ export class ServiceRequestsService {
     
     if (!req) throw new NotFoundException('ServiceRequest not found');
     
+    if (req.status !== ServiceRequestStatus.PENDING) {
+      throw new BadRequestException('Chỉ có thể duyệt yêu cầu đang chờ xử lý');
+    }
+    
     // Execute the requested changes based on request type
     try {
       await this.executeRequestChanges(req);
@@ -154,151 +212,132 @@ export class ServiceRequestsService {
     const residentId = this.toObjectId(request.resident_id);
     
     switch (request.request_type) {
-      case 'care_plan_change':
-        await this.executeCarePlanChange(residentId, request.target_service_package_id);
+      case ServiceRequestType.CARE_PLAN_CHANGE:
+        await this.executeCarePlanChange(request);
         break;
-      case 'service_date_change':
-        await this.executeServiceDateChange(residentId, request.new_start_date || undefined, request.new_end_date || undefined);
+      case ServiceRequestType.SERVICE_DATE_CHANGE:
+        await this.executeServiceDateChange(request);
         break;
-      case 'room_change':
-        await this.executeRoomChange(
-          residentId,
-          request.target_room_id ? this.toObjectId(request.target_room_id) : undefined,
-          request.target_bed_id ? this.toObjectId(request.target_bed_id) : undefined,
-        );
+      case ServiceRequestType.ROOM_CHANGE:
+        await this.executeRoomChange(request);
         break;
       default:
         throw new BadRequestException('Loại yêu cầu không hợp lệ');
     }
   }
 
-  private async executeCarePlanChange(residentId: any, newServicePackageId: any): Promise<void> {
-    // End current care plan assignment
+  private async executeCarePlanChange(request: ServiceRequest): Promise<void> {
+    const residentId = this.toObjectId(request.resident_id);
+    
+    // 1. End current active care plan and bed assignments (set to "done" at end of current month)
+    const endOfMonth = new Date();
+    endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0); // Last day of current month
+    endOfMonth.setHours(23, 59, 59, 999);
+    
+    // Update current care plan assignment to "done"
     await this.carePlanAssignmentModel.updateMany(
       { 
         resident_id: residentId,
-        end_date: null // Only active assignments
+        status: 'active'
       },
       { 
-        end_date: new Date(),
+        status: 'done',
+        end_date: endOfMonth,
         updated_at: new Date()
       }
     );
 
-    // Create new care plan assignment
-    const newAssignment = new this.carePlanAssignmentModel({
+    // Update current bed assignment to "done"
+    await this.bedAssignmentModel.updateMany(
+      { 
+        resident_id: residentId,
+        status: 'active'
+      },
+      { 
+        status: 'done',
+        unassigned_date: endOfMonth,
+        updated_at: new Date()
+      }
+    );
+
+    // 2. Create new care plan assignment (pending -> accepted -> active)
+    const newCarePlanAssignment = new this.carePlanAssignmentModel({
       resident_id: residentId,
-      care_plan_id: newServicePackageId,
-      start_date: new Date(),
+      care_plan_ids: [], // This would be populated based on the request
+      start_date: new Date(endOfMonth.getTime() + 1), // Start of next month
       end_date: null,
-      assigned_by: null, // System assigned
-      status: 'active',
+      status: 'accepted', // Will become active at start of next month
+      family_member_id: request.family_member_id,
       created_at: new Date(),
       updated_at: new Date()
     });
+    await newCarePlanAssignment.save();
 
-    await newAssignment.save();
+    // 3. Create new bed assignment (pending -> accepted -> active)
+    const newBedAssignment = new this.bedAssignmentModel({
+      resident_id: residentId,
+      bed_id: new Types.ObjectId(), // This would be determined based on the request
+      assigned_date: new Date(endOfMonth.getTime() + 1), // Start of next month
+      unassigned_date: null,
+      status: 'accepted', // Will become active at start of next month
+      assigned_by: new Types.ObjectId(), // System assigned
+      reason: 'Care plan change approved'
+    });
+    await newBedAssignment.save();
+
+    // 4. Update service request with the created assignments
+    await this.serviceRequestModel.findByIdAndUpdate((request as any)._id, {
+      target_care_plan_assignment_id: newCarePlanAssignment._id,
+      target_bed_assignment_id: newBedAssignment._id
+    });
   }
 
-  private async executeServiceDateChange(residentId: any, newStartDate?: Date, newEndDate?: Date): Promise<void> {
-    const updateData: any = { updated_at: new Date() };
-    
-    if (newStartDate) {
-      updateData.start_date = newStartDate;
-    }
-    
-    if (newEndDate) {
-      updateData.end_date = newEndDate;
-    }
+  private async executeServiceDateChange(request: ServiceRequest): Promise<void> {
+    const carePlanAssignmentId = this.toObjectId(request.current_care_plan_assignment_id);
+    const newEndDate = request.new_end_date;
 
-    await this.carePlanAssignmentModel.updateMany(
+    // Update the care plan assignment end date
+    await this.carePlanAssignmentModel.findByIdAndUpdate(
+      carePlanAssignmentId,
       { 
-        resident_id: residentId,
-        end_date: null // Only active assignments
-      },
-      updateData
+        end_date: newEndDate,
+        updated_at: new Date()
+      }
     );
   }
 
-  private async executeRoomChange(residentId: any, newRoomId: any, targetBedId?: any): Promise<void> {
-    try {
-      // End current bed assignment
-      await this.bedAssignmentModel.updateMany(
-        { 
-          resident_id: residentId,
-          unassigned_date: null // Only active assignments
-        },
-        { 
-          unassigned_date: new Date(),
-          updated_at: new Date()
-        }
-      );
-
-      let bedIdToAssign;
-
-      if (targetBedId) {
-        // Use the specific bed requested
-        bedIdToAssign = targetBedId;
-        
-        // Verify the bed exists and is in the correct room
-        const bed = await this.bedAssignmentModel.db.collection('beds').findOne({ _id: new Types.ObjectId(targetBedId) });
-        if (!bed) {
-          throw new BadRequestException('Giường được yêu cầu không tồn tại');
-        }
-        
-        // Check if bed is already assigned
-        const existingAssignment = await this.bedAssignmentModel.findOne({
-          bed_id: targetBedId,
-          unassigned_date: null
-        });
-        
-        if (existingAssignment) {
-          throw new BadRequestException('Giường được yêu cầu đã được sử dụng');
-        }
-      } else {
-        // Find an available bed in the new room - simplified approach
-        const availableBeds = await this.bedAssignmentModel.db.collection('beds').find({
-          room_id: new Types.ObjectId(newRoomId)
-        }).toArray();
-        
-        if (availableBeds.length === 0) {
-          throw new BadRequestException('Phòng mới không có giường nào');
-        }
-        
-        // Find first unassigned bed
-        for (const bed of availableBeds) {
-          const existingAssignment = await this.bedAssignmentModel.findOne({
-            bed_id: bed._id,
-            unassigned_date: null
-          });
-          
-          if (!existingAssignment) {
-            bedIdToAssign = bed._id;
-            break;
-          }
-        }
-        
-        if (!bedIdToAssign) {
-          throw new BadRequestException('Không có giường trống trong phòng mới');
-        }
-      }
-
-      // Create new bed assignment
-      const newBedAssignment = new this.bedAssignmentModel({
+  private async executeRoomChange(request: ServiceRequest): Promise<void> {
+    const residentId = this.toObjectId(request.resident_id);
+    
+    // 1. Update current bed assignment to "exchanged"
+    await this.bedAssignmentModel.updateMany(
+      { 
         resident_id: residentId,
-        bed_id: bedIdToAssign,
-        assigned_date: new Date(),
-        unassigned_date: null,
-        status: 'active', // Required field
-        assigned_by: new Types.ObjectId('000000000000000000000000'), // System assigned - use a default system user ID
-        reason: 'Room change request approved'
-      });
+        status: 'active'
+      },
+      { 
+        status: 'exchanged',
+        unassigned_date: new Date(),
+        updated_at: new Date()
+      }
+    );
 
-      await newBedAssignment.save();
-    } catch (error) {
-      console.error('Error in executeRoomChange:', error);
-      throw error;
-    }
+    // 2. Create new bed assignment (pending -> accepted -> active)
+    const newBedAssignment = new this.bedAssignmentModel({
+      resident_id: residentId,
+      bed_id: new Types.ObjectId(), // This would be determined based on the request
+      assigned_date: new Date(),
+      unassigned_date: null,
+      status: 'active', // Immediately active for room change
+      assigned_by: new Types.ObjectId(), // System assigned
+      reason: 'Room change approved'
+    });
+    await newBedAssignment.save();
+
+    // 3. Update service request with the created assignment
+    await this.serviceRequestModel.findByIdAndUpdate((request as any)._id, {
+      target_bed_assignment_id: newBedAssignment._id
+    });
   }
 
   private async sendApprovalNotification(request: ServiceRequest): Promise<void> {
@@ -318,7 +357,7 @@ export class ServiceRequestsService {
           familyName: familyMember.full_name,
           residentName: resident.full_name,
           requestType: requestTypeNames[request.request_type],
-          note: request.note
+          note: request.note || ''
         });
       }
     } catch (error) {
@@ -328,19 +367,47 @@ export class ServiceRequestsService {
   }
 
   async reject(id: string, reason?: string): Promise<ServiceRequest> {
+    const req = await this.serviceRequestModel.findById(id).exec();
+    if (!req) throw new NotFoundException('ServiceRequest not found');
+    
+    if (req.status !== ServiceRequestStatus.PENDING) {
+      throw new BadRequestException('Chỉ có thể từ chối yêu cầu đang chờ xử lý');
+    }
+
+    // Update service request status
     const updateData: any = { status: ServiceRequestStatus.REJECTED };
     if (reason) {
       updateData.rejection_reason = reason;
     }
-    
-    const req = await this.serviceRequestModel
-      .findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true },
-      )
-      .exec();
-    if (!req) throw new NotFoundException('ServiceRequest not found');
+    await this.serviceRequestModel.findByIdAndUpdate((req as any)._id, updateData);
+
+    // Update related assignments to rejected status
+    await this.updateRelatedAssignmentsToRejected(req);
+
     return req;
+  }
+
+  private async updateRelatedAssignmentsToRejected(request: ServiceRequest): Promise<void> {
+    // Update target care plan assignment to rejected
+    if (request.target_care_plan_assignment_id) {
+      await this.carePlanAssignmentModel.findByIdAndUpdate(
+        request.target_care_plan_assignment_id,
+        { 
+          status: 'rejected',
+          updated_at: new Date()
+        }
+      );
+    }
+
+    // Update target bed assignment to rejected
+    if (request.target_bed_assignment_id) {
+      await this.bedAssignmentModel.findByIdAndUpdate(
+        request.target_bed_assignment_id,
+        { 
+          status: 'rejected',
+          updated_at: new Date()
+        }
+      );
+    }
   }
 }
