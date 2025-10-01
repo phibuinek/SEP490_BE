@@ -24,14 +24,15 @@ export class CreateServiceRequestDto {
   @IsString()
   note?: string;
 
-  // For CARE_PLAN_CHANGE - will be created by the service
-  @ApiPropertyOptional({ description: 'Target care plan assignment ID (created by service)' })
-  @IsOptional()
+  // For CARE_PLAN_CHANGE - required fields
+  @ApiPropertyOptional({ description: 'Target care plan assignment ID (required for care plan change)' })
+  @ValidateIf((o) => o.request_type === 'care_plan_change')
   @IsMongoId()
   target_care_plan_assignment_id?: string;
 
-  @ApiPropertyOptional({ description: 'Target bed assignment ID (created by service)' })
-  @IsOptional()
+  // For CARE_PLAN_CHANGE and ROOM_CHANGE - required field
+  @ApiPropertyOptional({ description: 'Target bed assignment ID (required for care plan change and room change)' })
+  @ValidateIf((o) => o.request_type === 'care_plan_change' || o.request_type === 'room_change')
   @IsMongoId()
   target_bed_assignment_id?: string;
 
@@ -45,7 +46,6 @@ export class CreateServiceRequestDto {
   @ValidateIf((o) => o.request_type === 'service_date_change')
   @IsDateString()
   new_end_date?: string;
-
 
   @ApiProperty()
   @IsString()

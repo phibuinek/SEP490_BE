@@ -28,3 +28,4 @@ import { MailService } from '../common/mail.service';
   exports: [MonthlyBillingService],
 })
 export class MonthlyBillingModule {}
+
