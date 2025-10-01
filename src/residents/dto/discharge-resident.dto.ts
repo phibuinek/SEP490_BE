@@ -20,3 +20,5 @@ export class DischargeResidentDto {
   @IsNotEmpty()
   reason: string;
 }
+
+
