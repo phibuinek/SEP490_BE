@@ -15,6 +15,7 @@ import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas
 import { MailService } from '../common/mail.service';
 import { Room, RoomDocument } from '../rooms/schemas/room.schema';
 import { Bed, BedDocument } from '../beds/schemas/bed.schema';
+import { CarePlan, CarePlanDocument } from '../care-plans/schemas/care-plan.schema';
 
 @Injectable()
 export class ServiceRequestsService {
@@ -184,10 +185,36 @@ export class ServiceRequestsService {
     const filter = status ? { status } : {};
     return this.serviceRequestModel
       .find(filter)
-      .populate('resident_id', 'full_name email phone cccd_id')
+      .populate('resident_id', 'full_name email phone cccd_id admission_date')
       .populate('family_member_id', 'full_name email phone')
-      .populate('target_room_id', 'room_number floor room_type gender')
-      .populate('target_bed_id', 'bed_number bed_type')
+      .populate({
+        path: 'target_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'target_bed_assignment_id',
+        select: 'bed_id assigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
+        }
+      })
+      .populate({
+        path: 'current_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
       .exec();
   }
 
@@ -197,14 +224,118 @@ export class ServiceRequestsService {
     }
     return this.serviceRequestModel
       .find({ family_member_id: new Types.ObjectId(familyMemberId) })
+      .populate('resident_id', 'full_name email phone cccd_id admission_date')
+      .populate('family_member_id', 'full_name email phone')
+      .populate({
+        path: 'target_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'target_bed_assignment_id',
+        select: 'bed_id assigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
+        }
+      })
+      .populate({
+        path: 'current_care_plan_assignment_id',
+        select: 'care_plan_ids total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
       .exec();
+  }
+
+  async findOne(id: string): Promise<ServiceRequest> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('ID không hợp lệ');
+    }
+    
+    const serviceRequest = await this.serviceRequestModel
+      .findById(id)
+      .populate('resident_id', 'full_name email phone cccd_id admission_date')
+      .populate('family_member_id', 'full_name email phone')
+      .populate({
+        path: 'target_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'target_bed_assignment_id',
+        select: 'bed_id assigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
+        }
+      })
+      .populate({
+        path: 'current_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .exec();
+
+    if (!serviceRequest) {
+      throw new NotFoundException('ServiceRequest không tồn tại');
+    }
+
+    return serviceRequest;
   }
 
   async approve(id: string): Promise<ServiceRequest> {
     const req = await this.serviceRequestModel
       .findById(id)
-      .populate('resident_id', 'full_name family_member_id')
+      .populate('resident_id', 'full_name family_member_id admission_date')
       .populate('family_member_id', 'full_name email')
+      .populate({
+        path: 'target_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'target_bed_assignment_id',
+        select: 'bed_id assigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
+        }
+      })
+      .populate({
+        path: 'current_care_plan_assignment_id',
+        select: 'care_plan_ids care_plans_monthly_cost total_monthly_cost start_date end_date status',
+        populate: {
+          path: 'care_plan_ids',
+          select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
       .exec();
     
     if (!req) throw new NotFoundException('ServiceRequest not found');
@@ -276,13 +407,13 @@ export class ServiceRequestsService {
     // Update current bed assignment to "done"
     await this.bedAssignmentModel.updateMany(
       { 
-        resident_id: residentId,
+      resident_id: residentId,
         status: 'active'
       },
       { 
         status: 'done',
         unassigned_date: endOfMonth,
-        updated_at: new Date()
+      updated_at: new Date()
       }
     );
 
@@ -326,17 +457,17 @@ export class ServiceRequestsService {
     const targetBedAssignmentId = this.toObjectId(request.target_bed_assignment_id);
     
     // 1. Update current bed assignment to "exchanged"
-    await this.bedAssignmentModel.updateMany(
-      { 
-        resident_id: residentId,
+      await this.bedAssignmentModel.updateMany(
+        { 
+          resident_id: residentId,
         status: 'active'
-      },
-      { 
+        },
+        { 
         status: 'exchanged',
-        unassigned_date: new Date(),
-        updated_at: new Date()
-      }
-    );
+          unassigned_date: new Date(),
+          updated_at: new Date()
+        }
+      );
 
     // 2. Update target bed assignment from pending to active
     await this.bedAssignmentModel.findByIdAndUpdate(
