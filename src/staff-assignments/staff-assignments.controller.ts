@@ -362,4 +362,28 @@ export class StaffAssignmentsController {
   remove(@Param('id') id: string) {
     return this.staffAssignmentsService.remove(id);
   }
+
+  @Get('staff/:staffId/residents')
+  @Roles(Role.STAFF, Role.ADMIN)
+  @ApiOperation({ summary: 'Get residents assigned to a staff member' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of residents assigned to the staff member.',
+  })
+  @ApiResponse({ status: 404, description: 'Staff not found.' })
+  getResidentsByStaffId(@Param('staffId') staffId: string) {
+    return this.staffAssignmentsService.getResidentsByStaffId(staffId);
+  }
+
+  @Get('resident/:residentId/staff')
+  @Roles(Role.FAMILY, Role.STAFF, Role.ADMIN)
+  @ApiOperation({ summary: 'Get staff members assigned to a resident' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of staff members assigned to the resident.',
+  })
+  @ApiResponse({ status: 404, description: 'Resident not found.' })
+  getStaffByResidentId(@Param('residentId') residentId: string) {
+    return this.staffAssignmentsService.getStaffByResidentId(residentId);
+  }
 }
