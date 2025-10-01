@@ -82,7 +82,15 @@ import { DatabaseIndexes } from './database/indexes';
           'MONGODB_URI environment variable is required for MongoDB Atlas connection!',
         );
       }
-      return MongooseModule.forRoot(process.env.MONGODB_URI);
+      return MongooseModule.forRoot(process.env.MONGODB_URI, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        bufferMaxEntries: 0,
+        bufferCommands: false,
+        retryWrites: true,
+        retryReads: true,
+      });
     })(),
     ScheduleModule.forRoot(),
     // DatabaseModule, // Tắt seeder tự động vì dữ liệu Atlas đã có

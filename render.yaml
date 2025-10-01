@@ -6,8 +6,13 @@ services:
     plan: free            # hoặc starter, standard, tùy nhu cầu
     buildCommand: ./build.sh
     startCommand: npm run start:prod
+    healthCheckPath: /api
     envVars:
       - key: NODE_VERSION
         value: 20          # hoặc 18, miễn phù hợp với version bạn dùng
       - key: PORT
         value: 10000       # Render sẽ override bằng PORT của họ
+      - key: NODE_ENV
+        value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=1024"

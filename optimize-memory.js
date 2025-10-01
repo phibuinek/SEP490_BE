@@ -2,7 +2,7 @@
 const v8 = require('v8');
 
 // Set memory limits
-v8.setFlagsFromString('--max-old-space-size=400');
+v8.setFlagsFromString('--max-old-space-size=1024');
 
 // Log memory usage
 console.log('Memory optimization applied:');

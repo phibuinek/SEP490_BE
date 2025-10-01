@@ -14,7 +14,9 @@ export class ResidentsSchedulerService {
   ) {}
 
   // Chạy mỗi ngày lúc 00:30: nếu resident vẫn ACTIVE quá 15 ngày kể từ admission_date thì tự động chuyển CANCELLED
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM, {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
   async autoCancelUnadmittedResidents() {
     this.logger.log('Starting auto-cancel check for unadmitted residents...');
     const now = new Date();

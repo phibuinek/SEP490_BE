@@ -4,7 +4,7 @@
 echo "🚀 Starting build process..."
 
 # Set Node.js memory limit for build
-export NODE_OPTIONS="--max-old-space-size=400"
+export NODE_OPTIONS="--max-old-space-size=1024"
 
 # Install dependencies (including dev for build)
 echo "📦 Installing dependencies..."
