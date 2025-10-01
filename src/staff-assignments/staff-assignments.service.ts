@@ -21,6 +21,7 @@ import {
 } from '../residents/schemas/resident.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Room, RoomDocument } from '../rooms/schemas/room.schema';
+import { Bed, BedDocument } from '../beds/schemas/bed.schema';
 import { BedAssignment, BedAssignmentDocument } from '../bed-assignments/schemas/bed-assignment.schema';
 import { MailService } from '../common/mail.service';
 
@@ -35,6 +36,8 @@ export class StaffAssignmentsService implements OnModuleInit {
     private userModel: Model<UserDocument>,
     @InjectModel(Room.name)
     private roomModel: Model<RoomDocument>,
+    @InjectModel(Bed.name)
+    private bedModel: Model<BedDocument>,
     @InjectModel(BedAssignment.name)
     private bedAssignmentModel: Model<BedAssignmentDocument>,
     private readonly mailService: MailService,
@@ -762,6 +765,164 @@ export class StaffAssignmentsService implements OnModuleInit {
       }
       throw new BadRequestException(
         `Failed to delete staff assignment: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Get residents assigned to a staff member
+   * Logic: staff -> room assignments -> beds in those rooms -> bed assignments -> residents
+   */
+  async getResidentsByStaffId(staffId: string) {
+    try {
+      // Validate staff exists
+      const staff = await this.userModel.findById(staffId);
+      if (!staff) {
+        throw new NotFoundException('Staff member not found');
+      }
+
+      // Get all room assignments for this staff
+      const staffAssignments = await this.staffAssignmentModel
+        .find({ 
+          staff_id: new Types.ObjectId(staffId),
+          status: AssignmentStatus.ACTIVE 
+        })
+        .populate('room_id')
+        .exec();
+
+      if (staffAssignments.length === 0) {
+        return {
+          success: true,
+          data: [],
+          message: 'No residents assigned to this staff member'
+        };
+      }
+
+      // Get room IDs
+      const roomIds = staffAssignments.map(assignment => assignment.room_id._id);
+
+      // First, get all beds in these rooms
+      const beds = await this.bedModel
+        .find({
+          room_id: { $in: roomIds }
+        })
+        .populate('room_id')
+        .exec();
+
+      if (beds.length === 0) {
+        return {
+          success: true,
+          data: [],
+          message: 'No beds found in assigned rooms'
+        };
+      }
+
+      // Get bed IDs
+      const bedIds = beds.map(bed => bed._id);
+
+      // Get all bed assignments for these beds
+      const bedAssignments = await this.bedAssignmentModel
+        .find({
+          bed_id: { $in: bedIds },
+          status: 'active'
+        })
+        .populate('resident_id')
+        .exec();
+
+      // Extract residents from bed assignments
+      const residents = bedAssignments
+        .filter(bedAssignment => bedAssignment.resident_id)
+        .map(bedAssignment => {
+          // Find the corresponding bed for this bed assignment
+          const bed = beds.find(b => (b._id as Types.ObjectId).toString() === bedAssignment.bed_id.toString());
+          return {
+            resident: bedAssignment.resident_id,
+            room: bed?.room_id,
+            bed: bed,
+            bedAssignment: bedAssignment
+          };
+        });
+
+      return {
+        success: true,
+        data: residents,
+        message: `Found ${residents.length} residents assigned to staff member`
+      };
+    } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to get residents for staff: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Get staff members assigned to a resident
+   * Logic: resident -> bed assignment -> bed -> room -> staff assignments -> staff
+   */
+  async getStaffByResidentId(residentId: string) {
+    try {
+      // Validate resident exists
+      const resident = await this.residentModel.findById(residentId);
+      if (!resident) {
+        throw new NotFoundException('Resident not found');
+      }
+
+      // Get bed assignment for this resident
+      const bedAssignment = await this.bedAssignmentModel
+        .findOne({
+          resident_id: new Types.ObjectId(residentId),
+          status: 'active'
+        })
+        .populate({
+          path: 'bed_id',
+          populate: {
+            path: 'room_id',
+            model: 'Room'
+          }
+        })
+        .exec();
+
+      if (!bedAssignment || !bedAssignment.bed_id) {
+        return {
+          success: true,
+          data: [],
+          message: 'Resident is not assigned to any bed'
+        };
+      }
+
+      const roomId = (bedAssignment.bed_id as any).room_id._id;
+
+      // Get staff assignments for this room
+      const staffAssignments = await this.staffAssignmentModel
+        .find({
+          room_id: roomId,
+          status: AssignmentStatus.ACTIVE
+        })
+        .populate('staff_id')
+        .exec();
+
+      // Extract staff members
+      const staffMembers = staffAssignments.map(assignment => ({
+        staff: assignment.staff_id,
+        room: (bedAssignment.bed_id as any).room_id,
+        bed: bedAssignment.bed_id,
+        assignment: assignment
+      }));
+
+      return {
+        success: true,
+        data: staffMembers,
+        message: `Found ${staffMembers.length} staff members assigned to resident`
+      };
+    } catch (error: any) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to get staff for resident: ${error.message}`,
       );
     }
   }
