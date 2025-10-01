@@ -4,7 +4,6 @@ export const databaseConfig = {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
-    bufferMaxEntries: 0,
     bufferCommands: false,
     retryWrites: true,
     retryReads: true,
@@ -14,7 +13,6 @@ export const databaseConfig = {
     waitQueueTimeoutMS: 5000,
     // Heartbeat settings
     heartbeatFrequencyMS: 10000,
-    serverSelectionTimeoutMS: 5000,
   },
 };
 
@@ -26,7 +24,5 @@ export const redisConfig = {
   lazyConnect: true,
   connectTimeout: 10000,
   commandTimeout: 5000,
-  retryDelayOnFailover: 100,
   enableReadyCheck: false,
-  maxLoadingTimeout: 5000,
 };
