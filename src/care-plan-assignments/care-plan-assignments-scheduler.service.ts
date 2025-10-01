@@ -22,7 +22,9 @@ export class CarePlanAssignmentsSchedulerService {
    * Check for expired care plan assignments and automatically pause them
    * Runs every day at 00:00 (midnight)
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
   async checkAndPauseExpiredAssignments() {
     this.logger.log(
       'Starting automatic check for expired care plan assignments...',
@@ -84,7 +86,9 @@ export class CarePlanAssignmentsSchedulerService {
    * Check for assignments that will expire soon (within 7 days) and log them
    * Runs every day at 06:00 AM
    */
-  @Cron('0 6 * * *') // Every day at 6:00 AM
+  @Cron('0 6 * * *', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }) // Every day at 6:00 AM
   async checkUpcomingExpirations() {
     this.logger.log('Checking for assignments that will expire soon...');
 
