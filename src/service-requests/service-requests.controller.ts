@@ -153,6 +153,15 @@ export class ServiceRequestsController {
     return this.service.findAllByFamily(req.user.userId);
   }
 
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.FAMILY)
+  @ApiOperation({ summary: 'Lấy chi tiết yêu cầu theo ID' })
+  @ApiResponse({ status: 200, description: 'Chi tiết yêu cầu được lấy thành công.' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy yêu cầu.' })
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
   @Patch(':id/approve')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Duyệt yêu cầu và thực hiện thay đổi (Admin only)' })

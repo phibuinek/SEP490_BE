@@ -8,6 +8,7 @@ import { CarePlanAssignment, CarePlanAssignmentSchema } from '../care-plan-assig
 import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Room, RoomSchema } from '../rooms/schemas/room.schema';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
+import { CarePlan, CarePlanSchema } from '../care-plans/schemas/care-plan.schema';
 import { CommonModule } from '../common/common.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { CommonModule } from '../common/common.module';
       { name: BedAssignment.name, schema: BedAssignmentSchema },
       { name: Room.name, schema: RoomSchema },
       { name: Bed.name, schema: BedSchema },
+      { name: CarePlan.name, schema: CarePlanSchema },
     ]),
     CommonModule,
   ],
