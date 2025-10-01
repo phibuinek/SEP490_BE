@@ -15,6 +15,9 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
+import { CarePlanChangeRequestDto } from './dto/care-plan-change-request.dto';
+import { ServiceDateChangeRequestDto } from './dto/service-date-change-request.dto';
+import { RoomChangeRequestDto } from './dto/room-change-request.dto';
 
 @ApiBearerAuth()
 @Controller('service-requests')
@@ -29,50 +32,109 @@ export class ServiceRequestsController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   @ApiResponse({ status: 403, description: 'Không có quyền tạo yêu cầu.' })
   @ApiBody({
-    description: 'Dữ liệu yêu cầu thay đổi',
+    description: 'Dữ liệu yêu cầu thay đổi dịch vụ',
     examples: {
       care_plan_change: {
-        summary: 'Thay đổi gói chăm sóc',
+        summary: '🔄 Thay đổi gói chăm sóc (CARE_PLAN_CHANGE)',
+        description: 'User tạo care plan assignment và bed assignment mới, sau đó gửi request với IDs của chúng',
         value: {
           resident_id: '507f1f77bcf86cd799439011',
           family_member_id: '507f1f77bcf86cd799439012',
           request_type: 'care_plan_change',
-          target_service_package_id: '507f1f77bcf86cd799439013',
-          note: 'Muốn nâng cấp lên gói chăm sóc cao cấp',
+          note: 'Cần thay đổi gói dịch vụ do tình trạng sức khỏe của cư dân',
+          target_care_plan_assignment_id: '507f1f77bcf86cd799439013',
+          target_bed_assignment_id: '507f1f77bcf86cd799439014',
           emergencyContactName: 'Nguyễn Văn A',
-          emergencyContactPhone: '0900000000',
-          medicalNote: 'Tiền sử cao huyết áp'
+          emergencyContactPhone: '0901234567',
+          medicalNote: 'Cư dân cần chăm sóc đặc biệt do bệnh tim'
         }
       },
       service_date_change: {
-        summary: 'Thay đổi thời gian dịch vụ',
+        summary: '📅 Gia hạn dịch vụ (SERVICE_DATE_CHANGE)',
+        description: 'Gia hạn thời gian sử dụng dịch vụ cho care plan assignment hiện tại',
         value: {
           resident_id: '507f1f77bcf86cd799439011',
           family_member_id: '507f1f77bcf86cd799439012',
           request_type: 'service_date_change',
-          new_start_date: '2025-01-01T00:00:00.000Z',
-          new_end_date: '2026-01-01T00:00:00.000Z',
-          note: 'Gia hạn dịch vụ thêm 12 tháng',
+          current_care_plan_assignment_id: '507f1f77bcf86cd799439015',
+          new_end_date: '2024-12-31T23:59:59.000Z',
           emergencyContactName: 'Nguyễn Văn A',
-          emergencyContactPhone: '0900000000'
+          emergencyContactPhone: '0901234567',
+          medicalNote: 'Cư dân cần chăm sóc đặc biệt do bệnh tim'
         }
       },
       room_change: {
-        summary: 'Đổi phòng',
+        summary: '🏠 Đổi phòng (ROOM_CHANGE)',
+        description: 'User tạo bed assignment mới cho phòng mới, sau đó gửi request với ID của nó',
         value: {
           resident_id: '507f1f77bcf86cd799439011',
           family_member_id: '507f1f77bcf86cd799439012',
           request_type: 'room_change',
-          target_room_id: '507f1f77bcf86cd799439014',
-          note: 'Muốn đổi sang phòng yên tĩnh hơn',
+          note: 'Cần chuyển phòng do vấn đề về tiếng ồn',
+          target_bed_assignment_id: '507f1f77bcf86cd799439014',
           emergencyContactName: 'Nguyễn Văn A',
-          emergencyContactPhone: '0900000000'
+          emergencyContactPhone: '0901234567',
+          medicalNote: 'Cư dân cần chăm sóc đặc biệt do bệnh tim'
         }
       }
     }
   })
   create(@Body() dto: CreateServiceRequestDto, @Req() req: any) {
     return this.service.create(dto, req.user);
+  }
+
+  @Post('care-plan-change')
+  @Roles(Role.FAMILY)
+  @ApiOperation({ 
+    summary: 'Tạo yêu cầu thay đổi gói chăm sóc',
+    description: 'Tạo yêu cầu thay đổi gói chăm sóc với care plan assignment và bed assignment mới'
+  })
+  @ApiResponse({ status: 201, description: 'Yêu cầu thay đổi gói chăm sóc được tạo thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 403, description: 'Không có quyền tạo yêu cầu.' })
+  @ApiBody({ type: CarePlanChangeRequestDto })
+  createCarePlanChangeRequest(@Body() dto: CarePlanChangeRequestDto, @Req() req: any) {
+    const fullDto: CreateServiceRequestDto = {
+      ...dto,
+      request_type: 'care_plan_change' as any
+    };
+    return this.service.create(fullDto, req.user);
+  }
+
+  @Post('service-date-change')
+  @Roles(Role.FAMILY)
+  @ApiOperation({ 
+    summary: 'Tạo yêu cầu gia hạn dịch vụ',
+    description: 'Tạo yêu cầu gia hạn thời gian sử dụng dịch vụ'
+  })
+  @ApiResponse({ status: 201, description: 'Yêu cầu gia hạn dịch vụ được tạo thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 403, description: 'Không có quyền tạo yêu cầu.' })
+  @ApiBody({ type: ServiceDateChangeRequestDto })
+  createServiceDateChangeRequest(@Body() dto: ServiceDateChangeRequestDto, @Req() req: any) {
+    const fullDto: CreateServiceRequestDto = {
+      ...dto,
+      request_type: 'service_date_change' as any
+    };
+    return this.service.create(fullDto, req.user);
+  }
+
+  @Post('room-change')
+  @Roles(Role.FAMILY)
+  @ApiOperation({ 
+    summary: 'Tạo yêu cầu đổi phòng',
+    description: 'Tạo yêu cầu đổi phòng với bed assignment mới'
+  })
+  @ApiResponse({ status: 201, description: 'Yêu cầu đổi phòng được tạo thành công.' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
+  @ApiResponse({ status: 403, description: 'Không có quyền tạo yêu cầu.' })
+  @ApiBody({ type: RoomChangeRequestDto })
+  createRoomChangeRequest(@Body() dto: RoomChangeRequestDto, @Req() req: any) {
+    const fullDto: CreateServiceRequestDto = {
+      ...dto,
+      request_type: 'room_change' as any
+    };
+    return this.service.create(fullDto, req.user);
   }
 
   @Get()
