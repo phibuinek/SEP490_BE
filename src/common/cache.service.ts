@@ -15,10 +15,7 @@ export class CacheService {
       lazyConnect: true,
       connectTimeout: 10000,
       commandTimeout: 5000,
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
       enableReadyCheck: false,
-      maxLoadingTimeout: 5000,
     });
 
     this.redis.on('connect', () => {
