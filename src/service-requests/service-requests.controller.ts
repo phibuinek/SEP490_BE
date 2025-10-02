@@ -51,12 +51,13 @@ export class ServiceRequestsController {
       },
       service_date_change: {
         summary: '📅 Gia hạn dịch vụ (SERVICE_DATE_CHANGE)',
-        description: 'Gia hạn thời gian sử dụng dịch vụ cho care plan assignment hiện tại',
+        description: 'Gia hạn thời gian sử dụng dịch vụ cho care plan assignment và bed assignment hiện tại',
         value: {
           resident_id: '507f1f77bcf86cd799439011',
           family_member_id: '507f1f77bcf86cd799439012',
           request_type: 'service_date_change',
           current_care_plan_assignment_id: '507f1f77bcf86cd799439015',
+          current_bed_assignment_id: '507f1f77bcf86cd799439016',
           new_end_date: '2024-12-31T23:59:59.000Z',
           emergencyContactName: 'Nguyễn Văn A',
           emergencyContactPhone: '0901234567',

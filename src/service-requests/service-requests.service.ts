@@ -86,6 +86,9 @@ export class ServiceRequestsService {
       if (!dto.current_care_plan_assignment_id) {
         throw new BadRequestException('Thiếu current_care_plan_assignment_id');
       }
+      if (!dto.current_bed_assignment_id) {
+        throw new BadRequestException('Thiếu current_bed_assignment_id');
+      }
       if (!dto.new_end_date) {
         throw new BadRequestException('Thiếu new_end_date');
       }
@@ -154,6 +157,7 @@ export class ServiceRequestsService {
       medicalNote: dto.medicalNote,
       status: ServiceRequestStatus.PENDING,
       current_care_plan_assignment_id: new Types.ObjectId(dto.current_care_plan_assignment_id!),
+      current_bed_assignment_id: new Types.ObjectId(dto.current_bed_assignment_id!),
       new_end_date: new Date(dto.new_end_date!),
     };
 
@@ -213,6 +217,18 @@ export class ServiceRequestsService {
         populate: {
           path: 'care_plan_ids',
           select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'current_bed_assignment_id',
+        select: 'bed_id assigned_date unassigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
         }
       })
       .exec();
@@ -294,6 +310,18 @@ export class ServiceRequestsService {
           select: 'plan_name description monthly_price plan_type category services_included'
         }
       })
+      .populate({
+        path: 'current_bed_assignment_id',
+        select: 'bed_id assigned_date unassigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
+        }
+      })
       .exec();
 
     if (!serviceRequest) {
@@ -334,6 +362,18 @@ export class ServiceRequestsService {
         populate: {
           path: 'care_plan_ids',
           select: 'plan_name description monthly_price plan_type category services_included'
+        }
+      })
+      .populate({
+        path: 'current_bed_assignment_id',
+        select: 'bed_id assigned_date unassigned_date status',
+        populate: {
+          path: 'bed_id',
+          select: 'bed_number bed_type room_id',
+          populate: {
+            path: 'room_id',
+            select: 'room_number floor room_type gender capacity'
+          }
         }
       })
       .exec();
@@ -439,14 +479,40 @@ export class ServiceRequestsService {
   }
 
   private async executeServiceDateChange(request: ServiceRequest): Promise<void> {
+    const residentId = this.toObjectId(request.resident_id);
     const carePlanAssignmentId = this.toObjectId(request.current_care_plan_assignment_id);
+    const bedAssignmentId = this.toObjectId(request.current_bed_assignment_id);
     const newEndDate = request.new_end_date;
 
-    // Update the care plan assignment end date
+    // 1. Update the care plan assignment end date and reactivate if needed
     await this.carePlanAssignmentModel.findByIdAndUpdate(
       carePlanAssignmentId,
       { 
         end_date: newEndDate,
+        status: 'active', // Reactivate care plan assignment (supports 5-day extension grace period)
+        updated_at: new Date()
+      }
+    );
+
+    // 2. Update specific bed assignment and reactivate if needed
+    await this.bedAssignmentModel.findByIdAndUpdate(
+      bedAssignmentId,
+      { 
+        unassigned_date: newEndDate,
+        status: 'active', // Reactivate bed assignment (supports 5-day extension grace period)
+        updated_at: new Date()
+      }
+    );
+
+    // 3. Also update any other active bed assignments for this resident (fallback)
+    await this.bedAssignmentModel.updateMany(
+      { 
+        resident_id: residentId,
+        status: 'active',
+        _id: { $ne: bedAssignmentId } // Exclude the one we just updated
+      },
+      { 
+        unassigned_date: newEndDate,
         updated_at: new Date()
       }
     );
