@@ -102,6 +102,41 @@ export class BedAssignmentsService {
       .exec();
   }
 
+  // Method mới để lấy tất cả bed assignments với tất cả trạng thái
+  async findAllWithAllStatuses(bed_id?: string, resident_id?: string) {
+    const filter: any = {};
+
+    if (bed_id) {
+      if (!Types.ObjectId.isValid(bed_id)) {
+        throw new BadRequestException('Invalid bed_id format');
+      }
+      filter.bed_id = new Types.ObjectId(bed_id);
+    }
+
+    if (resident_id) {
+      if (!Types.ObjectId.isValid(resident_id)) {
+        throw new BadRequestException('Invalid resident_id format');
+      }
+      filter.resident_id = new Types.ObjectId(resident_id);
+    }
+
+    // Không filter theo status - hiển thị tất cả trạng thái
+    return this.model
+      .find(filter)
+      .populate('resident_id', 'full_name date_of_birth gender status')
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id status',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type floor gender capacity',
+        },
+      })
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 }) // Sắp xếp theo ngày gán mới nhất
+      .exec();
+  }
+
   async findByResidentId(resident_id: string) {
     if (!Types.ObjectId.isValid(resident_id)) {
       throw new BadRequestException('Invalid resident ID format');

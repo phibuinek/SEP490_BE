@@ -776,10 +776,14 @@ export class ResidentsService {
 
 
   async findAll(pagination: PaginationDto = new PaginationDto()): Promise<PaginatedResponse<Resident>> {
-    const notDeleted = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] } as any;
+    // Chỉ lấy những resident đang hoạt động
+    const filter: any = {
+      $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }],
+      status: { $in: [ResidentStatus.ACCEPTED, ResidentStatus.ADMITTED, ResidentStatus.ACTIVE] }
+    };
     
     // Generate cache key
-    const cacheKey = CacheService.generateResidentsListKey({ ...pagination, notDeleted });
+    const cacheKey = CacheService.generateResidentsListKey({ ...pagination, filter });
     
     // Try to get from cache first
     const cachedResult = await this.cacheService.get<PaginatedResponse<Resident>>(cacheKey);
@@ -793,20 +797,59 @@ export class ResidentsService {
     // Query database
     const [data, total] = await Promise.all([
       this.residentModel
-        .find(notDeleted)
+        .find(filter)
         .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
         .sort(pagination.sort)
         .skip(pagination.skip)
         .limit(pagination.limit || 10)
         .lean() // Use lean() for better performance
         .exec(),
-      this.residentModel.countDocuments(notDeleted).exec(),
+      this.residentModel.countDocuments(filter).exec(),
     ]);
 
     const result = new PaginatedResponse(data, total, pagination);
     
     // Cache the result for 5 minutes
     await this.cacheService.set(cacheKey, result, 300);
+    
+    return result;
+  }
+
+  // Method riêng để lấy tất cả residents với tất cả trạng thái
+  async findAllWithAllStatuses(pagination: PaginationDto = new PaginationDto()): Promise<PaginatedResponse<Resident>> {
+    // Lấy tất cả residents (không filter theo status)
+    const filter: any = { $or: [{ is_deleted: false }, { is_deleted: { $exists: false } }] };
+    
+    // Generate cache key
+    const cacheKey = CacheService.generateResidentsListKey({ ...pagination, filter, allStatuses: true });
+    
+    // Try to get from cache first
+    const cachedResult = await this.cacheService.get<PaginatedResponse<Resident>>(cacheKey);
+    if (cachedResult) {
+      console.log('[RESIDENT][FINDALL_ALL_STATUSES] Cache hit for key:', cacheKey);
+      return cachedResult;
+    }
+
+    console.log('[RESIDENT][FINDALL_ALL_STATUSES] Cache miss, querying database...');
+    
+    // Query database
+    const [data, total] = await Promise.all([
+      this.residentModel
+        .find(filter)
+        .populate('family_member_id', 'full_name email phone cccd_id cccd_front cccd_back')
+        .sort(pagination.sort)
+        .skip(pagination.skip)
+        .limit(pagination.limit || 10)
+        .lean() // Use lean() for better performance
+        .exec(),
+      this.residentModel.countDocuments(filter).exec(),
+    ]);
+
+    const result = new PaginatedResponse(data, total, pagination);
+    
+    // Cache the result for 5 minutes
+    await this.cacheService.set(cacheKey, result, 300);
+    console.log('[RESIDENT][FINDALL_ALL_STATUSES] Result cached with key:', cacheKey);
     
     return result;
   }
