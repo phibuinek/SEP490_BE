@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
-import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -38,6 +38,10 @@ export class BedAssignmentsController {
     name: 'include_inactive',
     required: false,
     description: 'Include inactive assignments (admin/staff only)',
+  })
+  @ApiOperation({ 
+    summary: 'Get active bed assignments',
+    description: 'Get bed assignments with active status only. Use /bed-assignments/all-statuses to see all statuses.'
   })
   @ApiQuery({
     name: 'statuses',
@@ -66,6 +70,7 @@ export class BedAssignmentsController {
 
     // STAFF/ADMIN: xem toàn bộ hoặc lọc theo bed_id/resident_id nếu có
     const includeInactive = include_inactive === 'true';
+    
     if (includeInactive) {
       return this.service.findAllIncludingInactive(bed_id, resident_id);
     } else {
@@ -309,6 +314,26 @@ export class BedAssignmentsController {
     }
     await this.service.activateCompletedAssignmentsByAdmissionDate();
     return { message: 'Completed assignments activated successfully' };
+  }
+
+  @Get('all-statuses')
+  @UseGuards(JwtAuthGuard)
+  @ApiQuery({ name: 'bed_id', required: false })
+  @ApiQuery({ name: 'resident_id', required: false })
+  @ApiOperation({ 
+    summary: 'Get all bed assignments with all statuses',
+    description: 'Get bed assignments including all statuses: pending, completed, active, done, rejected, discharged, exchanged, etc.'
+  })
+  async getAllWithAllStatuses(
+    @Req() req: any,
+    @Query('bed_id') bed_id?: string,
+    @Query('resident_id') resident_id?: string,
+  ) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN && userRole !== Role.STAFF) {
+      throw new ForbiddenException('Only admin and staff can view all bed assignments');
+    }
+    return this.service.findAllWithAllStatuses(bed_id, resident_id);
   }
 
   @Get('by-status/:status')

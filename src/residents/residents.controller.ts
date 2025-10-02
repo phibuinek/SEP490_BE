@@ -31,6 +31,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -181,7 +182,10 @@ export class ResidentsController {
 
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
-  @ApiOperation({ summary: 'Get all residents with pagination' })
+  @ApiOperation({ 
+    summary: 'Get active residents with pagination',
+    description: 'Get residents with active statuses only (accepted, admitted, active). Use /residents/all-statuses to see all statuses.'
+  })
   findAll(@Query() pagination: PaginationDto) {
     return this.residentsService.findAll(pagination);
   }
@@ -235,6 +239,28 @@ export class ResidentsController {
   @ApiOperation({ summary: 'Get all active residents' })
   findAllActive() {
     return this.residentsService.findAllActive();
+  }
+
+  @Get('all-statuses')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiOperation({ 
+    summary: 'Get all residents with all statuses',
+    description: 'Get residents including all statuses: pending, accepted, rejected, admitted, active, discharged, deceased'
+  })
+  @ApiQuery({ 
+    name: 'page', 
+    required: false, 
+    type: 'number',
+    description: 'Page number (default: 1)'
+  })
+  @ApiQuery({ 
+    name: 'limit', 
+    required: false, 
+    type: 'number',
+    description: 'Items per page (default: 10)'
+  })
+  findAllWithAllStatuses(@Query() pagination: PaginationDto) {
+    return this.residentsService.findAllWithAllStatuses(pagination);
   }
   @Get('by-room/:roomId/admitted')
   @Roles(Role.ADMIN, Role.STAFF)
