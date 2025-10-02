@@ -10,6 +10,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { CarePlanAssignmentsService } from './care-plan-assignments.service';
+import { CarePlanAssignmentsSchedulerService } from './care-plan-assignments-scheduler.service';
 import { CreateCarePlanAssignmentDto } from './dto/create-care-plan-assignment.dto';
 import { UpdateCarePlanAssignmentDto } from './dto/update-care-plan-assignment.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
@@ -25,6 +26,7 @@ import { Role } from '../common/enums/role.enum';
 export class CarePlanAssignmentsController {
   constructor(
     private readonly carePlanAssignmentsService: CarePlanAssignmentsService,
+    private readonly schedulerService: CarePlanAssignmentsSchedulerService,
   ) {}
 
   @Post()
@@ -147,5 +149,31 @@ export class CarePlanAssignmentsController {
   async activateCompletedAssignments(@Req() req: any) {
     await this.carePlanAssignmentsService.activateCompletedAssignmentsByAdmissionDate();
     return { message: 'Completed care plan assignments activated successfully' };
+  }
+
+  @Post('manual-check-expired')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually trigger check for expired care plan assignments (Testing)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Manual check for expired assignments completed',
+  })
+  async manualCheckExpired() {
+    await this.schedulerService.manualCheckExpiredAssignments();
+    return { message: 'Manual check for expired care plan assignments completed' };
+  }
+
+  @Post('manual-check-paused')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually trigger check for paused assignments to finalize (Testing)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Manual check for paused assignments completed',
+  })
+  async manualCheckPaused() {
+    await this.schedulerService.manualCheckPausedAssignments();
+    return { message: 'Manual check for paused assignments completed' };
   }
 } 

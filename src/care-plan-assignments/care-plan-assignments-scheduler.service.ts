@@ -132,6 +132,76 @@ export class CarePlanAssignmentsSchedulerService {
   }
 
   /**
+   * Check for paused assignments that have been paused for more than 5 days and mark them as done
+   * Runs every day at 01:00 AM (1 hour after the expiration check)
+   */
+  @Cron('0 1 * * *', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
+  async checkAndFinalizePausedAssignments() {
+    this.logger.log(
+      'Starting automatic check for paused care plan assignments that should be marked as done...',
+    );
+
+    try {
+      const now = new Date();
+      // Calculate 5 days ago from now
+      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+
+      // Find all paused assignments that have been paused for more than 5 days
+      // We check updated_at because that's when the status was changed to 'paused'
+      const pausedAssignments = await this.carePlanAssignmentModel
+        .find({
+          status: 'paused',
+          updated_at: {
+            $lt: fiveDaysAgo,
+          },
+        })
+        .populate('resident_id', 'full_name')
+        .exec();
+
+      this.logger.log(`Found ${pausedAssignments.length} paused assignments that should be finalized`);
+
+      if (pausedAssignments.length > 0) {
+        // Update all qualifying paused assignments to done status
+        const result = await this.carePlanAssignmentModel.updateMany(
+          {
+            status: 'paused',
+            updated_at: {
+              $lt: fiveDaysAgo,
+            },
+          },
+          {
+            $set: {
+              status: 'done',
+              updated_at: now,
+            },
+          },
+        );
+
+        this.logger.log(
+          `Successfully marked ${result.modifiedCount} paused assignments as done`,
+        );
+
+        // Log details of each finalized assignment
+        pausedAssignments.forEach((assignment) => {
+          const residentName = (assignment.resident_id as any)?.full_name || 'Unknown';
+          const daysPaused = Math.floor(
+            (now.getTime() - (assignment.updated_at as Date).getTime()) / (24 * 60 * 60 * 1000)
+          );
+          this.logger.log(
+            `Finalized assignment ID: ${assignment._id}, Resident: ${residentName}, Days paused: ${daysPaused}, End Date: ${assignment.end_date}`,
+          );
+        });
+      } else {
+        this.logger.log('No paused assignments found that need to be finalized');
+      }
+    } catch (error) {
+      this.logger.error('Error checking for paused assignments to finalize:', error);
+    }
+  }
+
+  /**
    * Manual trigger for testing purposes
    */
   async manualCheckExpiredAssignments() {
@@ -149,5 +219,15 @@ export class CarePlanAssignmentsSchedulerService {
       'Manual trigger: Checking for assignments that will expire soon...',
     );
     await this.checkUpcomingExpirations();
+  }
+
+  /**
+   * Manual trigger for testing paused assignments finalization
+   */
+  async manualCheckPausedAssignments() {
+    this.logger.log(
+      'Manual trigger: Checking for paused assignments that should be finalized...',
+    );
+    await this.checkAndFinalizePausedAssignments();
   }
 }
