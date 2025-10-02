@@ -96,6 +96,7 @@ export class CarePlanAssignment {
       'completed',
       'cancelled',
       'paused',
+      'done',
     ],
     required: true,
     default: 'pending',
