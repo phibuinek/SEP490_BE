@@ -51,6 +51,9 @@ export class ServiceRequest {
   @Prop({ type: Types.ObjectId, ref: 'CarePlanAssignment', default: null })
   current_care_plan_assignment_id?: Types.ObjectId | null;
 
+  @Prop({ type: Types.ObjectId, ref: 'BedAssignment', default: null })
+  current_bed_assignment_id?: Types.ObjectId | null;
+
   @Prop({ type: Date, default: null })
   new_end_date?: Date | null;
 

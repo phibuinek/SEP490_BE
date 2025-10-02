@@ -24,6 +24,13 @@ export class ServiceDateChangeRequestDto {
   current_care_plan_assignment_id: string;
 
   @ApiProperty({ 
+    description: 'Current bed assignment ID to extend',
+    example: '507f1f77bcf86cd799439016'
+  })
+  @IsMongoId()
+  current_bed_assignment_id: string;
+
+  @ApiProperty({ 
     description: 'New end date for service extension (ISO string)',
     example: '2024-12-31T23:59:59.000Z'
   })
