@@ -59,282 +59,138 @@ export class BedAssignmentsService {
   async findAll(
     bed_id?: string,
     resident_id?: string,
-    activeOnly: boolean = true,
+    activeOnly: boolean = false,
   ) {
-    const matchFilter: any = {};
+    const filter: any = {};
 
     if (bed_id) {
       if (!Types.ObjectId.isValid(bed_id)) {
         throw new BadRequestException('Invalid bed_id format');
       }
-      matchFilter.bed_id = new Types.ObjectId(bed_id);
+      filter.bed_id = new Types.ObjectId(bed_id);
     }
 
     if (resident_id) {
       if (!Types.ObjectId.isValid(resident_id)) {
         throw new BadRequestException('Invalid resident_id format');
       }
-      matchFilter.resident_id = new Types.ObjectId(resident_id);
+      filter.resident_id = new Types.ObjectId(resident_id);
     }
 
-    // Mặc định chỉ lấy những assignment đang hoạt động (chỉ status 'active')
+    // Mặc định lấy tất cả trạng thái, chỉ filter theo 'active' nếu activeOnly = true
     if (activeOnly) {
-      matchFilter.status = 'active';
+      filter.status = 'active';
     }
 
     return this.model
-      .aggregate([
-        {
-          $match: matchFilter
+      .find(filter)
+      .populate('resident_id', 'full_name date_of_birth gender')
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
         },
-        {
-          $lookup: {
-            from: 'residents',
-            localField: 'resident_id',
-            foreignField: '_id',
-            as: 'resident_id',
-            pipeline: [
-              {
-                $project: {
-                  full_name: 1,
-                  date_of_birth: 1,
-                  gender: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$resident_id'
-        },
-        {
-          $lookup: {
-            from: 'beds',
-            localField: 'bed_id',
-            foreignField: '_id',
-            as: 'bed_id',
-            pipeline: [
-              {
-                $project: {
-                  bed_number: 1,
-                  bed_type: 1,
-                  room_id: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$bed_id'
-        },
-        {
-          $lookup: {
-            from: 'rooms',
-            localField: 'bed_id.room_id',
-            foreignField: '_id',
-            as: 'room',
-            pipeline: [
-              {
-                $project: {
-                  room_number: 1,
-                  room_type: 1,
-                  floor: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$room'
-        },
-        {
-          $lookup: {
-            from: 'room_types',
-            localField: 'room.room_type',
-            foreignField: 'room_type',
-            as: 'room_type_info'
-          }
-        },
-        {
-          $unwind: '$room_type_info'
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'assigned_by',
-            foreignField: '_id',
-            as: 'assigned_by',
-            pipeline: [
-              {
-                $project: {
-                  full_name: 1,
-                  email: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: { path: '$assigned_by', preserveNullAndEmptyArrays: true }
-        },
-        {
-          $addFields: {
-            'bed_id.room_id': '$room',
-            'bed_id.room_id.room_type_info': '$room_type_info'
-          }
-        },
-        {
-          $project: {
-            room: 0,
-            room_type_info: 0
-          }
-        },
-        {
-          $sort: { assigned_date: -1 }
-        }
-      ])
+      })
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 })
       .exec();
   }
 
   // Method mới để lấy tất cả bed assignments với tất cả trạng thái
   async findAllWithAllStatuses(bed_id?: string, resident_id?: string) {
-    const matchFilter: any = {};
+    const filter: any = {};
 
     if (bed_id) {
       if (!Types.ObjectId.isValid(bed_id)) {
         throw new BadRequestException('Invalid bed_id format');
       }
-      matchFilter.bed_id = new Types.ObjectId(bed_id);
+      filter.bed_id = new Types.ObjectId(bed_id);
     }
 
     if (resident_id) {
       if (!Types.ObjectId.isValid(resident_id)) {
         throw new BadRequestException('Invalid resident_id format');
       }
-      matchFilter.resident_id = new Types.ObjectId(resident_id);
+      filter.resident_id = new Types.ObjectId(resident_id);
     }
 
     // Không filter theo status - hiển thị tất cả trạng thái
     return this.model
-      .aggregate([
-        {
-          $match: matchFilter
+      .find(filter)
+      .populate('resident_id', 'full_name date_of_birth gender status')
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id status',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type floor gender capacity',
         },
-        {
-          $lookup: {
-            from: 'residents',
-            localField: 'resident_id',
-            foreignField: '_id',
-            as: 'resident_id',
-            pipeline: [
-              {
-                $project: {
-                  full_name: 1,
-                  date_of_birth: 1,
-                  gender: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$resident_id'
-        },
-        {
-          $lookup: {
-            from: 'beds',
-            localField: 'bed_id',
-            foreignField: '_id',
-            as: 'bed_id',
-            pipeline: [
-              {
-                $project: {
-                  bed_number: 1,
-                  bed_type: 1,
-                  room_id: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$bed_id'
-        },
-        {
-          $lookup: {
-            from: 'rooms',
-            localField: 'bed_id.room_id',
-            foreignField: '_id',
-            as: 'room',
-            pipeline: [
-              {
-                $project: {
-                  room_number: 1,
-                  room_type: 1,
-                  floor: 1,
-                  gender: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$room'
-        },
-        {
-          $lookup: {
-            from: 'room_types',
-            localField: 'room.room_type',
-            foreignField: 'room_type',
-            as: 'room_type_info'
-          }
-        },
-        {
-          $unwind: '$room_type_info'
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'assigned_by',
-            foreignField: '_id',
-            as: 'assigned_by',
-            pipeline: [
-              {
-                $project: {
-                  full_name: 1,
-                  email: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: { path: '$assigned_by', preserveNullAndEmptyArrays: true }
-        },
-        {
-          $addFields: {
-            'bed_id.room_id': '$room',
-            'bed_id.room_id.room_type_info': '$room_type_info'
-          }
-        },
-        {
-          $project: {
-            room: 0,
-            room_type_info: 0
-          }
-        },
-        {
-          $sort: { assigned_date: -1 }
-        }
-      ])
+      })
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 }) // Sắp xếp theo ngày gán mới nhất
       .exec();
   }
 
+  async findByResidentId(resident_id: string) {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident ID format');
+    }
+    return this.model
+      .find({
+        resident_id: new Types.ObjectId(resident_id),
+        // Lấy tất cả trạng thái: active, accepted, pending, rejected, completed, discharged, exchanged, done
+      })
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id status',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type floor gender capacity',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
+        },
+      })
+      .populate('resident_id', 'full_name date_of_birth gender status')
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 })
+      .exec();
+  }
+
+  // Method mới để lấy bed assignments theo resident với tất cả trạng thái (cho admin/staff)
+  async findByResidentIdWithAllStatuses(resident_id: string) {
+    if (!Types.ObjectId.isValid(resident_id)) {
+      throw new BadRequestException('Invalid resident ID format');
+    }
+    return this.model
+      .find({
+        resident_id: new Types.ObjectId(resident_id),
+        // Lấy tất cả trạng thái
+      })
+      .populate({
+        path: 'bed_id',
+        select: 'bed_number bed_type room_id status',
+        populate: {
+          path: 'room_id',
+          select: 'room_number room_type floor gender capacity',
+          populate: {
+            path: 'room_type',
+            select: 'type_name description monthlyPrice amenities',
+          },
+        },
+      })
+      .populate('resident_id', 'full_name date_of_birth gender status')
+      .populate('assigned_by', 'full_name')
+      .sort({ assigned_date: -1 })
+      .exec();
+  }
 
   async unassign(id: string) {
     if (!Types.ObjectId.isValid(id)) {
@@ -385,6 +241,7 @@ export class BedAssignmentsService {
 
   /**
    * Lấy tất cả bed assignments (bao gồm cả đã unassign) cho admin/staff
+   * @deprecated Sử dụng findAll() thay thế vì nó đã mặc định lấy tất cả trạng thái
    */
   async findAllIncludingInactive(bed_id?: string, resident_id?: string) {
     return this.findAll(bed_id, resident_id, false); // activeOnly = false
@@ -581,129 +438,6 @@ export class BedAssignmentsService {
       .populate('bed_id', 'bed_number bed_type room_id')
       .populate('assigned_by', 'name email')
       .sort({ assigned_date: -1 })
-      .exec();
-  }
-
-  // Method to get all bed assignments for a specific resident (all statuses)
-  async findByResidentId(resident_id: string): Promise<any[]> {
-    if (!Types.ObjectId.isValid(resident_id)) {
-      throw new BadRequestException('Invalid resident_id format');
-    }
-
-    return this.model
-      .aggregate([
-        {
-          $match: { resident_id: new Types.ObjectId(resident_id) }
-        },
-        {
-          $lookup: {
-            from: 'residents',
-            localField: 'resident_id',
-            foreignField: '_id',
-            as: 'resident_id',
-            pipeline: [
-              {
-                $project: {
-                  full_name: 1,
-                  date_of_birth: 1,
-                  cccd_id: 1,
-                  admission_date: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$resident_id'
-        },
-        {
-          $lookup: {
-            from: 'beds',
-            localField: 'bed_id',
-            foreignField: '_id',
-            as: 'bed_id',
-            pipeline: [
-              {
-                $project: {
-                  bed_number: 1,
-                  bed_type: 1,
-                  room_id: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$bed_id'
-        },
-        {
-          $lookup: {
-            from: 'rooms',
-            localField: 'bed_id.room_id',
-            foreignField: '_id',
-            as: 'room',
-            pipeline: [
-              {
-                $project: {
-                  room_number: 1,
-                  room_type: 1,
-                  floor: 1,
-                  status: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: '$room'
-        },
-        {
-          $lookup: {
-            from: 'room_types',
-            localField: 'room.room_type',
-            foreignField: 'room_type',
-            as: 'room_type_info'
-          }
-        },
-        {
-          $unwind: '$room_type_info'
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'assigned_by',
-            foreignField: '_id',
-            as: 'assigned_by',
-            pipeline: [
-              {
-                $project: {
-                  name: 1,
-                  email: 1
-                }
-              }
-            ]
-          }
-        },
-        {
-          $unwind: { path: '$assigned_by', preserveNullAndEmptyArrays: true }
-        },
-        {
-          $addFields: {
-            'bed_id.room_id': '$room',
-            'bed_id.room_id.room_type_info': '$room_type_info'
-          }
-        },
-        {
-          $project: {
-            room: 0,
-            room_type_info: 0
-          }
-        },
-        {
-          $sort: { assigned_date: -1 }
-        }
-      ])
       .exec();
   }
 }

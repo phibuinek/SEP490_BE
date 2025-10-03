@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
-import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -40,8 +40,8 @@ export class BedAssignmentsController {
     description: 'Include inactive assignments (admin/staff only)',
   })
   @ApiOperation({ 
-    summary: 'Get active bed assignments',
-    description: 'Get bed assignments with active status only. Use /bed-assignments/all-statuses to see all statuses.'
+    summary: 'Get all bed assignments',
+    description: 'Get bed assignments with all statuses. Use include_inactive=true to include inactive assignments.'
   })
   @ApiQuery({
     name: 'statuses',
@@ -68,77 +68,17 @@ export class BedAssignmentsController {
       throw new ForbiddenException('Family cannot view all bed assignments');
     }
 
-    // STAFF/ADMIN: xem toàn bộ hoặc lọc theo bed_id/resident_id nếu có
-    const includeInactive = include_inactive === 'true';
-    
-    if (includeInactive) {
-      return this.service.findAllIncludingInactive(bed_id, resident_id);
-    } else {
-      return this.service.findAll(bed_id, resident_id, true); // activeOnly = true
-    }
+    // STAFF/ADMIN: mặc định lấy tất cả trạng thái
+    // include_inactive parameter được giữ lại để backward compatibility
+    return this.service.findAll(bed_id, resident_id, false); // activeOnly = false (lấy tất cả trạng thái)
   }
 
   @Get('by-resident')
-  @ApiQuery({ name: 'resident_id', required: true, description: 'Resident ID to get bed assignments for' })
+  @ApiQuery({ name: 'resident_id', required: true })
   @ApiOperation({ 
-    summary: 'Get all bed assignments for a specific resident',
-    description: 'Retrieves all bed assignments for a resident regardless of status (active, pending, completed, done, rejected, etc.)'
+    summary: 'Get bed assignments by resident ID (all statuses)',
+    description: 'Get all bed assignments for a specific resident including all statuses: active, accepted, pending, rejected, completed, discharged, exchanged, done'
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Bed assignments retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          _id: { type: 'string' },
-          status: { type: 'string', enum: ['pending', 'accepted', 'active', 'completed', 'done', 'rejected', 'discharged', 'exchanged', 'cancelled'] },
-          assigned_date: { type: 'string', format: 'date-time' },
-          unassigned_date: { type: 'string', format: 'date-time', nullable: true },
-          resident_id: {
-            type: 'object',
-            properties: {
-              _id: { type: 'string' },
-              full_name: { type: 'string' },
-              date_of_birth: { type: 'string', format: 'date' },
-              cccd_id: { type: 'string' },
-              admission_date: { type: 'string', format: 'date-time' },
-              status: { type: 'string' }
-            }
-          },
-          bed_id: {
-            type: 'object',
-            properties: {
-              _id: { type: 'string' },
-              bed_number: { type: 'string' },
-              bed_type: { type: 'string' },
-              room_id: {
-                type: 'object',
-                properties: {
-                  _id: { type: 'string' },
-                  room_number: { type: 'string' },
-                  room_type: { type: 'string' },
-                  floor: { type: 'number' }
-                }
-              }
-            }
-          },
-          assigned_by: {
-            type: 'object',
-            properties: {
-              _id: { type: 'string' },
-              name: { type: 'string' },
-              email: { type: 'string' }
-            }
-          }
-        }
-      }
-    }
-  })
-  @ApiResponse({ status: 400, description: 'Invalid resident_id format' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Family can only view their own residents' })
-  @ApiResponse({ status: 404, description: 'Resident not found' })
   async getByResident(@Query('resident_id') resident_id: string, @Req() req) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
@@ -406,5 +346,22 @@ export class BedAssignmentsController {
       throw new ForbiddenException('Only admin and staff can view assignments by status');
     }
     return this.service.getAssignmentsByStatus(status);
+  }
+
+  @Get('admin/by-resident/:residentId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ 
+    summary: 'Get all bed assignments by resident ID (Admin/Staff only)',
+    description: 'Get all bed assignments for a specific resident including all statuses. Admin and Staff only.'
+  })
+  async getByResidentAdmin(
+    @Param('residentId') residentId: string,
+    @Req() req: any,
+  ) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN && userRole !== Role.STAFF) {
+      throw new ForbiddenException('Only admin and staff can view all bed assignments by resident');
+    }
+    return this.service.findByResidentIdWithAllStatuses(residentId);
   }
 }
