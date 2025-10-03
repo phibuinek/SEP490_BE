@@ -252,15 +252,15 @@ export class ResidentPhotosService {
       return file_path;
     }
     
-    // Convert actual file path to serving URL
-    // Database stores: /tmp/uploads/filename (prod) or uploads/filename (local)
+    // Convert file path to serving URL
+    // Database stores: uploads/filename (both local and prod)
     // Serving URL should always be: /uploads/filename
-    if (file_path.startsWith('/tmp/uploads/')) {
-      // Production: /tmp/uploads/filename -> /uploads/filename
-      return file_path.replace('/tmp/uploads/', '/uploads/');
-    } else if (file_path.startsWith('uploads/')) {
-      // Local: uploads/filename -> /uploads/filename
+    if (file_path.startsWith('uploads/')) {
+      // Both local and prod: uploads/filename -> /uploads/filename
       return `/${file_path}`;
+    } else if (file_path.startsWith('/tmp/uploads/')) {
+      // Legacy prod format: /tmp/uploads/filename -> /uploads/filename
+      return file_path.replace('/tmp/uploads/', '/uploads/');
     } else {
       // Fallback: add uploads/ prefix
       return `/uploads/${file_path}`;

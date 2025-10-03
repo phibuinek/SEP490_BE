@@ -138,13 +138,10 @@ export class ResidentPhotosController {
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
 
-      // Store the actual file path in database
-      // In production: /tmp/uploads/filename (actual location)
-      // In local: uploads/filename (actual location)
-      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-      const file_path = isProd ? `/tmp/uploads/${file.filename}` : `uploads/${file.filename}`;
+      // Store file path in database (always use uploads/ prefix)
+      // Actual file location is handled by multer and static serving
+      const file_path = `uploads/${file.filename}`;
       console.log('File path for DB:', file_path);
-      console.log('Is production:', isProd);
       console.log('File filename:', file.filename);
 
       const uploadData = {
@@ -296,5 +293,24 @@ export class ResidentPhotosController {
     console.log('Debug: Fixing file paths in database');
     const result = await this.service.fixFilePaths();
     return result;
+  }
+
+  @Get('debug/test-file-url/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async testFileUrl(@Param('id') photo_id: string) {
+    console.log('Debug: Testing file URL for photo:', photo_id);
+    const photo = await this.service.getPhotoById(photo_id);
+    
+    const fileUrl = this.service.getFileUrl(photo.file_path);
+    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+    
+    return {
+      photo_id,
+      file_path_in_db: photo.file_path,
+      generated_file_url: fileUrl,
+      is_production: isProd,
+      expected_actual_location: isProd ? `/tmp/${photo.file_path}` : `./${photo.file_path}`,
+      file_exists: require('fs').existsSync(isProd ? `/tmp/${photo.file_path}` : `./${photo.file_path}`)
+    };
   }
 }
