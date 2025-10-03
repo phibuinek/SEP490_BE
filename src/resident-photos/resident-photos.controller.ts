@@ -53,8 +53,8 @@ export class ResidentPhotosController {
         destination: (req, file, cb) => {
           try {
             const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-            const baseDir = isProd ? path.join('/tmp') : process.cwd();
-            const uploadPath = path.join(baseDir, 'uploads');
+            const baseDir = isProd ? join('/tmp') : process.cwd();
+            const uploadPath = join(baseDir, 'uploads');
             if (!fs.existsSync(uploadPath)) {
               fs.mkdirSync(uploadPath, { recursive: true });
             }
