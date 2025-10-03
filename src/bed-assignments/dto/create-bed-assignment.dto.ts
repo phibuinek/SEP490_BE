@@ -23,4 +23,22 @@ export class CreateBedAssignmentDto {
   @IsOptional()
   @IsEnum(['active', 'accepted', 'pending', 'rejected', 'completed', 'discharged', 'exchanged'])
   status?: string;
+
+  @ApiPropertyOptional({ 
+    example: '2024-01-01T00:00:00.000Z', 
+    type: String,
+    description: 'Ngày bắt đầu phân giường (assigned_date)'
+  })
+  @IsOptional()
+  @IsDateString()
+  assigned_date?: string;
+
+  @ApiPropertyOptional({ 
+    example: '2024-12-31T23:59:59.999Z', 
+    type: String,
+    description: 'Ngày kết thúc phân giường (unassigned_date)'
+  })
+  @IsOptional()
+  @IsDateString()
+  unassigned_date?: string;
 }

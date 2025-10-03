@@ -41,8 +41,8 @@ export class BedAssignmentsService {
       assigned_by: dto.assigned_by
         ? new Types.ObjectId(dto.assigned_by)
         : undefined,
-      assigned_date: new Date(Date.now() + 7 * 60 * 60 * 1000), // set ngày hiện tại GMT+7
-      unassigned_date: null, // luôn set null khi tạo mới
+      assigned_date: dto.assigned_date ? new Date(dto.assigned_date) : new Date(Date.now() + 7 * 60 * 60 * 1000), // Use provided assigned_date or current date GMT+7
+      unassigned_date: dto.unassigned_date ? new Date(dto.unassigned_date) : null, // Use provided unassigned_date or null
       // Mặc định: pending cho đến khi thanh toán xong
       status: 'pending',
     };
