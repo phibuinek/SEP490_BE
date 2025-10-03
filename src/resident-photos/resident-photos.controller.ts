@@ -28,7 +28,8 @@ import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 import { ResidentsService } from '../residents/residents.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -52,8 +53,8 @@ export class ResidentPhotosController {
         destination: (req, file, cb) => {
           try {
             const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-            const baseDir = isProd ? path.join('/tmp') : process.cwd();
-            const uploadPath = path.join(baseDir, 'uploads');
+            const baseDir = isProd ? join('/tmp') : process.cwd();
+            const uploadPath = join(baseDir, 'uploads');
             if (!fs.existsSync(uploadPath)) {
               fs.mkdirSync(uploadPath, { recursive: true });
             }
