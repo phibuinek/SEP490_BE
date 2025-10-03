@@ -16,3 +16,5 @@ services:
         value: production
       - key: NODE_OPTIONS
         value: "--max-old-space-size=1024"
+      - key: ENABLE_SWAGGER
+        value: "true"

@@ -171,6 +171,10 @@ export class ResidentPhotosController {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
 
+    console.log('Get photos request - User role:', userRole);
+    console.log('Get photos request - User ID:', userId);
+    console.log('Get photos request - Family member ID:', family_member_id);
+
     if (userRole === Role.FAMILY) {
       // Family chỉ có thể xem photos của residents thuộc về họ
       if (!family_member_id || family_member_id !== userId) {
@@ -178,10 +182,15 @@ export class ResidentPhotosController {
           'Bạn chỉ có thể xem photos của người thân của mình',
         );
       }
+      // Family bắt buộc phải có family_member_id
+      return this.service.getPhotos(family_member_id);
     }
 
     // STAFF/ADMIN: xem tất cả hoặc lọc theo family_member_id nếu có
-    return this.service.findAll(family_member_id);
+    if (family_member_id) {
+      return this.service.getPhotos(family_member_id);
+    }
+    return this.service.getAllPhotos();
   }
 
   @Get('by-resident/:id')
@@ -190,9 +199,14 @@ export class ResidentPhotosController {
       const userRole = req.user?.role;
       const userId = req.user?.userId;
 
+      console.log('Get photos by resident request - Resident ID:', resident_id);
+      console.log('Get photos by resident request - User role:', userRole);
+      console.log('Get photos by resident request - User ID:', userId);
+
       if (userRole === Role.FAMILY) {
         // Kiểm tra resident này có thuộc về family không
         const resident = await this.residentsService.findOne(resident_id);
+        console.log('Resident found:', resident);
         if (!resident || resident.family_member_id.toString() !== userId) {
           throw new ForbiddenException(
             'Bạn không có quyền xem photos của resident này',
@@ -200,7 +214,9 @@ export class ResidentPhotosController {
         }
       }
 
-      return this.service.findByResidentId(resident_id);
+      const photos = await this.service.findByResidentId(resident_id);
+      console.log('Photos found for resident:', photos.length);
+      return photos;
     } catch (error) {
       console.error('Error in getPhotosByResidentId:', error);
       if (error instanceof ForbiddenException) {
@@ -229,5 +245,19 @@ export class ResidentPhotosController {
   @ApiParam({ name: 'id', description: 'Photo ID' })
   async deletePhoto(@Param('id') id: string) {
     return this.service.deletePhoto(id);
+  }
+
+  @Get('debug/all-photos')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugAllPhotos() {
+    console.log('Debug: Getting all photos from database');
+    return this.service.getAllPhotos();
+  }
+
+  @Get('debug/photos-by-resident/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugPhotosByResident(@Param('id') resident_id: string) {
+    console.log('Debug: Getting photos for resident:', resident_id);
+    return this.service.findByResidentId(resident_id);
   }
 }

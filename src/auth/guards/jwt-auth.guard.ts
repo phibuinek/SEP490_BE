@@ -20,7 +20,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const url: string = request?.url || '';
     
     // Chỉ cho phép Swagger UI và uploads không cần auth
-    if (url.startsWith('/api-json') || url.startsWith('/uploads/')) {
+    if (url.startsWith('/api') || 
+        url.startsWith('/uploads/') ||
+        url.includes('swagger') ||
+        url.includes('api-json')) {
       return true;
     }
     
