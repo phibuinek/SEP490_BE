@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
-import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -79,7 +79,66 @@ export class BedAssignmentsController {
   }
 
   @Get('by-resident')
-  @ApiQuery({ name: 'resident_id', required: true })
+  @ApiQuery({ name: 'resident_id', required: true, description: 'Resident ID to get bed assignments for' })
+  @ApiOperation({ 
+    summary: 'Get all bed assignments for a specific resident',
+    description: 'Retrieves all bed assignments for a resident regardless of status (active, pending, completed, done, rejected, etc.)'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bed assignments retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string' },
+          status: { type: 'string', enum: ['pending', 'accepted', 'active', 'completed', 'done', 'rejected', 'discharged', 'exchanged', 'cancelled'] },
+          assigned_date: { type: 'string', format: 'date-time' },
+          unassigned_date: { type: 'string', format: 'date-time', nullable: true },
+          resident_id: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              full_name: { type: 'string' },
+              date_of_birth: { type: 'string', format: 'date' },
+              cccd_id: { type: 'string' },
+              admission_date: { type: 'string', format: 'date-time' },
+              status: { type: 'string' }
+            }
+          },
+          bed_id: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              bed_number: { type: 'string' },
+              bed_type: { type: 'string' },
+              room_id: {
+                type: 'object',
+                properties: {
+                  _id: { type: 'string' },
+                  room_number: { type: 'string' },
+                  room_type: { type: 'string' },
+                  floor: { type: 'number' }
+                }
+              }
+            }
+          },
+          assigned_by: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              name: { type: 'string' },
+              email: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid resident_id format' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Family can only view their own residents' })
+  @ApiResponse({ status: 404, description: 'Resident not found' })
   async getByResident(@Query('resident_id') resident_id: string, @Req() req) {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
