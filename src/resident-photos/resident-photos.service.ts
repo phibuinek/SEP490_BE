@@ -244,6 +244,7 @@ export class ResidentPhotosService {
   }
 
   // Helper method to get correct file URL for serving
+  // Same logic as CCCD - just add leading slash
   getFileUrl(file_path: string): string {
     if (!file_path) return '';
     
@@ -252,15 +253,10 @@ export class ResidentPhotosService {
       return file_path;
     }
     
-    // Convert file path to serving URL
-    // Database stores: uploads/filename (both local and prod)
-    // Serving URL should always be: /uploads/filename
+    // Database stores: uploads/filename
+    // Serving URL should be: /uploads/filename
     if (file_path.startsWith('uploads/')) {
-      // Both local and prod: uploads/filename -> /uploads/filename
       return `/${file_path}`;
-    } else if (file_path.startsWith('/tmp/uploads/')) {
-      // Legacy prod format: /tmp/uploads/filename -> /uploads/filename
-      return file_path.replace('/tmp/uploads/', '/uploads/');
     } else {
       // Fallback: add uploads/ prefix
       return `/uploads/${file_path}`;

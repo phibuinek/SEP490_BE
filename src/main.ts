@@ -52,9 +52,16 @@ async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
   const uploadsDir = isProd ? '/tmp/uploads' : join(__dirname, '..', 'uploads');
   
+  console.log('Static file serving configuration:');
+  console.log('- Is production:', isProd);
+  console.log('- Uploads directory:', uploadsDir);
+  console.log('- Static prefix: /uploads/');
+  
   app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
   });
+  
+  console.log('✅ Static file serving configured successfully');
 
   // Swagger configuration - chỉ enable khi không phải production hoặc có ENABLE_SWAGGER=true
   if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
