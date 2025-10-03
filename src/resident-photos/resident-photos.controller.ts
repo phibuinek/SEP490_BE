@@ -49,7 +49,19 @@ export class ResidentPhotosController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? path.join('/tmp') : process.cwd();
+            const uploadPath = path.join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -139,8 +151,8 @@ export class ResidentPhotosController {
       console.log('Uploaded by user ID:', uploaded_by);
 
       // Store file path in database (always use uploads/ prefix)
-      // Actual file location is handled by multer and static serving
-      const file_path = `uploads/${file.filename}`;
+      // Same logic as CCCD upload - always store relative URL under uploads/
+      const file_path = `uploads/${file.filename}`.replace(/\\/g, '/');
       console.log('File path for DB:', file_path);
       console.log('File filename:', file.filename);
 
