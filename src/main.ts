@@ -56,22 +56,50 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // Swagger configuration
-  const config = new DocumentBuilder()
-    .setTitle('Family Management API')
-    .setDescription(
-      'API for family management system with role-based authentication',
-    )
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  // Swagger configuration - chỉ enable khi không phải production hoặc có ENABLE_SWAGGER=true
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    const config = new DocumentBuilder()
+      .setTitle('Family Management API')
+      .setDescription('API for family management system with role-based authentication')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    
+    const document = SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+    });
+    
+    SwaggerModule.setup('api', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        defaultModelsExpandDepth: 1,
+        defaultModelExpandDepth: 1,
+        docExpansion: 'none', // Không expand tất cả endpoints
+        operationsSorter: 'alpha',
+        tagsSorter: 'alpha',
+      },
+      customSiteTitle: 'Family Management API',
+      customfavIcon: '/favicon-32x32.png',
+      customJs: [
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.min.js',
+      ],
+      customCssUrl: [
+        'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
+      ],
+    });
+    
+    console.log(`Swagger documentation: http://localhost:${process.env.PORT ?? 8000}/api`);
+  } else {
+    console.log('Swagger disabled in production');
+  }
 
   const port = process.env.PORT ?? 8000;
   await app.listen(port, '0.0.0.0');
   console.log(`Application is running on port: ${port}`);
-  console.log(`Swagger documentation: http://localhost:${port}/api`);
   
   // Graceful shutdown
   process.on('SIGTERM', async () => {

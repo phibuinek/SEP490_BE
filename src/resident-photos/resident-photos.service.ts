@@ -79,6 +79,10 @@ export class ResidentPhotosService {
 
   async getPhotos(family_member_id: string) {
     // Validate family_member_id
+    if (!family_member_id) {
+      throw new Error('family_member_id is required');
+    }
+
     if (!Types.ObjectId.isValid(family_member_id)) {
       throw new Error('Invalid family_member_id format');
     }
@@ -107,7 +111,8 @@ export class ResidentPhotosService {
   }
 
   async getAllPhotos() {
-    return this.photoModel
+    console.log('getAllPhotos called');
+    const photos = await this.photoModel
       .find()
       .populate('resident_id', 'full_name date_of_birth gender')
       .populate(
@@ -117,6 +122,10 @@ export class ResidentPhotosService {
       .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
+    
+    console.log('Found all photos:', photos.length);
+    console.log('All photos data:', photos);
+    return photos;
   }
 
   async findAll(family_member_id?: string) {
@@ -128,6 +137,8 @@ export class ResidentPhotosService {
 
   async findByResidentId(resident_id: string) {
     try {
+      console.log('findByResidentId called with resident_id:', resident_id);
+      
       if (!Types.ObjectId.isValid(resident_id)) {
         throw new Error('Invalid resident_id format');
       }
@@ -143,6 +154,8 @@ export class ResidentPhotosService {
         .sort({ upload_date: -1 })
         .exec();
 
+      console.log('Found photos for resident:', photos.length);
+      console.log('Photos data:', photos);
       return photos;
     } catch (error) {
       console.error('Error in findByResidentId:', error);
