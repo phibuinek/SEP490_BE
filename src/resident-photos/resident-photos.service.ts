@@ -48,11 +48,17 @@ export class ResidentPhotosService {
         throw new Error('Invalid uploaded_by format');
       }
 
+      // Ensure file_path is correct for serving
+      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+      const correctFilePath = isProd ? 
+        data.file_path.replace('uploads/', '/tmp/uploads/') : 
+        data.file_path;
+
       const photo = new this.photoModel({
         family_id: resident.family_member_id, // Đúng là family_member_id của resident
         uploaded_by: new Types.ObjectId(data.uploaded_by),
         file_name: data.file_name,
-        file_path: data.file_path,
+        file_path: correctFilePath,
         file_type: data.file_type,
         file_size: data.file_size,
         caption: data.caption,
@@ -98,7 +104,7 @@ export class ResidentPhotosService {
     const residentIds = residents.map((resident) => resident._id);
 
     // Step 3: Find all photos where resident_id is in the list of resident IDs
-    return this.photoModel
+    const photos = await this.photoModel
       .find({ resident_id: { $in: residentIds } })
       .populate('resident_id', 'full_name date_of_birth gender')
       .populate(
@@ -108,6 +114,9 @@ export class ResidentPhotosService {
       .populate('uploaded_by', 'full_name username position')
       .sort({ upload_date: -1 })
       .exec();
+
+    // Transform photos with correct URLs
+    return this.transformPhotosWithUrls(photos);
   }
 
   async getAllPhotos() {
@@ -125,7 +134,9 @@ export class ResidentPhotosService {
     
     console.log('Found all photos:', photos.length);
     console.log('All photos data:', photos);
-    return photos;
+    
+    // Transform photos with correct URLs
+    return this.transformPhotosWithUrls(photos);
   }
 
   async findAll(family_member_id?: string) {
@@ -156,7 +167,9 @@ export class ResidentPhotosService {
 
       console.log('Found photos for resident:', photos.length);
       console.log('Photos data:', photos);
-      return photos;
+      
+      // Transform photos with correct URLs
+      return this.transformPhotosWithUrls(photos);
     } catch (error) {
       console.error('Error in findByResidentId:', error);
       throw error;
@@ -234,5 +247,34 @@ export class ResidentPhotosService {
   async getPhotosByFamilyId(family_id: string, residentsService: any) {
     // Lấy tất cả ảnh có family_id này
     return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
+  }
+
+  // Helper method to get correct file URL
+  getFileUrl(file_path: string): string {
+    if (!file_path) return '';
+    
+    // If it's already a full URL, return as is
+    if (file_path.startsWith('http')) {
+      return file_path;
+    }
+    
+    // Convert file path to URL
+    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+    if (isProd) {
+      // In production, use the correct path
+      return file_path.replace('/tmp/uploads/', '/uploads/');
+    } else {
+      // In local, ensure it starts with uploads/
+      return file_path.startsWith('uploads/') ? file_path : `uploads/${file_path}`;
+    }
+  }
+
+  // Transform photos to include correct URLs
+  transformPhotosWithUrls(photos: any[]): any[] {
+    return photos.map(photo => ({
+      ...photo.toObject(),
+      file_url: this.getFileUrl(photo.file_path),
+      is_video: photo.file_type?.startsWith('video/') || false,
+    }));
   }
 }
