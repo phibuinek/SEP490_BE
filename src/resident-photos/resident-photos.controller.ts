@@ -138,11 +138,10 @@ export class ResidentPhotosController {
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
 
-      // Fix file path for both local and production
-      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-      const file_path = isProd ? `/tmp/uploads/${file.filename}` : `uploads/${file.filename}`;
-      console.log('File path:', file_path);
-      console.log('Is production:', isProd);
+      // Always use uploads/ prefix for database storage
+      // The actual file location will be handled by multer and static serving
+      const file_path = `uploads/${file.filename}`;
+      console.log('File path for DB:', file_path);
       console.log('File filename:', file.filename);
 
       const uploadData = {
@@ -286,5 +285,13 @@ export class ResidentPhotosController {
       is_video: photo.file_type?.startsWith('video/') || false,
       file_exists: require('fs').existsSync(photo.file_path),
     };
+  }
+
+  @Get('debug/fix-file-paths')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async fixFilePaths() {
+    console.log('Debug: Fixing file paths in database');
+    const result = await this.service.fixFilePaths();
+    return result;
   }
 }
