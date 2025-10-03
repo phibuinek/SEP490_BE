@@ -52,7 +52,7 @@ export class ResidentPhotosService {
         family_id: resident.family_member_id, // Đúng là family_member_id của resident
         uploaded_by: new Types.ObjectId(data.uploaded_by),
         file_name: data.file_name,
-        file_path: data.file_path, // Store as-is, URL transformation happens in getFileUrl
+        file_path: data.file_path, // Store actual file path, URL transformation in getFileUrl
         file_type: data.file_type,
         file_size: data.file_size,
         caption: data.caption,
@@ -243,7 +243,7 @@ export class ResidentPhotosService {
     return this.photoModel.find({ family_id }).sort({ upload_date: -1 }).exec();
   }
 
-  // Helper method to get correct file URL
+  // Helper method to get correct file URL for serving
   getFileUrl(file_path: string): string {
     if (!file_path) return '';
     
@@ -252,12 +252,18 @@ export class ResidentPhotosService {
       return file_path;
     }
     
-    // Always return with /uploads/ prefix for serving
-    // The actual file location is handled by static file serving in main.ts
-    if (file_path.startsWith('uploads/')) {
-      return file_path;
+    // Convert actual file path to serving URL
+    // Database stores: /tmp/uploads/filename (prod) or uploads/filename (local)
+    // Serving URL should always be: /uploads/filename
+    if (file_path.startsWith('/tmp/uploads/')) {
+      // Production: /tmp/uploads/filename -> /uploads/filename
+      return file_path.replace('/tmp/uploads/', '/uploads/');
+    } else if (file_path.startsWith('uploads/')) {
+      // Local: uploads/filename -> /uploads/filename
+      return `/${file_path}`;
     } else {
-      return `uploads/${file_path}`;
+      // Fallback: add uploads/ prefix
+      return `/uploads/${file_path}`;
     }
   }
 
@@ -275,7 +281,7 @@ export class ResidentPhotosService {
     try {
       console.log('Starting file path fix...');
       
-      // Find all photos with incorrect paths
+      // Find all photos with incorrect paths (duplicate /tmp/tmp)
       const photosWithBadPaths = await this.photoModel.find({
         file_path: { $regex: /\/tmp\/tmp/ }
       });
@@ -286,7 +292,8 @@ export class ResidentPhotosService {
       
       for (const photo of photosWithBadPaths) {
         const oldPath = photo.file_path;
-        const newPath = oldPath.replace('/tmp/tmp/uploads/', 'uploads/');
+        // Fix: /tmp/tmp/uploads/filename -> /tmp/uploads/filename
+        const newPath = oldPath.replace('/tmp/tmp/uploads/', '/tmp/uploads/');
         
         console.log(`Fixing: ${oldPath} -> ${newPath}`);
         

@@ -138,10 +138,13 @@ export class ResidentPhotosController {
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
 
-      // Always use uploads/ prefix for database storage
-      // The actual file location will be handled by multer and static serving
-      const file_path = `uploads/${file.filename}`;
+      // Store the actual file path in database
+      // In production: /tmp/uploads/filename (actual location)
+      // In local: uploads/filename (actual location)
+      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+      const file_path = isProd ? `/tmp/uploads/${file.filename}` : `uploads/${file.filename}`;
       console.log('File path for DB:', file_path);
+      console.log('Is production:', isProd);
       console.log('File filename:', file.filename);
 
       const uploadData = {
