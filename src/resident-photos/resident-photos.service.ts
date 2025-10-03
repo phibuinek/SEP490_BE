@@ -48,17 +48,11 @@ export class ResidentPhotosService {
         throw new Error('Invalid uploaded_by format');
       }
 
-      // Ensure file_path is correct for serving
-      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-      const correctFilePath = isProd ? 
-        data.file_path.replace('uploads/', '/tmp/uploads/') : 
-        data.file_path;
-
       const photo = new this.photoModel({
         family_id: resident.family_member_id, // Đúng là family_member_id của resident
         uploaded_by: new Types.ObjectId(data.uploaded_by),
         file_name: data.file_name,
-        file_path: correctFilePath,
+        file_path: data.file_path, // Store as-is, URL transformation happens in getFileUrl
         file_type: data.file_type,
         file_size: data.file_size,
         caption: data.caption,
@@ -258,14 +252,12 @@ export class ResidentPhotosService {
       return file_path;
     }
     
-    // Convert file path to URL
-    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-    if (isProd) {
-      // In production, use the correct path
-      return file_path.replace('/tmp/uploads/', '/uploads/');
+    // Always return with /uploads/ prefix for serving
+    // The actual file location is handled by static file serving in main.ts
+    if (file_path.startsWith('uploads/')) {
+      return file_path;
     } else {
-      // In local, ensure it starts with uploads/
-      return file_path.startsWith('uploads/') ? file_path : `uploads/${file_path}`;
+      return `uploads/${file_path}`;
     }
   }
 
@@ -276,5 +268,45 @@ export class ResidentPhotosService {
       file_url: this.getFileUrl(photo.file_path),
       is_video: photo.file_type?.startsWith('video/') || false,
     }));
+  }
+
+  // Fix file paths in database (remove duplicate /tmp/tmp)
+  async fixFilePaths() {
+    try {
+      console.log('Starting file path fix...');
+      
+      // Find all photos with incorrect paths
+      const photosWithBadPaths = await this.photoModel.find({
+        file_path: { $regex: /\/tmp\/tmp/ }
+      });
+      
+      console.log(`Found ${photosWithBadPaths.length} photos with incorrect paths`);
+      
+      let fixedCount = 0;
+      
+      for (const photo of photosWithBadPaths) {
+        const oldPath = photo.file_path;
+        const newPath = oldPath.replace('/tmp/tmp/uploads/', 'uploads/');
+        
+        console.log(`Fixing: ${oldPath} -> ${newPath}`);
+        
+        await this.photoModel.findByIdAndUpdate(photo._id, {
+          file_path: newPath
+        });
+        
+        fixedCount++;
+      }
+      
+      console.log(`Fixed ${fixedCount} file paths`);
+      
+      return {
+        message: `Fixed ${fixedCount} file paths`,
+        totalFound: photosWithBadPaths.length,
+        fixedCount: fixedCount
+      };
+    } catch (error) {
+      console.error('Error fixing file paths:', error);
+      throw error;
+    }
   }
 }
