@@ -28,7 +28,8 @@ import { ResidentPhotosService } from './resident-photos.service';
 import { CreateResidentPhotoDto } from './dto/create-resident-photo.dto';
 import { UpdateResidentPhotoDto } from './dto/update-resident-photo.dto';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 import { ResidentsService } from '../residents/residents.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -49,7 +50,19 @@ export class ResidentPhotosController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, cb) => {
+          try {
+            const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+            const baseDir = isProd ? join('/tmp') : process.cwd();
+            const uploadPath = join(baseDir, 'uploads');
+            if (!fs.existsSync(uploadPath)) {
+              fs.mkdirSync(uploadPath, { recursive: true });
+            }
+            cb(null, uploadPath);
+          } catch (err) {
+            cb(err as any, '');
+          }
+        },
         filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -138,8 +151,11 @@ export class ResidentPhotosController {
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
 
-      const file_path = file.path || `uploads/${file.filename}`;
-      console.log('File path:', file_path);
+      // Store file path in database (always use uploads/ prefix)
+      // Same logic as CCCD upload - always store relative URL under uploads/
+      const file_path = `uploads/${file.filename}`.replace(/\\/g, '/');
+      console.log('File path for DB:', file_path);
+      console.log('File filename:', file.filename);
 
       const uploadData = {
         ...body,
@@ -171,6 +187,10 @@ export class ResidentPhotosController {
     const userRole = req.user?.role;
     const userId = req.user?.userId;
 
+    console.log('Get photos request - User role:', userRole);
+    console.log('Get photos request - User ID:', userId);
+    console.log('Get photos request - Family member ID:', family_member_id);
+
     if (userRole === Role.FAMILY) {
       // Family chỉ có thể xem photos của residents thuộc về họ
       if (!family_member_id || family_member_id !== userId) {
@@ -178,10 +198,15 @@ export class ResidentPhotosController {
           'Bạn chỉ có thể xem photos của người thân của mình',
         );
       }
+      // Family bắt buộc phải có family_member_id
+      return this.service.getPhotos(family_member_id);
     }
 
     // STAFF/ADMIN: xem tất cả hoặc lọc theo family_member_id nếu có
-    return this.service.findAll(family_member_id);
+    if (family_member_id) {
+      return this.service.getPhotos(family_member_id);
+    }
+    return this.service.getAllPhotos();
   }
 
   @Get('by-resident/:id')
@@ -190,9 +215,14 @@ export class ResidentPhotosController {
       const userRole = req.user?.role;
       const userId = req.user?.userId;
 
+      console.log('Get photos by resident request - Resident ID:', resident_id);
+      console.log('Get photos by resident request - User role:', userRole);
+      console.log('Get photos by resident request - User ID:', userId);
+
       if (userRole === Role.FAMILY) {
         // Kiểm tra resident này có thuộc về family không
         const resident = await this.residentsService.findOne(resident_id);
+        console.log('Resident found:', resident);
         if (!resident || resident.family_member_id.toString() !== userId) {
           throw new ForbiddenException(
             'Bạn không có quyền xem photos của resident này',
@@ -200,7 +230,9 @@ export class ResidentPhotosController {
         }
       }
 
-      return this.service.findByResidentId(resident_id);
+      const photos = await this.service.findByResidentId(resident_id);
+      console.log('Photos found for resident:', photos.length);
+      return photos;
     } catch (error) {
       console.error('Error in getPhotosByResidentId:', error);
       if (error instanceof ForbiddenException) {
@@ -229,5 +261,69 @@ export class ResidentPhotosController {
   @ApiParam({ name: 'id', description: 'Photo ID' })
   async deletePhoto(@Param('id') id: string) {
     return this.service.deletePhoto(id);
+  }
+
+  @Get('debug/all-photos')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugAllPhotos() {
+    console.log('Debug: Getting all photos from database');
+    return this.service.getAllPhotos();
+  }
+
+  @Get('debug/photos-by-resident/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugPhotosByResident(@Param('id') resident_id: string) {
+    console.log('Debug: Getting photos for resident:', resident_id);
+    return this.service.findByResidentId(resident_id);
+  }
+
+  @Get('debug/video-files')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugVideoFiles() {
+    console.log('Debug: Getting all video files');
+    const allPhotos = await this.service.getAllPhotos();
+    const videoFiles = allPhotos.filter(photo => photo.is_video);
+    console.log('Video files found:', videoFiles.length);
+    return videoFiles;
+  }
+
+  @Get('debug/file-info/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugFileInfo(@Param('id') photo_id: string) {
+    console.log('Debug: Getting file info for photo:', photo_id);
+    const photo = await this.service.getPhotoById(photo_id);
+    return {
+      ...photo.toObject(),
+      file_url: this.service.getFileUrl(photo.file_path),
+      is_video: photo.file_type?.startsWith('video/') || false,
+      file_exists: require('fs').existsSync(photo.file_path),
+    };
+  }
+
+  @Get('debug/fix-file-paths')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async fixFilePaths() {
+    console.log('Debug: Fixing file paths in database');
+    const result = await this.service.fixFilePaths();
+    return result;
+  }
+
+  @Get('debug/test-file-url/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async testFileUrl(@Param('id') photo_id: string) {
+    console.log('Debug: Testing file URL for photo:', photo_id);
+    const photo = await this.service.getPhotoById(photo_id);
+    
+    const fileUrl = this.service.getFileUrl(photo.file_path);
+    const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+    
+    return {
+      photo_id,
+      file_path_in_db: photo.file_path,
+      generated_file_url: fileUrl,
+      is_production: isProd,
+      expected_actual_location: isProd ? `/tmp/${photo.file_path}` : `./${photo.file_path}`,
+      file_exists: require('fs').existsSync(isProd ? `/tmp/${photo.file_path}` : `./${photo.file_path}`)
+    };
   }
 }

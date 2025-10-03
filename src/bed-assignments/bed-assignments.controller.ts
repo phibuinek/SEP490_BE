@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
-import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
 import { Role } from '../common/enums/role.enum';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,6 +27,18 @@ export class BedAssignmentsController {
   ) {}
 
   @Post()
+  @ApiOperation({ 
+    summary: 'Create bed assignment',
+    description: 'Create a new bed assignment with optional assigned_date and unassigned_date'
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Bed assignment created successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid data provided',
+  })
   create(@Body() dto: CreateBedAssignmentDto) {
     return this.service.create(dto);
   }
