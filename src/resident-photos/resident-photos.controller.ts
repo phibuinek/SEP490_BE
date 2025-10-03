@@ -138,8 +138,12 @@ export class ResidentPhotosController {
       const uploaded_by = req.user.userId;
       console.log('Uploaded by user ID:', uploaded_by);
 
-      const file_path = file.path || `uploads/${file.filename}`;
+      // Fix file path for both local and production
+      const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+      const file_path = isProd ? `/tmp/uploads/${file.filename}` : `uploads/${file.filename}`;
       console.log('File path:', file_path);
+      console.log('Is production:', isProd);
+      console.log('File filename:', file.filename);
 
       const uploadData = {
         ...body,
@@ -259,5 +263,28 @@ export class ResidentPhotosController {
   async debugPhotosByResident(@Param('id') resident_id: string) {
     console.log('Debug: Getting photos for resident:', resident_id);
     return this.service.findByResidentId(resident_id);
+  }
+
+  @Get('debug/video-files')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugVideoFiles() {
+    console.log('Debug: Getting all video files');
+    const allPhotos = await this.service.getAllPhotos();
+    const videoFiles = allPhotos.filter(photo => photo.is_video);
+    console.log('Video files found:', videoFiles.length);
+    return videoFiles;
+  }
+
+  @Get('debug/file-info/:id')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async debugFileInfo(@Param('id') photo_id: string) {
+    console.log('Debug: Getting file info for photo:', photo_id);
+    const photo = await this.service.getPhotoById(photo_id);
+    return {
+      ...photo.toObject(),
+      file_url: this.service.getFileUrl(photo.file_path),
+      is_video: photo.file_type?.startsWith('video/') || false,
+      file_exists: require('fs').existsSync(photo.file_path),
+    };
   }
 }
