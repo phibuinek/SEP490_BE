@@ -71,8 +71,12 @@ export class StaffAssignmentsService implements OnModuleInit {
       const { staff_id, room_id, assigned_date, assigned_by } =
         createStaffAssignmentDto;
 
-      // Validate staff exists and is actually a staff
-      const staff = await this.userModel.findById(staff_id);
+      // Parallel validation queries for better performance
+      const [staff, room] = await Promise.all([
+        this.userModel.findById(staff_id).select('role full_name email'),
+        this.roomModel.findById(room_id).select('room_type bed_count room_number')
+      ]);
+
       if (!staff) {
         throw new NotFoundException('Không tìm thấy thông tin nhân viên');
       }
@@ -80,8 +84,6 @@ export class StaffAssignmentsService implements OnModuleInit {
         throw new BadRequestException('Người dùng này không phải là nhân viên');
       }
 
-      // Validate room exists
-      const room = await this.roomModel.findById(room_id);
       if (!room) {
         throw new NotFoundException('Không tìm thấy thông tin phòng');
       }
@@ -109,14 +111,26 @@ export class StaffAssignmentsService implements OnModuleInit {
         }
       };
 
-      // Enforce cumulative capacity <= 8 across all active rooms of this staff
-      const existingActiveAssignments = await this.staffAssignmentModel
-        .find({
+      // Parallel queries for assignment checks
+      const [existingActiveAssignments, existingActiveAssignment, existingExpiredAssignment] = await Promise.all([
+        this.staffAssignmentModel
+          .find({
+            staff_id: new Types.ObjectId(staff_id),
+            status: AssignmentStatus.ACTIVE,
+          })
+          .populate('room_id', 'room_type bed_count')
+          .exec(),
+        this.staffAssignmentModel.findOne({
           staff_id: new Types.ObjectId(staff_id),
+          room_id: new Types.ObjectId(room_id),
           status: AssignmentStatus.ACTIVE,
+        }),
+        this.staffAssignmentModel.findOne({
+          staff_id: new Types.ObjectId(staff_id),
+          room_id: new Types.ObjectId(room_id),
+          status: AssignmentStatus.EXPIRED,
         })
-        .populate('room_id', 'room_type bed_count')
-        .exec();
+      ]);
 
       const currentCapacity = existingActiveAssignments.reduce((sum, a: any) => {
         const rt = a?.room_id?.room_type;
@@ -131,27 +145,11 @@ export class StaffAssignmentsService implements OnModuleInit {
         );
       }
 
-      // Check if active assignment already exists for this specific room
-      const existingActiveAssignment = await this.staffAssignmentModel.findOne({
-        staff_id: new Types.ObjectId(staff_id),
-        room_id: new Types.ObjectId(room_id),
-        status: AssignmentStatus.ACTIVE,
-      });
-
       if (existingActiveAssignment) {
         throw new ConflictException(
           'Nhân viên đã được phân công cho phòng này',
         );
       }
-
-      // If there's an expired assignment, update it instead of creating a new one
-      const existingExpiredAssignment = await this.staffAssignmentModel.findOne(
-        {
-          staff_id: new Types.ObjectId(staff_id),
-          room_id: new Types.ObjectId(room_id),
-          status: AssignmentStatus.EXPIRED,
-        },
-      );
 
       if (existingExpiredAssignment) {
         // Re-activate only if capacity allows
@@ -166,8 +164,8 @@ export class StaffAssignmentsService implements OnModuleInit {
         return await existingExpiredAssignment.save();
       }
 
-      // Create new assignment
-      const assignment = new this.staffAssignmentModel({
+      // Create new assignment with optimized data
+      const assignmentData = {
         staff_id: new Types.ObjectId(staff_id),
         room_id: new Types.ObjectId(room_id),
         assigned_by: new Types.ObjectId(assigned_by),
@@ -180,24 +178,26 @@ export class StaffAssignmentsService implements OnModuleInit {
         responsibilities: createStaffAssignmentDto.responsibilities || [],
         created_at: new Date(),
         updated_at: new Date(),
+      };
+
+      const savedAssignment = await this.staffAssignmentModel.create(assignmentData);
+
+      // Send email notification to staff asynchronously (don't wait)
+      setImmediate(async () => {
+        try {
+          await this.mailService.sendStaffRoomAssignmentEmail({
+            to: staff.email,
+            staffName: staff.full_name,
+            roomNumber: room.room_number,
+            roomType: room.room_type,
+            responsibilities: createStaffAssignmentDto.responsibilities || [],
+            notes: createStaffAssignmentDto.notes,
+          });
+          console.log(`[STAFF-ASSIGNMENT] Email sent to: ${staff.email}`);
+        } catch (emailError) {
+          console.error('[STAFF-ASSIGNMENT] Failed to send email:', emailError);
+        }
       });
-
-      const savedAssignment = await assignment.save();
-
-      // Send email notification to staff
-      try {
-        await this.mailService.sendStaffRoomAssignmentEmail({
-          to: staff.email,
-          staffName: staff.full_name,
-          roomNumber: room.room_number,
-          roomType: room.room_type,
-          responsibilities: createStaffAssignmentDto.responsibilities || [],
-          notes: createStaffAssignmentDto.notes,
-        });
-      } catch (emailError) {
-        // Log email error but don't fail the assignment creation
-        console.error('Failed to send staff room assignment email:', emailError);
-      }
 
       return savedAssignment;
     } catch (error) {
@@ -647,26 +647,27 @@ export class StaffAssignmentsService implements OnModuleInit {
         throw new NotFoundException('Staff assignment not found after update');
       }
 
-      // Send email notification to staff if assignment was updated
-      try {
-        const staff = updatedAssignment.staff_id as any;
-        const room = updatedAssignment.room_id as any;
-        
-        if (staff && staff.email) {
-          await this.mailService.sendStaffRoomAssignmentEmail({
-            to: staff.email,
-            staffName: staff.full_name,
-            roomNumber: room.room_number,
-            roomType: room.room_type,
-            responsibilities: updatedAssignment.responsibilities || [],
-            notes: updatedAssignment.notes || undefined,
-          });
-          console.log(`[STAFF-ASSIGNMENT] Update notification email sent to: ${staff.email}`);
+      // Send email notification to staff if assignment was updated (asynchronously)
+      setImmediate(async () => {
+        try {
+          const staff = updatedAssignment.staff_id as any;
+          const room = updatedAssignment.room_id as any;
+          
+          if (staff && staff.email) {
+            await this.mailService.sendStaffRoomAssignmentEmail({
+              to: staff.email,
+              staffName: staff.full_name,
+              roomNumber: room.room_number,
+              roomType: room.room_type,
+              responsibilities: updatedAssignment.responsibilities || [],
+              notes: updatedAssignment.notes || undefined,
+            });
+            console.log(`[STAFF-ASSIGNMENT] Update notification email sent to: ${staff.email}`);
+          }
+        } catch (emailError) {
+          console.error('[STAFF-ASSIGNMENT] Failed to send update notification email:', emailError);
         }
-      } catch (emailError) {
-        // Log email error but don't fail the update
-        console.error('[STAFF-ASSIGNMENT] Failed to send update notification email:', emailError);
-      }
+      });
 
       return updatedAssignment;
     } catch (error: any) {
@@ -781,26 +782,27 @@ export class StaffAssignmentsService implements OnModuleInit {
         throw new NotFoundException('Staff assignment not found');
       }
 
-      // Send email notification to staff before deletion
-      try {
-        const staff = assignment.staff_id as any;
-        const room = assignment.room_id as any;
-        
-        if (staff && staff.email) {
-          await this.mailService.sendStaffRoomAssignmentEmail({
-            to: staff.email,
-            staffName: staff.full_name,
-            roomNumber: room.room_number,
-            roomType: room.room_type,
-            responsibilities: assignment.responsibilities || [],
-            notes: `Phân công này đã bị hủy bỏ. ${assignment.notes || ''}`,
-          });
-          console.log(`[STAFF-ASSIGNMENT] Removal notification email sent to: ${staff.email}`);
+      // Send email notification to staff before deletion (asynchronously)
+      setImmediate(async () => {
+        try {
+          const staff = assignment.staff_id as any;
+          const room = assignment.room_id as any;
+          
+          if (staff && staff.email) {
+            await this.mailService.sendStaffRoomAssignmentEmail({
+              to: staff.email,
+              staffName: staff.full_name,
+              roomNumber: room.room_number,
+              roomType: room.room_type,
+              responsibilities: assignment.responsibilities || [],
+              notes: `Phân công này đã bị hủy bỏ. ${assignment.notes || ''}`,
+            });
+            console.log(`[STAFF-ASSIGNMENT] Removal notification email sent to: ${staff.email}`);
+          }
+        } catch (emailError) {
+          console.error('[STAFF-ASSIGNMENT] Failed to send removal notification email:', emailError);
         }
-      } catch (emailError) {
-        // Log email error but don't fail the deletion
-        console.error('[STAFF-ASSIGNMENT] Failed to send removal notification email:', emailError);
-      }
+      });
 
       await this.staffAssignmentModel.findByIdAndDelete(id);
     } catch (error: any) {
