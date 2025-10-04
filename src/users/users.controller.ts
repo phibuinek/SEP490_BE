@@ -1020,4 +1020,90 @@ export class UsersController {
       };
     }
   }
+
+  @Get('debug/smtp-test')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Test SMTP configuration on Render' })
+  @ApiResponse({ status: 200, description: 'SMTP test results' })
+  async smtpTest() {
+    try {
+      console.log('🔍 Testing SMTP configuration on Render...');
+      console.log('Environment variables:');
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('SMTP_HOST:', process.env.SMTP_HOST);
+      console.log('SMTP_PORT:', process.env.SMTP_PORT);
+      console.log('SMTP_USER:', process.env.SMTP_USER);
+      console.log('SMTP_PASS:', process.env.SMTP_PASS ? '***configured***' : 'NOT_SET');
+      console.log('MAIL_FROM:', process.env.MAIL_FROM);
+
+      const port = parseInt(process.env.SMTP_PORT || '587');
+      const isSecure = port === 465;
+      
+      console.log(`📧 SMTP Configuration: Port ${port}, Secure: ${isSecure}`);
+
+      const result = await this.usersService['mailService'].sendAccountActivatedEmail({
+        to: process.env.SMTP_USER || 'test@example.com',
+        username: 'test_user',
+      });
+
+      return {
+        success: true,
+        message: 'SMTP test successful!',
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          SMTP_HOST: process.env.SMTP_HOST,
+          SMTP_PORT: process.env.SMTP_PORT,
+          SMTP_USER: process.env.SMTP_USER,
+          SMTP_PASS: process.env.SMTP_PASS ? '***configured***' : 'NOT_SET',
+          MAIL_FROM: process.env.MAIL_FROM,
+          APP_URL: process.env.APP_URL,
+        },
+        smtpConfig: {
+          port: port,
+          secure: isSecure,
+          protocol: isSecure ? 'SSL' : 'TLS',
+          supportedPorts: [465, 587],
+          currentPort: port
+        },
+        result: result
+      };
+    } catch (error) {
+      console.error('❌ SMTP test failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          SMTP_HOST: process.env.SMTP_HOST,
+          SMTP_PORT: process.env.SMTP_PORT,
+          SMTP_USER: process.env.SMTP_USER,
+          SMTP_PASS: process.env.SMTP_PASS ? '***configured***' : 'NOT_SET',
+          MAIL_FROM: process.env.MAIL_FROM,
+          APP_URL: process.env.APP_URL,
+        },
+        troubleshooting: {
+          commonIssues: [
+            'Check if NODE_ENV is set to production',
+            'Verify SMTP_PORT matches your configuration (465 for SSL, 587 for TLS)',
+            'Ensure SMTP_PASS is an App Password, not regular password',
+            'Check if Render allows outbound SMTP connections',
+            'Verify Gmail account has 2FA enabled and App Password generated'
+          ],
+          recommendedSettings: {
+            'For Render': {
+              NODE_ENV: 'production',
+              SMTP_PORT: '587',
+              SMTP_HOST: 'smtp.gmail.com'
+            },
+            'For Local': {
+              NODE_ENV: 'development', 
+              SMTP_PORT: '465',
+              SMTP_HOST: 'smtp.gmail.com'
+            }
+          }
+        }
+      };
+    }
+  }
 }
