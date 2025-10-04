@@ -84,3 +84,13 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// 🚀 OPTIMIZATION: Add database indexes for faster queries
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ username: 1 }, { unique: true });
+UserSchema.index({ phone: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ cccd_id: 1 });
+UserSchema.index({ created_at: 1 });
+UserSchema.index({ updated_at: 1 });

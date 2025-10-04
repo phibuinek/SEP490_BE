@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument, UserStatus } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { MailService } from '../common/mail.service';
+import { CacheService } from '../common/cache.service';
 import type { Express } from 'express';
 
 interface UserCreateData extends Omit<CreateUserDto, 'join_date'> {
@@ -20,6 +21,7 @@ export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private readonly mailService: MailService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -31,10 +33,19 @@ export class UsersService {
       console.log('[USER][CREATE] Role from DTO:', createUserDto.role);
       console.log('[USER][CREATE] Role type:', typeof createUserDto.role);
 
-      // Check if username already exists
-      const existingUsername = await this.findByUsername(
-        createUserDto.username,
-      );
+      // 🚀 OPTIMIZATION: Parallel validation checks instead of sequential
+      const validationPromises = [
+        this.findByUsername(createUserDto.username),
+        this.findByEmail(createUserDto.email),
+        createUserDto.phone ? this.findByPhone(createUserDto.phone) : Promise.resolve(null),
+        bcrypt.hash(createUserDto.password, 10) // Hash password in parallel
+      ];
+
+      console.log('[USER][CREATE] Starting parallel validation and password hashing...');
+      const [existingUsername, existingEmail, existingPhone, hashedPassword] = await Promise.all(validationPromises);
+      console.log('[USER][CREATE] Parallel operations completed');
+
+      // Check validation results
       if (existingUsername) {
         console.log(
           '[USER][CREATE] Username already exists:',
@@ -45,8 +56,6 @@ export class UsersService {
         );
       }
 
-      // Check if email already exists
-      const existingEmail = await this.findByEmail(createUserDto.email);
       if (existingEmail) {
         console.log(
           '[USER][CREATE] Email already exists:',
@@ -57,27 +66,22 @@ export class UsersService {
         );
       }
 
-      // Check if phone already exists (NEW VALIDATION)
-      if (createUserDto.phone) {
-        const existingPhone = await this.findByPhone(createUserDto.phone);
-        if (existingPhone) {
-          console.log(
-            '[USER][CREATE] Phone already exists:',
-            createUserDto.phone,
-          );
-          throw new BadRequestException(
-            'Số điện thoại đã được sử dụng. Vui lòng sử dụng số điện thoại khác.',
-          );
-        }
+      if (existingPhone) {
+        console.log(
+          '[USER][CREATE] Phone already exists:',
+          createUserDto.phone,
+        );
+        throw new BadRequestException(
+          'Số điện thoại đã được sử dụng. Vui lòng sử dụng số điện thoại khác.',
+        );
       }
 
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
       console.log('[USER][CREATE] Password hashed successfully');
 
       // Set default values for optional fields
       const userData = {
         ...createUserDto,
-        password: hashedPassword,
+        password: hashedPassword as string,
         status: createUserDto.status || UserStatus.ACTIVE, // Admin tạo: ACTIVE mặc định
         role: createUserDto.role, // Ensure role is properly set
       };
@@ -90,10 +94,11 @@ export class UsersService {
           console.log('[USER][CREATE] Converted join_date to Date:', joinDate);
           // Create new object with converted date, excluding original join_date
           const { join_date, ...userDataWithoutJoinDate } = userData;
-          finalUserData = {
-            ...userDataWithoutJoinDate,
-            join_date: joinDate,
-          };
+        finalUserData = {
+          ...userDataWithoutJoinDate,
+          password: hashedPassword as string,
+          join_date: joinDate,
+        };
         } catch (error) {
           console.error('[USER][CREATE] Error converting join_date:', error);
           throw new BadRequestException(
@@ -105,6 +110,7 @@ export class UsersService {
         const { join_date, ...userDataWithoutJoinDate } = userData;
         finalUserData = {
           ...userDataWithoutJoinDate,
+          password: hashedPassword as string,
           join_date: userData.join_date as Date | undefined,
         };
       }
@@ -121,21 +127,29 @@ export class UsersService {
 
       console.log('[USER][CREATE] Successfully created user:', savedUser._id);
 
-      // Gửi email thông tin tài khoản nếu có email và có mật khẩu gốc trong DTO
-      // Lưu ý: savedUser.password là hash; phải dùng mật khẩu plain từ DTO
+      // 🚀 OPTIMIZATION: Clear related caches to ensure consistency
+      await this.clearUserCaches(createUserDto);
+
+      // 🚀 OPTIMIZATION: Send email asynchronously without blocking response
       if (
         createUserDto?.email &&
         createUserDto?.password &&
         (savedUser as any).status === UserStatus.ACTIVE
       ) {
-        this.mailService
-          .sendAccountCredentials({
-            to: createUserDto.email,
-            username: createUserDto.username,
-            password: createUserDto.password,
-            role: createUserDto.role,
-          })
-          .catch(() => {});
+        console.log('[USER][CREATE] Scheduling email send...');
+        setImmediate(async () => {
+          try {
+            await this.mailService.sendAccountCredentials({
+              to: createUserDto.email,
+              username: createUserDto.username,
+              password: createUserDto.password,
+              role: createUserDto.role,
+            });
+            console.log('[USER][CREATE] Email sent successfully');
+          } catch (error) {
+            console.error('[USER][CREATE] Email send failed:', error);
+          }
+        });
       }
 
       return savedUser;
@@ -188,15 +202,45 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email }).exec();
+    // 🚀 OPTIMIZATION: Check cache first
+    const cacheKey = `user:email:${email}`;
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached && typeof cached === 'string') {
+      return cached === 'null' ? null : JSON.parse(cached);
+    }
+
+    const user = await this.userModel.findOne({ email }).exec();
+    // Cache for 5 minutes
+    await this.cacheService.set(cacheKey, user ? JSON.stringify(user) : 'null', 300);
+    return user;
   }
 
   async findByPhone(phone: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ phone }).exec();
+    // 🚀 OPTIMIZATION: Check cache first
+    const cacheKey = `user:phone:${phone}`;
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached && typeof cached === 'string') {
+      return cached === 'null' ? null : JSON.parse(cached);
+    }
+
+    const user = await this.userModel.findOne({ phone }).exec();
+    // Cache for 5 minutes
+    await this.cacheService.set(cacheKey, user ? JSON.stringify(user) : 'null', 300);
+    return user;
   }
 
   async findByUsername(username: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ username }).exec();
+    // 🚀 OPTIMIZATION: Check cache first
+    const cacheKey = `user:username:${username}`;
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached && typeof cached === 'string') {
+      return cached === 'null' ? null : JSON.parse(cached);
+    }
+
+    const user = await this.userModel.findOne({ username }).exec();
+    // Cache for 5 minutes
+    await this.cacheService.set(cacheKey, user ? JSON.stringify(user) : 'null', 300);
+    return user;
   }
 
   async findByDepartment(department: string): Promise<User[]> {
@@ -207,6 +251,24 @@ export class UsersService {
       })
       .select('-password')
       .exec();
+  }
+
+  // 🚀 OPTIMIZATION: Clear user-related caches
+  private async clearUserCaches(userData: CreateUserDto): Promise<void> {
+    try {
+      const cacheKeys = [
+        `user:email:${userData.email}`,
+        `user:username:${userData.username}`,
+        userData.phone ? `user:phone:${userData.phone}` : null,
+      ].filter(Boolean);
+
+      await Promise.all(
+        cacheKeys.map(key => key ? this.cacheService.del(key) : Promise.resolve())
+      );
+      console.log('[USER][CACHE] Cleared user caches:', cacheKeys);
+    } catch (error) {
+      console.error('[USER][CACHE] Error clearing caches:', error);
+    }
   }
 
   async findByRoles(roles: string[]): Promise<User[]> {
