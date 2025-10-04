@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { BedAssignmentsService } from './bed-assignments.service';
+import { BedAssignmentsSchedulerService } from './bed-assignments-scheduler.service';
 import { CreateBedAssignmentDto } from './dto/create-bed-assignment.dto';
 import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ResidentsService } from '../residents/residents.service';
@@ -24,6 +25,7 @@ export class BedAssignmentsController {
   constructor(
     private readonly service: BedAssignmentsService,
     private readonly residentsService: ResidentsService,
+    private readonly schedulerService: BedAssignmentsSchedulerService,
   ) {}
 
   @Post()
@@ -375,5 +377,20 @@ export class BedAssignmentsController {
       throw new ForbiddenException('Only admin and staff can view all bed assignments by resident');
     }
     return this.service.findByResidentIdWithAllStatuses(residentId);
+  }
+
+  @Post('manual-check-monthly-transitions')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ 
+    summary: 'Manual trigger for monthly bed assignment status transitions',
+    description: 'Manually trigger the monthly check for accepted bed assignments to activate and active bed assignments to finalize. Admin only.'
+  })
+  async manualCheckMonthlyTransitions(@Req() req: any) {
+    const userRole = req.user?.role;
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Only admin can trigger monthly bed assignment transitions');
+    }
+    await this.schedulerService.manualCheckMonthlyBedTransitions();
+    return { message: 'Monthly bed assignment status transitions completed successfully' };
   }
 }

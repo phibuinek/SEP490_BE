@@ -222,6 +222,118 @@ export class CarePlanAssignmentsSchedulerService {
   }
 
   /**
+   * Check for accepted assignments that should become active at the start of new month
+   * and active assignments that should become done at the end of current month
+   * Runs on the 1st day of every month at 00:00
+   */
+  @Cron('0 0 1 * *', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
+  async checkAndActivateAcceptedAssignments() {
+    this.logger.log(
+      'Starting monthly check for accepted assignments to activate and active assignments to finalize...',
+    );
+
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      // 1. Find all accepted assignments that should become active (start_date <= start of current month)
+      const acceptedAssignments = await this.carePlanAssignmentModel
+        .find({
+          status: 'accepted',
+          start_date: {
+            $lte: startOfMonth,
+          },
+        })
+        .populate('resident_id', 'full_name')
+        .exec();
+
+      this.logger.log(`Found ${acceptedAssignments.length} accepted assignments to activate`);
+
+      if (acceptedAssignments.length > 0) {
+        // Update accepted assignments to active
+        const result = await this.carePlanAssignmentModel.updateMany(
+          {
+            status: 'accepted',
+            start_date: {
+              $lte: startOfMonth,
+            },
+          },
+          {
+            $set: {
+              status: 'active',
+              updated_at: now,
+            },
+          },
+        );
+
+        this.logger.log(
+          `Successfully activated ${result.modifiedCount} accepted assignments`,
+        );
+
+        // Log details of each activated assignment
+        acceptedAssignments.forEach((assignment) => {
+          const residentName = (assignment.resident_id as any)?.full_name || 'Unknown';
+          this.logger.log(
+            `Activated assignment ID: ${assignment._id}, Resident: ${residentName}, Start Date: ${assignment.start_date}`,
+          );
+        });
+      }
+
+      // 2. Find all active assignments that should become done (end_date <= end of previous month)
+      const activeAssignments = await this.carePlanAssignmentModel
+        .find({
+          status: 'active',
+          end_date: {
+            $lte: endOfPreviousMonth,
+            $ne: null,
+          },
+        })
+        .populate('resident_id', 'full_name')
+        .exec();
+
+      this.logger.log(`Found ${activeAssignments.length} active assignments to finalize`);
+
+      if (activeAssignments.length > 0) {
+        // Update active assignments to done
+        const result = await this.carePlanAssignmentModel.updateMany(
+          {
+            status: 'active',
+            end_date: {
+              $lte: endOfPreviousMonth,
+              $ne: null,
+            },
+          },
+          {
+            $set: {
+              status: 'done',
+              updated_at: now,
+            },
+          },
+        );
+
+        this.logger.log(
+          `Successfully finalized ${result.modifiedCount} active assignments`,
+        );
+
+        // Log details of each finalized assignment
+        activeAssignments.forEach((assignment) => {
+          const residentName = (assignment.resident_id as any)?.full_name || 'Unknown';
+          this.logger.log(
+            `Finalized assignment ID: ${assignment._id}, Resident: ${residentName}, End Date: ${assignment.end_date}`,
+          );
+        });
+      }
+
+      this.logger.log('Monthly assignment status transition completed successfully');
+    } catch (error) {
+      this.logger.error('Error during monthly assignment status transition:', error);
+    }
+  }
+
+  /**
    * Manual trigger for testing paused assignments finalization
    */
   async manualCheckPausedAssignments() {
@@ -229,5 +341,15 @@ export class CarePlanAssignmentsSchedulerService {
       'Manual trigger: Checking for paused assignments that should be finalized...',
     );
     await this.checkAndFinalizePausedAssignments();
+  }
+
+  /**
+   * Manual trigger for testing monthly assignment status transitions
+   */
+  async manualCheckMonthlyTransitions() {
+    this.logger.log(
+      'Manual trigger: Checking for monthly assignment status transitions...',
+    );
+    await this.checkAndActivateAcceptedAssignments();
   }
 }

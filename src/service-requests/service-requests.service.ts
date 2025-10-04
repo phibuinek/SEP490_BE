@@ -426,38 +426,36 @@ export class ServiceRequestsService {
     const targetCarePlanAssignmentId = this.toObjectId(request.target_care_plan_assignment_id);
     const targetBedAssignmentId = this.toObjectId(request.target_bed_assignment_id);
     
-    // 1. End current active care plan and bed assignments (set to "done" at end of current month)
+    // 1. Calculate end of current month for current assignments
     const endOfMonth = new Date();
     endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0); // Last day of current month
     endOfMonth.setHours(23, 59, 59, 999);
     
-    // Update current care plan assignment to "done"
+    // 2. Update current active care plan assignments to set end_date (but keep status as 'active' until end of month)
     await this.carePlanAssignmentModel.updateMany(
       { 
         resident_id: residentId,
         status: 'active'
       },
       { 
-        status: 'done',
         end_date: endOfMonth,
         updated_at: new Date()
       }
     );
 
-    // Update current bed assignment to "done"
+    // 3. Update current active bed assignments to set unassigned_date (but keep status as 'active' until end of month)
     await this.bedAssignmentModel.updateMany(
       { 
-      resident_id: residentId,
+        resident_id: residentId,
         status: 'active'
       },
       { 
-        status: 'done',
         unassigned_date: endOfMonth,
-      updated_at: new Date()
+        updated_at: new Date()
       }
     );
 
-    // 2. Update target care plan assignment from pending to accepted
+    // 4. Update target care plan assignment from pending to accepted
     await this.carePlanAssignmentModel.findByIdAndUpdate(
       targetCarePlanAssignmentId,
       { 
@@ -467,7 +465,7 @@ export class ServiceRequestsService {
       }
     );
 
-    // 3. Update target bed assignment from pending to accepted
+    // 5. Update target bed assignment from pending to accepted
     await this.bedAssignmentModel.findByIdAndUpdate(
       targetBedAssignmentId,
       { 

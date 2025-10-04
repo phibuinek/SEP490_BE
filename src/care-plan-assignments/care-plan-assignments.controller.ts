@@ -176,4 +176,17 @@ export class CarePlanAssignmentsController {
     await this.schedulerService.manualCheckPausedAssignments();
     return { message: 'Manual check for paused assignments completed' };
   }
+
+  @Post('manual-check-monthly-transitions')
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually trigger monthly care plan assignment status transitions (Testing)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Manual monthly transitions completed',
+  })
+  async manualCheckMonthlyTransitions() {
+    await this.schedulerService.manualCheckMonthlyTransitions();
+    return { message: 'Manual monthly care plan assignment transitions completed' };
+  }
 } 

@@ -6,6 +6,7 @@ import {
 } from './schemas/bed-assignment.schema';
 import { BedAssignmentsController } from './bed-assignments.controller';
 import { BedAssignmentsService } from './bed-assignments.service';
+import { BedAssignmentsSchedulerService } from './bed-assignments-scheduler.service';
 import { ResidentsModule } from '../residents/residents.module';
 import { Room, RoomSchema } from '../rooms/schemas/room.schema';
 import { Bed, BedSchema } from '../beds/schemas/bed.schema';
@@ -20,7 +21,7 @@ import { Bed, BedSchema } from '../beds/schemas/bed.schema';
     forwardRef(() => ResidentsModule),
   ],
   controllers: [BedAssignmentsController],
-  providers: [BedAssignmentsService],
-  exports: [MongooseModule, BedAssignmentsService],
+  providers: [BedAssignmentsService, BedAssignmentsSchedulerService],
+  exports: [MongooseModule, BedAssignmentsService, BedAssignmentsSchedulerService],
 })
 export class BedAssignmentsModule {}
