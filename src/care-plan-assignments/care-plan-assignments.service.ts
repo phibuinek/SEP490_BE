@@ -167,6 +167,11 @@ export class CarePlanAssignmentsService {
     }
     return this.carePlanAssignmentModel
       .find({ resident_id: new Types.ObjectId(resident_id) })
+      .populate('resident_id', 'full_name date_of_birth gender admission_date')
+      .populate('care_plan_ids', 'plan_name description monthly_price category plan_type services_included staff_ratio')
+      .populate('assigned_room_id', 'room_number')
+      .populate('assigned_bed_id', 'bed_number bed_type')
+      .populate('family_member_id', 'full_name email phone')
       .exec();
   }
 
