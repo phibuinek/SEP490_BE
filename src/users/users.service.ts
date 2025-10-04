@@ -320,12 +320,20 @@ export class UsersService {
 
     // gửi email thông báo kích hoạt nếu có email
     if (userBefore.email) {
+      console.log(`[USER][APPROVE] Sending activation email to: ${userBefore.email}`);
       this.mailService
         .sendAccountActivatedEmail({
           to: userBefore.email,
           username: userBefore.username,
         })
-        .catch(() => {});
+        .then((result) => {
+          console.log(`[USER][APPROVE] Email sent successfully:`, result);
+        })
+        .catch((error) => {
+          console.error(`[USER][APPROVE] Failed to send email:`, error);
+        });
+    } else {
+      console.log(`[USER][APPROVE] No email found for user: ${user_id}`);
     }
 
     return user;
@@ -359,13 +367,21 @@ export class UsersService {
 
     // gửi email thông báo từ chối nếu có email
     if (userBefore.email) {
+      console.log(`[USER][REJECT] Sending rejection email to: ${userBefore.email}, reason: ${reason}`);
       this.mailService
         .sendAccountRejectedEmail({
           to: userBefore.email,
           username: userBefore.username,
           reason: reason,
         })
-        .catch(() => {});
+        .then((result) => {
+          console.log(`[USER][REJECT] Email sent successfully:`, result);
+        })
+        .catch((error) => {
+          console.error(`[USER][REJECT] Failed to send email:`, error);
+        });
+    } else {
+      console.log(`[USER][REJECT] No email found for user: ${user_id}`);
     }
 
     return user;

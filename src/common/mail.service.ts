@@ -193,8 +193,11 @@ Trân trọng,
     `;
 
     if (!this.transporter) {
-      this.logger.log(
-        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Username: ${params.username}`,
+      this.logger.warn(
+        `[MAIL:DRY-RUN] SMTP not configured! Email would be sent to: ${params.to} | Subject: ${subject} | Username: ${params.username}`,
+      );
+      this.logger.warn(
+        `[MAIL:DRY-RUN] To enable real email sending, configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS environment variables`,
       );
       return { mocked: true };
     }
@@ -237,8 +240,11 @@ Trân trọng,
     `;
 
     if (!this.transporter) {
-      this.logger.log(
-        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Username: ${params.username} | Reason: ${params.reason || 'N/A'}`,
+      this.logger.warn(
+        `[MAIL:DRY-RUN] SMTP not configured! Email would be sent to: ${params.to} | Subject: ${subject} | Username: ${params.username} | Reason: ${params.reason || 'N/A'}`,
+      );
+      this.logger.warn(
+        `[MAIL:DRY-RUN] To enable real email sending, configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS environment variables`,
       );
       return { mocked: true };
     }
