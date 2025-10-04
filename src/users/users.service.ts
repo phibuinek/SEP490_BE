@@ -137,7 +137,8 @@ export class UsersService {
         (savedUser as any).status === UserStatus.ACTIVE
       ) {
         console.log('[USER][CREATE] Scheduling email send...');
-        setImmediate(async () => {
+        // Use setTimeout instead of setImmediate for better performance
+        setTimeout(async () => {
           try {
             await this.mailService.sendAccountCredentials({
               to: createUserDto.email,
@@ -149,7 +150,7 @@ export class UsersService {
           } catch (error) {
             console.error('[USER][CREATE] Email send failed:', error);
           }
-        });
+        }, 100); // Small delay to ensure response is sent first
       }
 
       return savedUser;
