@@ -396,6 +396,99 @@ Trân trọng,
     }
   }
 
+  async sendPaymentSuccessEmail(params: {
+    to: string;
+    familyMemberName: string;
+    residentName: string;
+    billAmount: number;
+    paymentMethod: string;
+    transactionId: string;
+    paidDate: string;
+    orderCode: string;
+  }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = 'Thanh toán thành công - Viện dưỡng lão CareHome';
+    
+    const text = `Xin chào ${params.familyMemberName},
+
+Thanh toán hóa đơn chăm sóc cho ${params.residentName} đã được thực hiện thành công!
+
+Chi tiết thanh toán:
+- Số tiền: ${params.billAmount.toLocaleString('vi-VN')} VNĐ
+- Phương thức: ${params.paymentMethod}
+- Mã giao dịch: ${params.transactionId}
+- Mã đơn hàng: ${params.orderCode}
+- Ngày thanh toán: ${params.paidDate}
+
+Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi.
+
+Bạn có thể xem chi tiết hóa đơn tại: ${appUrl}
+
+Trân trọng,
+Đội ngũ CareHome`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #059669; margin: 0;">✅ Thanh toán thành công</h1>
+          </div>
+          <p>Xin chào <strong>${params.familyMemberName}</strong>,</p>
+          <p>Thanh toán hóa đơn chăm sóc cho <strong>${params.residentName}</strong> đã được thực hiện thành công!</p>
+          
+          <div style="background-color: #d1fae5; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #059669;">
+            <h3 style="color: #065f46; margin-top: 0;">Chi tiết thanh toán:</h3>
+            <p style="margin: 5px 0;"><strong>Số tiền:</strong> ${params.billAmount.toLocaleString('vi-VN')} VNĐ</p>
+            <p style="margin: 5px 0;"><strong>Phương thức:</strong> ${params.paymentMethod}</p>
+            <p style="margin: 5px 0;"><strong>Mã giao dịch:</strong> ${params.transactionId}</p>
+            <p style="margin: 5px 0;"><strong>Mã đơn hàng:</strong> ${params.orderCode}</p>
+            <p style="margin: 5px 0;"><strong>Ngày thanh toán:</strong> ${params.paidDate}</p>
+          </div>
+          
+          <div style="background-color: #f0f9ff; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #0c4a6e; text-align: center; font-size: 16px;">
+              <strong>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!</strong>
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${appUrl}" target="_blank" style="background-color: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Xem chi tiết hóa đơn</a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.warn(
+        `[MAIL:DRY-RUN] SMTP not configured! Payment success email would be sent to: ${params.to} | Subject: ${subject} | Family: ${params.familyMemberName}`,
+      );
+      this.logger.warn(
+        `[MAIL:DRY-RUN] To enable real email sending, configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS environment variables`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Payment success email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send payment success email', err);
+      return { error: true };
+    }
+  }
+
   async sendStaffRoomAssignmentEmail(params: {
     to: string;
     staffName: string;
