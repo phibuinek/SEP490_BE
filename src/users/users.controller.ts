@@ -924,4 +924,44 @@ export class UsersController {
       files?.cccd_back?.[0],
     );
   }
+
+  @Get('debug/email-config')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Debug email configuration' })
+  @ApiResponse({ status: 200, description: 'Email configuration info' })
+  debugEmailConfig() {
+    return {
+      smtpHost: process.env.SMTP_HOST ? '***configured***' : 'NOT_SET',
+      smtpPort: process.env.SMTP_PORT || 'NOT_SET',
+      smtpUser: process.env.SMTP_USER ? '***configured***' : 'NOT_SET',
+      smtpPass: process.env.SMTP_PASS ? '***configured***' : 'NOT_SET',
+      mailFrom: process.env.MAIL_FROM || 'NOT_SET',
+      appUrl: process.env.APP_URL || 'NOT_SET',
+      hasTransporter: !!this.usersService['mailService']['transporter'],
+    };
+  }
+
+  @Post('debug/test-email')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Test email sending' })
+  @ApiResponse({ status: 200, description: 'Test email result' })
+  async testEmail(@Body() body: { email: string; username: string }) {
+    try {
+      const result = await this.usersService['mailService'].sendAccountActivatedEmail({
+        to: body.email,
+        username: body.username,
+      });
+      return {
+        success: true,
+        result,
+        message: 'Test email sent successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        message: 'Failed to send test email'
+      };
+    }
+  }
 }
