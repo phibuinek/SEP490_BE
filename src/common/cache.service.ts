@@ -13,8 +13,9 @@ export class CacheService {
       ...(process.env.REDIS_PASSWORD && { password: process.env.REDIS_PASSWORD }),
       maxRetriesPerRequest: 3,
       lazyConnect: true,
-      connectTimeout: 10000,
-      commandTimeout: 5000,
+      // 🚀 OPTIMIZATION: Increase timeouts for better reliability
+      connectTimeout: 15000, // Increased from 10000
+      commandTimeout: 10000, // Increased from 5000
       enableReadyCheck: false,
     });
 

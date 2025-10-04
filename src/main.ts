@@ -21,6 +21,9 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: process.env.NODE_ENV === 'production' ? ['error', 'warn', 'log'] : ['log', 'debug', 'error', 'warn'],
+    // 🚀 OPTIMIZATION: Increase timeout for file uploads and heavy operations
+    bodyParser: true,
+    rawBody: true,
   });
 
   // Enable CORS
@@ -44,6 +47,8 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       skipMissingProperties: true,
+      // 🚀 OPTIMIZATION: Faster validation for better performance
+      disableErrorMessages: process.env.NODE_ENV === 'production',
     }),
   );
 

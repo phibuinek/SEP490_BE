@@ -1021,6 +1021,63 @@ export class UsersController {
     }
   }
 
+  @Get('debug/timeout-test')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Test timeout and performance' })
+  @ApiResponse({ status: 200, description: 'Timeout test results' })
+  async timeoutTest() {
+    const startTime = Date.now();
+    
+    try {
+      // Test database connection speed
+      const dbStart = Date.now();
+      const testUser = await this.usersService.findByEmail('test@example.com');
+      const dbTime = Date.now() - dbStart;
+
+      // Test cache speed
+      const cacheStart = Date.now();
+      await this.usersService['cacheService'].get('test-key');
+      const cacheTime = Date.now() - cacheStart;
+
+      const totalTime = Date.now() - startTime;
+
+      return {
+        success: true,
+        performance: {
+          totalTime: `${totalTime}ms`,
+          databaseTime: `${dbTime}ms`,
+          cacheTime: `${cacheTime}ms`,
+          environment: process.env.NODE_ENV,
+          optimizations: [
+            'Increased database timeouts',
+            'Increased Redis timeouts', 
+            'Reduced file upload size',
+            'Asynchronous email sending',
+            'Timeout middleware (60s)',
+            'Parallel validation queries'
+          ]
+        },
+        recommendations: {
+          fileSize: 'Keep under 5MB',
+          timeout: '60 seconds maximum',
+          retry: 'Try again if timeout occurs'
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        totalTime: `${Date.now() - startTime}ms`,
+        troubleshooting: [
+          'Check database connection',
+          'Check Redis connection', 
+          'Reduce file size',
+          'Check network stability'
+        ]
+      };
+    }
+  }
+
   @Get('debug/smtp-test')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Test SMTP configuration on Render' })

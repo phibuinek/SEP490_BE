@@ -90,8 +90,11 @@ export class AuthController {
         }
       },
       limits: { 
-        fileSize: 10 * 1024 * 1024, // 🚀 OPTIMIZATION: Increased to 10MB for better quality
-        files: 2 // Maximum 2 files
+        fileSize: 5 * 1024 * 1024, // 🚀 OPTIMIZATION: Reduced to 5MB for faster upload
+        files: 2, // Maximum 2 files
+        fieldSize: 1024 * 1024, // 1MB for form fields
+        fieldNameSize: 100,
+        fields: 20,
       },
     }),
   )

@@ -73,6 +73,8 @@ import { MonthlyBillingModule } from './monthly-billing/monthly-billing.module';
 import { CommonModule } from './common/common.module';
 import { CacheService } from './common/cache.service';
 import { DatabaseIndexes } from './database/indexes';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { TimeoutMiddleware } from './common/middleware/timeout.middleware';
 
 @Module({
   imports: [
@@ -129,4 +131,11 @@ import { DatabaseIndexes } from './database/indexes';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // 🚀 OPTIMIZATION: Apply timeout middleware to all routes
+    consumer
+      .apply(TimeoutMiddleware)
+      .forRoutes('*');
+  }
+}
