@@ -647,6 +647,27 @@ export class StaffAssignmentsService implements OnModuleInit {
         throw new NotFoundException('Staff assignment not found after update');
       }
 
+      // Send email notification to staff if assignment was updated
+      try {
+        const staff = updatedAssignment.staff_id as any;
+        const room = updatedAssignment.room_id as any;
+        
+        if (staff && staff.email) {
+          await this.mailService.sendStaffRoomAssignmentEmail({
+            to: staff.email,
+            staffName: staff.full_name,
+            roomNumber: room.room_number,
+            roomType: room.room_type,
+            responsibilities: updatedAssignment.responsibilities || [],
+            notes: updatedAssignment.notes || undefined,
+          });
+          console.log(`[STAFF-ASSIGNMENT] Update notification email sent to: ${staff.email}`);
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the update
+        console.error('[STAFF-ASSIGNMENT] Failed to send update notification email:', emailError);
+      }
+
       return updatedAssignment;
     } catch (error: any) {
       if (
@@ -750,9 +771,35 @@ export class StaffAssignmentsService implements OnModuleInit {
         throw new BadRequestException('Invalid assignment ID format');
       }
 
-      const assignment = await this.staffAssignmentModel.findById(id);
+      const assignment = await this.staffAssignmentModel
+        .findById(id)
+        .populate('staff_id', 'full_name email role avatar')
+        .populate('room_id', 'room_number room_type status bed_count')
+        .exec();
+        
       if (!assignment) {
         throw new NotFoundException('Staff assignment not found');
+      }
+
+      // Send email notification to staff before deletion
+      try {
+        const staff = assignment.staff_id as any;
+        const room = assignment.room_id as any;
+        
+        if (staff && staff.email) {
+          await this.mailService.sendStaffRoomAssignmentEmail({
+            to: staff.email,
+            staffName: staff.full_name,
+            roomNumber: room.room_number,
+            roomType: room.room_type,
+            responsibilities: assignment.responsibilities || [],
+            notes: `Phân công này đã bị hủy bỏ. ${assignment.notes || ''}`,
+          });
+          console.log(`[STAFF-ASSIGNMENT] Removal notification email sent to: ${staff.email}`);
+        }
+      } catch (emailError) {
+        // Log email error but don't fail the deletion
+        console.error('[STAFF-ASSIGNMENT] Failed to send removal notification email:', emailError);
       }
 
       await this.staffAssignmentModel.findByIdAndDelete(id);
