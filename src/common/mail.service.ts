@@ -17,13 +17,25 @@ export class MailService {
     this.fromAddress = process.env.MAIL_FROM || user || null;
 
     if (host && port && user && pass) {
-      this.transporter = nodemailer.createTransport({
+      // 🚀 OPTIMIZATION: Support both port 465 (SSL) and 587 (TLS)
+      const isSecure = port === 465;
+      const config: any = {
         host,
         port,
-        secure: port === 465,
+        secure: isSecure,
         auth: { user, pass },
-      });
-      this.logger.log(`Mail transporter initialized for host ${host}:${port}`);
+      };
+
+      // For port 587, add TLS configuration
+      if (port === 587) {
+        config.requireTLS = true;
+        config.tls = {
+          rejectUnauthorized: false
+        };
+      }
+
+      this.transporter = nodemailer.createTransport(config);
+      this.logger.log(`Mail transporter initialized for host ${host}:${port} (secure: ${isSecure})`);
     } else {
       this.logger.warn(
         'SMTP not configured (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS). Emails will be logged only.',
