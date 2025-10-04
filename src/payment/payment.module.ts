@@ -10,6 +10,7 @@ import { CarePlanAssignment, CarePlanAssignmentSchema } from '../care-plan-assig
 import { BedAssignment, BedAssignmentSchema } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Resident, ResidentSchema } from '../residents/schemas/resident.schema';
 import { BedAssignmentsModule } from '../bed-assignments/bed-assignments.module';
+import { MailService } from '../common/mail.service';
 
 @Module({
   imports: [
@@ -25,6 +26,6 @@ import { BedAssignmentsModule } from '../bed-assignments/bed-assignments.module'
     BedAssignmentsModule,
   ],
   controllers: [PaymentController],
-  providers: [PaymentService],
+  providers: [PaymentService, MailService],
 })
 export class PaymentModule {}

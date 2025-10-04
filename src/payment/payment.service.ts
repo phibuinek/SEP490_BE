@@ -13,6 +13,7 @@ import { CarePlanAssignment } from '../care-plan-assignments/schemas/care-plan-a
 import { BedAssignment } from '../bed-assignments/schemas/bed-assignment.schema';
 import { Resident } from '../residents/schemas/resident.schema';
 import { BedAssignmentsService } from '../bed-assignments/bed-assignments.service';
+import { MailService } from '../common/mail.service';
 
 @Injectable()
 export class PaymentService {
@@ -30,6 +31,7 @@ export class PaymentService {
     @InjectModel(Resident.name) private residentModel: Model<Resident>,
     private readonly careplanService: CarePlansService,
     private readonly bedAssignmentsService: BedAssignmentsService,
+    private readonly mailService: MailService,
   ) {}
 
   async createPaymentLink(createPaymentDto: CreatePaymentDto) {
@@ -305,6 +307,13 @@ export class PaymentService {
       // Khi payment thành công, cập nhật status của các entities liên quan
       if (status === 'paid') {
         await this.updateRelatedEntitiesStatus(updatedBill);
+        
+        // Gửi email thông báo thanh toán thành công cho family member
+        try {
+          await this.sendPaymentSuccessNotification(updatedBill);
+        } catch (emailError) {
+          console.error('[PAYMENT] Failed to send payment success email:', emailError);
+        }
 
         // Bổ sung: chuyển care plan assignment và bed assignment sang completed/active tùy theo admission_date
         try {
@@ -575,6 +584,55 @@ export class PaymentService {
     } catch (error) {
       console.error('Error getting payment stats:', error);
       throw new BadRequestException('Không thể lấy thống kê thanh toán');
+    }
+  }
+
+  private async sendPaymentSuccessNotification(bill: any) {
+    try {
+      // Lấy thông tin family member và resident
+      const populatedBill = await this.billModel
+        .findById(bill._id)
+        .populate('family_member_id', 'full_name email')
+        .populate('resident_id', 'full_name')
+        .exec();
+
+      if (!populatedBill) {
+        console.error('[PAYMENT] Bill not found for email notification');
+        return;
+      }
+
+      const familyMember = populatedBill.family_member_id as any;
+      const resident = populatedBill.resident_id as any;
+
+      if (!familyMember || !familyMember.email) {
+        console.log('[PAYMENT] No family member email found for bill:', bill._id);
+        return;
+      }
+
+      // Lấy thông tin payment gần nhất
+      const latestPayment = await this.paymentModel
+        .findOne({ bill_id: bill._id })
+        .sort({ createdAt: -1 })
+        .exec();
+
+      const paymentMethod = latestPayment?.payment_method || 'QR Payment';
+      const transactionId = latestPayment?.transaction_id || bill.order_code || 'N/A';
+      const paidDate = bill.paid_date ? new Date(bill.paid_date).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+
+      await this.mailService.sendPaymentSuccessEmail({
+        to: familyMember.email,
+        familyMemberName: familyMember.full_name,
+        residentName: resident?.full_name || 'Cư dân',
+        billAmount: bill.amount,
+        paymentMethod: paymentMethod,
+        transactionId: transactionId,
+        paidDate: paidDate,
+        orderCode: bill.order_code || 'N/A',
+      });
+
+      console.log(`[PAYMENT] Payment success email sent to: ${familyMember.email}`);
+    } catch (error) {
+      console.error('[PAYMENT] Error sending payment success notification:', error);
     }
   }
 }
