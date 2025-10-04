@@ -489,6 +489,116 @@ Trân trọng,
     }
   }
 
+  async sendDischargeNotificationEmail(params: {
+    to: string;
+    familyName: string;
+    residentName: string;
+    statusText: string;
+    reason: string;
+    dischargeDate: Date;
+  }) {
+    const from =
+      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const subject = `Thông báo ${params.statusText} - Viện dưỡng lão CareHome`;
+    
+    const dischargeDateFormatted = params.dischargeDate.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    const text = `Xin chào ${params.familyName},
+
+Chúng tôi xin thông báo về tình trạng của ${params.residentName}:
+
+Trạng thái: ${params.statusText}
+Lý do: ${params.reason}
+Thời gian: ${dischargeDateFormatted}
+
+${params.statusText === 'xuất viện' 
+  ? 'Chúng tôi chúc mừng và hy vọng ${params.residentName} sẽ có sức khỏe tốt khi về nhà.'
+  : 'Chúng tôi xin chia buồn cùng gia đình và cầu nguyện cho linh hồn ${params.residentName} được yên nghỉ.'
+}
+
+Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi.
+
+Bạn có thể xem chi tiết tại: ${appUrl}
+
+Trân trọng,
+Đội ngũ CareHome`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: ${params.statusText === 'xuất viện' ? '#059669' : '#dc2626'}; margin: 0;">
+              ${params.statusText === 'xuất viện' ? '🏥' : '🕊️'} Thông báo ${params.statusText}
+            </h1>
+          </div>
+          <p>Xin chào <strong>${params.familyName}</strong>,</p>
+          <p>Chúng tôi xin thông báo về tình trạng của <strong>${params.residentName}</strong>:</p>
+          
+          <div style="background-color: ${params.statusText === 'xuất viện' ? '#d1fae5' : '#fee2e2'}; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ${params.statusText === 'xuất viện' ? '#059669' : '#dc2626'};">
+            <h3 style="color: ${params.statusText === 'xuất viện' ? '#065f46' : '#991b1b'}; margin-top: 0;">Chi tiết thông báo:</h3>
+            <p style="margin: 5px 0;"><strong>Trạng thái:</strong> ${params.statusText}</p>
+            <p style="margin: 5px 0;"><strong>Lý do:</strong> ${params.reason}</p>
+            <p style="margin: 5px 0;"><strong>Thời gian:</strong> ${dischargeDateFormatted}</p>
+          </div>
+          
+          <div style="background-color: #f0f9ff; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #0c4a6e; text-align: center; font-size: 16px;">
+              <strong>${params.statusText === 'xuất viện' 
+                ? `Chúng tôi chúc mừng và hy vọng ${params.residentName} sẽ có sức khỏe tốt khi về nhà.`
+                : `Chúng tôi xin chia buồn cùng gia đình và cầu nguyện cho linh hồn ${params.residentName} được yên nghỉ.`
+              }</strong>
+            </p>
+          </div>
+          
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <p style="margin: 0; color: #92400e; text-align: center;">
+              <strong>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi.</strong>
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${appUrl}" target="_blank" style="background-color: ${params.statusText === 'xuất viện' ? '#059669' : '#dc2626'}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Xem chi tiết</a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
+        </div>
+      </div>
+    `;
+
+    if (!this.transporter) {
+      this.logger.warn(
+        `[MAIL:DRY-RUN] SMTP not configured! Discharge notification email would be sent to: ${params.to} | Subject: ${subject} | Family: ${params.familyName}`,
+      );
+      this.logger.warn(
+        `[MAIL:DRY-RUN] To enable real email sending, configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS environment variables`,
+      );
+      return { mocked: true };
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: this.fromAddress || undefined,
+        to: params.to,
+        subject,
+        text,
+        html,
+      });
+      this.logger.log(`Discharge notification email sent: ${info.messageId}`);
+      return info;
+    } catch (err) {
+      this.logger.error('Failed to send discharge notification email', err);
+      return { error: true };
+    }
+  }
+
   async sendStaffRoomAssignmentEmail(params: {
     to: string;
     staffName: string;
@@ -637,102 +747,6 @@ Trân trọng,
       return info;
     } catch (err) {
       this.logger.error('Failed to send monthly bill email', err);
-      return { error: true };
-    }
-  }
-
-  async sendDischargeNotificationEmail(params: {
-    to: string;
-    familyName: string;
-    residentName: string;
-    statusText: string;
-    reason: string;
-    dischargeDate: Date;
-  }) {
-    const from =
-      process.env.MAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    const subject = `Thông báo ${params.statusText} - ${params.residentName}`;
-    
-    const dischargeDateFormatted = params.dischargeDate.toLocaleDateString('vi-VN', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    const text = `
-Thông báo ${params.statusText}
-
-Xin chào ${params.familyName},
-
-Chúng tôi thông báo rằng cư dân ${params.residentName} đã ${params.statusText} vào ngày ${dischargeDateFormatted}.
-
-Lý do: ${params.reason}
-
-Trân trọng,
-Đội ngũ CareHome
-    `;
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa;">
-        <div style="background-color: #2c3e50; color: white; padding: 20px; text-align: center;">
-          <h1 style="margin: 0; font-size: 24px;">Thông báo ${params.statusText}</h1>
-        </div>
-        
-        <div style="padding: 30px; background-color: white;">
-          <p style="font-size: 16px; color: #2c3e50;">Xin chào <strong>${params.familyName}</strong>,</p>
-          
-          <p style="font-size: 16px; line-height: 1.6; color: #34495e;">
-            Chúng tôi thông báo rằng cư dân <strong>${params.residentName}</strong> đã ${params.statusText} vào ngày <strong>${dischargeDateFormatted}</strong>.
-          </p>
-          
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #${params.statusText === 'xuất viện' ? '28a745' : 'dc3545'};">
-            <h3 style="color: #2c3e50; margin-top: 0;">Lý do ${params.statusText}:</h3>
-            <p style="margin: 5px 0; color: #34495e; font-style: italic;">"${params.reason}"</p>
-          </div>
-          
-          ${params.statusText === 'xuất viện' ? `
-          <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
-            <p style="margin: 0; color: #155724;"><strong>Lưu ý:</strong> Cư dân đã hoàn thành quá trình chăm sóc và có thể về nhà. Chúng tôi chúc gia đình sức khỏe và hạnh phúc.</p>
-          </div>
-          ` : `
-          <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
-            <p style="margin: 0; color: #721c24;"><strong>Lời chia buồn:</strong> Chúng tôi xin gửi lời chia buồn sâu sắc đến gia đình. Cư dân đã được chăm sóc tận tình trong thời gian qua.</p>
-          </div>
-          `}
-          
-          <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0; color: #2c3e50;"><strong>Thông tin liên hệ:</strong> Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua hệ thống CareHome hoặc hotline hỗ trợ.</p>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
-          <p style="color: #6c757d; font-size: 14px;">Trân trọng,<br>Đội ngũ CareHome</p>
-        </div>
-      </div>
-    `;
-
-    if (!this.transporter) {
-      this.logger.log(
-        `[MAIL:DRY-RUN] To: ${params.to} | Subject: ${subject} | Family: ${params.familyName} | Resident: ${params.residentName} | Status: ${params.statusText}`,
-      );
-      return { mocked: true };
-    }
-
-    try {
-      const info = await this.transporter.sendMail({
-        from: this.fromAddress || undefined,
-        to: params.to,
-        subject,
-        text,
-        html,
-      });
-      this.logger.log(`Discharge notification email sent: ${info.messageId}`);
-      return info;
-    } catch (err) {
-      this.logger.error('Failed to send discharge notification email', err);
       return { error: true };
     }
   }
