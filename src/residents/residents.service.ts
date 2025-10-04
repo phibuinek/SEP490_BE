@@ -1582,12 +1582,13 @@ export class ResidentsService {
     }
   }
 
-  // Discharge resident (discharged or deceased)
+  // Discharge resident (discharged or deceased) - Optimized version
   async dischargeResident(residentId: string, dischargeData: { status: ResidentStatus.DISCHARGED | ResidentStatus.DECEASED; reason: string }): Promise<Resident> {
     try {
-      // Find the resident
+      // Find the resident with minimal data first
       const resident = await this.residentModel
         .findOne({ _id: residentId, is_deleted: false })
+        .select('status family_member_id full_name')
         .populate('family_member_id', 'name email phone')
         .exec();
 
@@ -1600,47 +1601,57 @@ export class ResidentsService {
         throw new BadRequestException('Only admitted residents can be discharged');
       }
 
-      // Update resident status and discharge date
       const dischargeDate = new Date(new Date().getTime() + 7 * 60 * 60 * 1000); // Vietnam timezone
-      resident.status = dischargeData.status;
-      resident.discharge_date = dischargeDate;
-      resident.updated_at = dischargeDate;
-      resident.is_deleted = true;
-      resident.deleted_at = dischargeDate;
-      resident.deleted_reason = dischargeData.reason;
 
-      // Save the updated resident
-      await resident.save();
+      // Parallel operations for better performance
+      const [bedAssignments, carePlanAssignments] = await Promise.all([
+        this.bedAssignmentModel.find({
+          resident_id: residentId,
+          status: 'active'
+        }).select('_id bed_id'),
+        this.getCarePlanAssignments(residentId)
+      ]);
 
-      // Update related bed assignments using the service
-      const bedAssignments = await this.bedAssignmentModel.find({
-        resident_id: residentId,
-        status: 'active'
-      });
+      // Update resident status in one operation
+      const updatedResident = await this.residentModel.findByIdAndUpdate(
+        residentId,
+        {
+          status: dischargeData.status,
+          discharge_date: dischargeDate,
+          updated_at: dischargeDate,
+          is_deleted: true,
+          deleted_at: dischargeDate,
+          deleted_reason: dischargeData.reason
+        },
+        { new: true }
+      );
 
-      for (const bedAssignment of bedAssignments) {
-        await this.bedAssignmentModel.findByIdAndUpdate(
-          bedAssignment._id,
+      // Batch update bed assignments
+      if (bedAssignments.length > 0) {
+        const bedAssignmentIds = bedAssignments.map(ba => ba._id);
+        await this.bedAssignmentModel.updateMany(
+          { _id: { $in: bedAssignmentIds } },
           { 
             status: 'discharged',
             unassigned_date: dischargeDate
           }
         );
-        // Update bed and room status
-        await this.updateBedAndRoomStatus(bedAssignment.bed_id);
+
+        // Update bed and room status in parallel
+        const bedUpdatePromises = bedAssignments.map(bedAssignment => 
+          this.updateBedAndRoomStatus(bedAssignment.bed_id)
+        );
+        await Promise.all(bedUpdatePromises);
       }
 
-      // Update related care plan assignments using the service
-      const { CarePlanAssignment, CarePlanAssignmentSchema } = await import('../care-plan-assignments/schemas/care-plan-assignment.schema');
-      const carePlanAssignmentModel = this.residentModel.db.model('CarePlanAssignment', CarePlanAssignmentSchema);
-      const carePlanAssignments = await carePlanAssignmentModel.find({
-        resident_id: residentId,
-        status: 'active'
-      });
-
-      for (const carePlanAssignment of carePlanAssignments) {
-        await carePlanAssignmentModel.findByIdAndUpdate(
-          carePlanAssignment._id,
+      // Batch update care plan assignments
+      if (carePlanAssignments.length > 0) {
+        const carePlanAssignmentIds = carePlanAssignments.map(cpa => cpa._id);
+        const { CarePlanAssignment, CarePlanAssignmentSchema } = await import('../care-plan-assignments/schemas/care-plan-assignment.schema');
+        const carePlanAssignmentModel = this.residentModel.db.model('CarePlanAssignment', CarePlanAssignmentSchema);
+        
+        await carePlanAssignmentModel.updateMany(
+          { _id: { $in: carePlanAssignmentIds } },
           { 
             status: 'cancelled',
             end_date: dischargeDate,
@@ -1649,27 +1660,50 @@ export class ResidentsService {
         );
       }
 
-      // Send email notification to family member
-      if (resident.family_member_id && typeof resident.family_member_id === 'object' && 'email' in resident.family_member_id) {
-        const familyMember = resident.family_member_id as any;
-        const statusText = dischargeData.status === ResidentStatus.DISCHARGED ? 'xuất viện' : 'qua đời';
-        
-        await this.mailService.sendDischargeNotificationEmail({
-          to: familyMember.email,
-          familyName: familyMember.name,
-          residentName: resident.full_name,
-          statusText: statusText,
-          reason: dischargeData.reason,
-          dischargeDate: dischargeDate
-        });
-      }
+      // Send email notification asynchronously (don't wait)
+      setImmediate(async () => {
+        try {
+          if (resident.family_member_id && typeof resident.family_member_id === 'object' && 'email' in resident.family_member_id) {
+            const familyMember = resident.family_member_id as any;
+            const statusText = dischargeData.status === ResidentStatus.DISCHARGED ? 'xuất viện' : 'qua đời';
+            
+            await this.mailService.sendDischargeNotificationEmail({
+              to: familyMember.email,
+              familyName: familyMember.name,
+              residentName: resident.full_name,
+              statusText: statusText,
+              reason: dischargeData.reason,
+              dischargeDate: dischargeDate
+            });
+            console.log(`[DISCHARGE] Email sent to: ${familyMember.email}`);
+          }
+        } catch (emailError) {
+          console.error('[DISCHARGE] Failed to send email:', emailError);
+        }
+      });
 
-      return resident;
+      return updatedResident!;
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
       throw new BadRequestException(`Failed to discharge resident: ${error.message}`);
+    }
+  }
+
+  // Helper method to get care plan assignments
+  private async getCarePlanAssignments(residentId: string) {
+    try {
+      const { CarePlanAssignment, CarePlanAssignmentSchema } = await import('../care-plan-assignments/schemas/care-plan-assignment.schema');
+      const carePlanAssignmentModel = this.residentModel.db.model('CarePlanAssignment', CarePlanAssignmentSchema);
+      
+      return await carePlanAssignmentModel.find({
+        resident_id: residentId,
+        status: 'active'
+      }).select('_id');
+    } catch (error) {
+      console.error('Error getting care plan assignments:', error);
+      return [];
     }
   }
 
