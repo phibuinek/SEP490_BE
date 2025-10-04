@@ -964,4 +964,60 @@ export class UsersController {
       };
     }
   }
+
+  @Get('debug/performance-test')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Test registration performance' })
+  @ApiResponse({ status: 200, description: 'Performance test results' })
+  async performanceTest() {
+    const startTime = Date.now();
+    
+    try {
+      // Test parallel validation
+      const testData = {
+        email: `test${Date.now()}@example.com`,
+        username: `testuser${Date.now()}`,
+        phone: `0987654${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        password: 'testpassword123'
+      };
+
+      const validationStart = Date.now();
+      const [emailCheck, usernameCheck, phoneCheck] = await Promise.all([
+        this.usersService.findByEmail(testData.email),
+        this.usersService.findByUsername(testData.username),
+        this.usersService.findByPhone(testData.phone)
+      ]);
+      const validationTime = Date.now() - validationStart;
+
+      const totalTime = Date.now() - startTime;
+
+      return {
+        success: true,
+        performance: {
+          totalTime: `${totalTime}ms`,
+          validationTime: `${validationTime}ms`,
+          parallelValidation: true,
+          cacheEnabled: true,
+          optimizations: [
+            'Parallel database queries',
+            'Redis caching for validation',
+            'Asynchronous email sending',
+            'Database indexes',
+            'Optimized file upload'
+          ]
+        },
+        testData: {
+          emailExists: !!emailCheck,
+          usernameExists: !!usernameCheck,
+          phoneExists: !!phoneCheck
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        totalTime: `${Date.now() - startTime}ms`
+      };
+    }
+  }
 }

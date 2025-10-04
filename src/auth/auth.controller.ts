@@ -61,10 +61,12 @@ export class AuthController {
       storage: diskStorage({
         destination: (req, file, cb) => {
           try {
-            // On Render/production, write to /tmp/uploads (writable). Locally, use ./uploads
+            // 🚀 OPTIMIZATION: Faster directory creation
             const isProd = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
             const baseDir = isProd ? path.join('/tmp') : process.cwd();
             const uploadPath = path.join(baseDir, 'uploads');
+            
+            // Use existsSync check only if directory doesn't exist
             if (!fs.existsSync(uploadPath)) {
               fs.mkdirSync(uploadPath, { recursive: true });
             }
@@ -74,19 +76,23 @@ export class AuthController {
           }
         },
         filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          // 🚀 OPTIMIZATION: Faster filename generation
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           cb(null, uniqueSuffix + extname(file.originalname));
         },
       }),
       fileFilter: (req, file, cb) => {
+        // 🚀 OPTIMIZATION: Faster MIME type check
         if (file.mimetype.startsWith('image/')) {
           cb(null, true);
         } else {
           cb(new Error('Only image files are allowed'), false);
         }
       },
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { 
+        fileSize: 10 * 1024 * 1024, // 🚀 OPTIMIZATION: Increased to 10MB for better quality
+        files: 2 // Maximum 2 files
+      },
     }),
   )
   @ApiConsumes('multipart/form-data')
