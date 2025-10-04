@@ -352,7 +352,7 @@ export class BillsService {
     const bill = await this.billModel
       .findById(id)
       .populate('family_member_id', 'full_name email')
-      .populate('resident_id', 'full_name')
+      .populate('resident_id', 'full_name admission_date')
       .populate('staff_id', 'full_name')
       .populate({
         path: 'care_plan_assignment_id',
@@ -464,10 +464,13 @@ export class BillsService {
     if (!Types.ObjectId.isValid(family_member_id)) {
       throw new BadRequestException('Invalid family member ID format');
     }
-    return this.billModel
+    
+    console.log('[BillsService] findByFamilyMemberId called with:', family_member_id);
+    
+    const bills = await this.billModel
       .find({ family_member_id: new Types.ObjectId(family_member_id) })
       .populate('family_member_id', 'full_name email')
-      .populate('resident_id', 'full_name')
+      .populate('resident_id', 'full_name admission_date')
       .populate('staff_id', 'full_name')
       .populate({
         path: 'care_plan_assignment_id',
@@ -492,6 +495,13 @@ export class BillsService {
       })
       .sort({ due_date: -1 })
       .exec();
+      
+    console.log('[BillsService] Found bills:', bills.length);
+    if (bills.length > 0) {
+      console.log('[BillsService] First bill resident_id:', bills[0].resident_id);
+    }
+    
+    return bills;
   }
 
   async findByStaffId(staffId: string): Promise<Bill[]> {
