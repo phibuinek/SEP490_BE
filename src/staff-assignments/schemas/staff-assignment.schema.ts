@@ -52,3 +52,9 @@ export const StaffAssignmentSchema =
 
 // Create compound index to ensure unique staff-room assignments
 StaffAssignmentSchema.index({ staff_id: 1, room_id: 1 }, { unique: true });
+
+// Add performance indexes
+StaffAssignmentSchema.index({ staff_id: 1, status: 1 }); // For finding active assignments by staff
+StaffAssignmentSchema.index({ status: 1 }); // For finding assignments by status
+StaffAssignmentSchema.index({ assigned_date: 1 }); // For date-based queries
+StaffAssignmentSchema.index({ created_at: 1 }); // For creation time queries
